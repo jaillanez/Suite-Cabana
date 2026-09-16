@@ -1,0 +1,38 @@
+services:
+  db:
+    image: postgis/postgis:16-3.4
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-suite}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-suite}
+      POSTGRES_DB: ${POSTGRES_DB:-suite_cabana}
+    ports: ["5432:5432"]
+    volumes: [pgdata:/var/lib/postgresql/data]
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-suite}"]
+      interval: 5s
+      retries: 10
+
+  redis:
+    image: redis:7-alpine
+    ports: ["6379:6379"]
+
+  backend:
+    build: ./backend
+    env_file: .env
+    environment:
+      DATABASE_URL: postgresql+psycopg://${POSTGRES_USER:-suite}:${POSTGRES_PASSWORD:-suite}@db:5432/${POSTGRES_DB:-suite_cabana}
+    ports: ["8000:8000"]
+    depends_on:
+      db: {condition: service_healthy}
+    volumes: [./backend:/app]
+    command: sh -c "alembic upgrade head && uvicorn app.main:app --host 0.0.0.0 --reload"
+
+  frontend:
+    build: ./frontend
+    environment:
+      NEXT_PUBLIC_API_URL: http://localhost:8000/api/v1
+    ports: ["3000:3000"]
+    depends_on: [backend]
+
+volumes:
+  pgdata:

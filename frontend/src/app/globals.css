@@ -1,0 +1,23 @@
+:root {
+  --noche: #16211c;
+  --monte: #3e5a4c;
+  --ojo: #c08a1e;
+  --piedra: #e7eae3;
+  --blanco: #fbfcfa;
+  --borde: #c9d0c6;
+  --radio: 10px;
+}
+
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  color: var(--noche);
+  background: var(--piedra);
+  line-height: 1.5;
+}
+
+a { color: inherit; }
+
+:focus-visible { outline: 3px solid var(--ojo); outline-offset: 2px; }
