@@ -15,13 +15,13 @@ Decisiones que conviene tener a la vista:
 
 from __future__ import annotations
 
-from datetime import UTC, datetime
+from datetime import UTC, datetime, timedelta
 from typing import Annotated
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException, status
 from pydantic import BaseModel, EmailStr, Field
-from sqlalchemy import select
+from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
 from app.api.deps import prestador_actual, usuario_actual
@@ -34,7 +34,8 @@ from app.core.security import (
     leer_token,
     verificar_password,
 )
-from app.models import Prestador, Usuario
+from app.models import Notificacion, Prestador, Usuario
+from app.models.enums import CanalNotificacion, EstadoNotificacion
 from app.services import cuenta_cobro, google
 from app.services.notificaciones.base import ErrorDeEnvio, Mensaje
 from app.services.notificaciones.correo import CorreoSMTP
@@ -154,11 +155,18 @@ def _sesion(usuario: Usuario) -> Sesion:
     )
 
 
-def _enlace_verificacion(usuario: Usuario) -> VerificacionPedida:
+#: Entre un correo de verificación y el siguiente a la misma cuenta.
+ESPERA_VERIFICACION = timedelta(minutes=2)
+EVENTO_VERIFICACION = "verificacion_email"
+
+
+def _enlace_verificacion(usuario: Usuario, db: Session) -> VerificacionPedida:
     """Manda el enlace de verificación por correo.
 
     Va directo y no por el buzón: quien lo pide está esperando en la pantalla, y
-    sin el correo verificado no puede reservar.
+    sin el correo verificado no puede reservar. Cada envío queda registrado en
+    el buzón, y entre dos envíos a la misma cuenta tiene que pasar un rato: si
+    no, el endpoint serviría para inundar una casilla.
     """
     s = get_settings()
     token = crear_token(
@@ -178,27 +186,56 @@ def _enlace_verificacion(usuario: Usuario) -> VerificacionPedida:
             enviado=False,
             detalle="Todavía no podemos mandar correos. Probá de nuevo más tarde.",
         )
+    ultimo = db.scalar(
+        select(func.max(Notificacion.creado_en)).where(
+            Notificacion.usuario_id == usuario.id,
+            Notificacion.evento == EVENTO_VERIFICACION,
+        )
+    )
+    if ultimo is not None and datetime.now(ultimo.tzinfo) - ultimo < ESPERA_VERIFICACION:
+        return VerificacionPedida(
+            enviado=False,
+            detalle="Ya te mandamos un enlace hace un momento. Esperá un par de minutos.",
+        )
+
     enlace = f"{s.url_publica_web.rstrip('/')}{ruta}"
     horas = s.minutos_token_verificacion // 60
-    try:
-        canal.enviar(
-            Mensaje(
-                destino=usuario.email,
-                asunto="Confirmá tu correo",
-                cuerpo=(
+    mensaje = Mensaje(
+        destino=usuario.email,
+        asunto="Confirmá tu correo",
+        cuerpo=(
                     f"Hola, {usuario.nombre}:\n\n"
                     "Para terminar de crear tu cuenta y poder reservar, confirmá tu "
                     f"correo con este enlace:\n\n{enlace}\n\n"
                     f"Vale por {horas} horas. Si no creaste una cuenta, ignorá este "
                     "mensaje.\n"
-                ),
-            )
-        )
-    except ErrorDeEnvio:
+        ),
+    )
+    # El registro no guarda el enlace: es una credencial para entrar a verificar.
+    registro = Notificacion(
+        usuario_id=usuario.id,
+        canal=CanalNotificacion.EMAIL,
+        evento=EVENTO_VERIFICACION,
+        destino=usuario.email,
+        asunto=mensaje.asunto,
+        cuerpo="(enlace de verificación, no se guarda)",
+        estado=EstadoNotificacion.PENDIENTE,
+        datos={},
+    )
+    db.add(registro)
+    try:
+        canal.enviar(mensaje)
+    except ErrorDeEnvio as e:
+        registro.estado = EstadoNotificacion.FALLIDA
+        registro.error = str(e)
+        db.commit()
         return VerificacionPedida(
             enviado=False,
             detalle="No pudimos mandarte el correo. Probá de nuevo en un rato.",
         )
+    registro.estado = EstadoNotificacion.ENVIADA
+    registro.enviada_en = datetime.now(UTC)
+    db.commit()
     return VerificacionPedida(
         enviado=True,
         detalle=f"Te mandamos un enlace a {usuario.email}. Revisá también el spam.",
@@ -230,7 +267,7 @@ def registro(datos: Registro, db: Session = Depends(get_db)) -> Sesion:
     db.commit()
     # Si el correo no sale, la cuenta igual queda creada: se puede pedir de nuevo
     # desde Mi cuenta.
-    _enlace_verificacion(usuario)
+    _enlace_verificacion(usuario, db)
     return _sesion(usuario)
 
 
@@ -318,10 +355,12 @@ def yo(usuario: Usuario = Depends(usuario_actual), db: Session = Depends(get_db)
 
 
 @router.post("/verificacion", response_model=VerificacionPedida)
-def pedir_verificacion(usuario: Usuario = Depends(usuario_actual)) -> VerificacionPedida:
+def pedir_verificacion(
+    usuario: Usuario = Depends(usuario_actual), db: Session = Depends(get_db)
+) -> VerificacionPedida:
     if usuario.email_verificado:
         return VerificacionPedida(enviado=False, detalle="Tu correo ya está verificado")
-    return _enlace_verificacion(usuario)
+    return _enlace_verificacion(usuario, db)
 
 
 class ConfirmacionEmail(BaseModel):

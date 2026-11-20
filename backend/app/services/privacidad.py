@@ -8,6 +8,8 @@ el mismo punto, así que pedir la ficha muchas veces y promediar no lo revela.
 
 from __future__ import annotations
 
+import math
+
 from app.models.enums import EstadoReserva
 
 DECIMALES_PUBLICOS = 2
@@ -18,3 +20,18 @@ ESTADOS_CON_DIRECCION = (EstadoReserva.CONFIRMADA, EstadoReserva.COMPLETADA)
 
 def aproximar(valor: float | None) -> float | None:
     return None if valor is None else round(valor, DECIMALES_PUBLICOS)
+
+
+def distancia_publica(km: float | None) -> float | None:
+    """La distancia al punto exacto, en kilómetros enteros (mínimo 1).
+
+    Con decimales, pedir la búsqueda desde tres lugares alcanzaría para
+    triangular la casa, aunque el punto que se muestra esté redondeado.
+    """
+    return None if km is None else float(max(1, round(km)))
+
+
+def radio_publico(km: float) -> float:
+    """El radio del filtro, en kilómetros enteros: con decimales, achicarlo de a
+    poco hasta que el alojamiento sale de la lista daría su distancia exacta."""
+    return float(max(1, math.ceil(km)))

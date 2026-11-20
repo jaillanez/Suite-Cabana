@@ -241,8 +241,20 @@ def test_al_registrarse_se_manda_el_enlace_de_verificacion(cliente, smtp_falso):
     assert "https://alojateaqui.com.ar/verificar-email?token=" in mensaje.cuerpo
 
 
-def test_pedir_verificacion_manda_el_correo_y_no_devuelve_el_enlace(cliente, smtp_falso):
+def _pasar_la_espera(db):
+    """Corre hacia atrás los envíos registrados, como si hubiera pasado el rato."""
+    from datetime import timedelta
+
+    from app.models import Notificacion
+
+    for n in db.query(Notificacion).filter(Notificacion.evento == "verificacion_email"):
+        n.creado_en = n.creado_en - timedelta(minutes=5)
+    db.commit()
+
+
+def test_pedir_verificacion_manda_el_correo_y_no_devuelve_el_enlace(cliente, db, smtp_falso):
     token = registrar(cliente)
+    _pasar_la_espera(db)
     r = cliente.post("/api/v1/auth/verificacion", headers=encabezado(token))
     cuerpo = r.json()
     assert cuerpo["enviado"] is True
@@ -256,7 +268,7 @@ def test_pedir_verificacion_manda_el_correo_y_no_devuelve_el_enlace(cliente, smt
     assert r.json()["email_verificado"] is True
 
 
-def test_si_el_correo_no_sale_la_cuenta_igual_se_crea(cliente, monkeypatch, smtp_falso):
+def test_si_el_correo_no_sale_la_cuenta_igual_se_crea(cliente, db, monkeypatch, smtp_falso):
     from app.services.notificaciones import correo
     from app.services.notificaciones.base import ErrorDeEnvio
 
@@ -265,6 +277,25 @@ def test_si_el_correo_no_sale_la_cuenta_igual_se_crea(cliente, monkeypatch, smtp
 
     monkeypatch.setattr(correo.CorreoSMTP, "enviar", falla)
     token = registrar(cliente)
+    _pasar_la_espera(db)
     r = cliente.post("/api/v1/auth/verificacion", headers=encabezado(token))
     assert r.json()["enviado"] is False
     assert "No pudimos" in r.json()["detalle"]
+
+
+def test_no_se_puede_pedir_el_correo_en_bucle(cliente, smtp_falso):
+    token = registrar(cliente)  # el registro ya mandó uno
+    for _ in range(3):
+        r = cliente.post("/api/v1/auth/verificacion", headers=encabezado(token))
+        assert r.json()["enviado"] is False
+        assert "Esperá" in r.json()["detalle"]
+    assert len(smtp_falso) == 1
+
+
+def test_el_registro_del_envio_no_guarda_el_enlace(cliente, db, smtp_falso):
+    from app.models import Notificacion
+
+    registrar(cliente)
+    n = db.query(Notificacion).filter(Notificacion.evento == "verificacion_email").one()
+    assert n.estado.value == "enviada"
+    assert "token=" not in n.cuerpo

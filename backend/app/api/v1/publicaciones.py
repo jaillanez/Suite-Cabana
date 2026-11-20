@@ -22,7 +22,7 @@ from app.models import Comodidad, Localidad, Provincia, Publicacion, SubtipoServ
 from app.models.enums import EstadoPublicacion
 from app.services import busqueda, precios
 from app.services import publicaciones as fichas
-from app.services.privacidad import aproximar
+from app.services.privacidad import aproximar, distancia_publica, radio_publico
 
 router = APIRouter(tags=["publicaciones"])
 
@@ -191,7 +191,7 @@ def buscar(
         localidad=localidad,
         lat=lat,
         lon=lon,
-        radio_km=radio_km,
+        radio_km=radio_publico(radio_km),
         precio_min=precio_min,
         precio_max=precio_max,
         subtipos=tuple(subtipo or ()),
@@ -240,7 +240,7 @@ def buscar(
                 confirmacion_inmediata=r.confirmacion_inmediata,
                 lat=aproximar(r.lat),
                 lon=aproximar(r.lon),
-                distancia_km=r.distancia_km,
+                distancia_km=distancia_publica(r.distancia_km),
                 fotos=[FotoOut(**f) for f in r.fotos],
                 comodidades=r.comodidades,
                 unidades_disponibles=r.unidades_disponibles,

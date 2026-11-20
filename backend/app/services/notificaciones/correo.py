@@ -63,7 +63,7 @@ class CorreoSMTP(Canal):
         correo.set_content(mensaje.cuerpo)
 
         try:
-            with smtplib.SMTP(s.smtp_host, s.smtp_puerto, timeout=20) as servidor:
+            with smtplib.SMTP(s.smtp_host, s.smtp_puerto, timeout=10) as servidor:
                 if s.smtp_tls:
                     servidor.starttls()
                 if s.smtp_usuario:

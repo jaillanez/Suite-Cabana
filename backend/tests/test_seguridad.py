@@ -187,3 +187,22 @@ def test_los_resultados_de_busqueda_muestran_el_punto_aproximado(cliente, oferta
     assert r["resultados"]
     for x in r["resultados"]:
         assert x["lat"] == round(x["lat"], 2) and x["lon"] == round(x["lon"], 2)
+
+
+def test_la_distancia_publica_va_en_kilometros_enteros(cliente, oferta):
+    from tests.test_api_reservas import FECHAS
+
+    r = cliente.get(
+        "/api/v1/publicaciones/buscar",
+        params={"lat": -41.1, "lon": -71.3, "radio_km": 49.37, **FECHAS, "personas": 2},
+    ).json()
+    assert r["resultados"]
+    for x in r["resultados"]:
+        assert x["distancia_km"] == int(x["distancia_km"]) and x["distancia_km"] >= 1
+
+
+def test_el_radio_se_redondea_a_kilometros():
+    from app.services.privacidad import distancia_publica, radio_publico
+
+    assert radio_publico(0.3) == 1 and radio_publico(2.01) == 3
+    assert distancia_publica(0.2) == 1 and distancia_publica(7.6) == 8
