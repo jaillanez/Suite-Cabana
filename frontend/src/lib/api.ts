@@ -165,7 +165,7 @@ export type Ficha = {
   localidad_slug: string;
   zona: string | null;
   provincia: string;
-  direccion: string | null;
+  /** Aproximadas (~1 km). La dirección y el punto exacto llegan con la reserva. */
   lat: number | null;
   lon: number | null;
   hora_ingreso: string | null;
@@ -628,6 +628,10 @@ export type ItemReserva = {
   desglose: Record<string, unknown>;
   comision: ComisionReserva | null;
   fotos: { url: string; descripcion: string | null }[];
+  /** Solo con la reserva confirmada. */
+  direccion: string | null;
+  lat: number | null;
+  lon: number | null;
 };
 
 export type Reserva = {

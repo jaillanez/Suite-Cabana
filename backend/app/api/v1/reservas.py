@@ -22,7 +22,7 @@ from fastapi import APIRouter, Depends, HTTPException, Request, status
 from pydantic import BaseModel, Field
 from sqlalchemy import select
 from sqlalchemy.exc import IntegrityError
-from sqlalchemy.orm import Session, selectinload
+from sqlalchemy.orm import Session, object_session, selectinload
 
 from app.api.deps import con_email_verificado, prestador_actual, usuario_actual
 from app.api.v1.publicaciones import Dinero, FotoOut
@@ -39,7 +39,7 @@ from app.models import (
     Usuario,
 )
 from app.models.enums import EstadoReserva
-from app.services import cifrado, cuenta_cobro, pagos, reservas
+from app.services import cifrado, cuenta_cobro, pagos, privacidad, reservas
 from app.services.pagos.base import Cobro
 
 router = APIRouter(tags=["reservas"])
@@ -107,6 +107,10 @@ class ItemOut(BaseModel):
     desglose: dict
     comision: ComisionOut | None
     fotos: list[FotoOut]
+    # Solo con la reserva confirmada: antes es la casa de un desconocido.
+    direccion: str | None = None
+    lat: float | None = None
+    lon: float | None = None
 
 
 class PagoOut(BaseModel):
@@ -149,10 +153,20 @@ class PreferenciaOut(BaseModel):
 # --- Salidas ---
 
 
-def _item_out(item: ItemReserva) -> ItemOut:
+def _item_out(item: ItemReserva, con_direccion: bool = False) -> ItemOut:
     p = item.unidad.publicacion
     c = item.comision
+    direccion, lat, lon = None, None, None
+    sesion = object_session(item)
+    if con_direccion and sesion is not None:
+        from app.services.publicaciones import _coordenadas
+
+        direccion = p.direccion
+        lat, lon = _coordenadas(sesion, p.id)
     return ItemOut(
+        direccion=direccion,
+        lat=lat,
+        lon=lon,
         unidad_id=item.unidad_id,
         unidad=item.unidad.nombre,
         publicacion=p.titulo,
@@ -203,7 +217,10 @@ def _reserva_out(reserva: Reserva) -> ReservaOut:
         motivo_cancelacion=reserva.motivo_cancelacion,
         politica_cancelacion=reserva.politica_cancelacion,
         creada_en=reserva.creado_en,
-        items=[_item_out(i) for i in reserva.items],
+        items=[
+            _item_out(i, con_direccion=reserva.estado in privacidad.ESTADOS_CON_DIRECCION)
+            for i in reserva.items
+        ],
         pagos=[
             PagoOut(
                 pasarela=p.pasarela, estado=p.estado, monto=p.monto, id_externo=p.id_externo

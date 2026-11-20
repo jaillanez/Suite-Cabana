@@ -143,3 +143,47 @@ def test_la_exportacion_neutraliza_formulas(cliente, db, oferta):
     assert _celda("@SUMA(A1)") == "'@SUMA(A1)"
     assert _celda("-2+3") == "'-2+3"
     assert _celda("Cabañas del Lago") == "Cabañas del Lago"
+
+
+# --- Dirección del alojamiento ---
+
+
+def test_la_ficha_publica_no_da_la_direccion_ni_el_punto_exacto(cliente, db, oferta):
+    oferta["cara"].direccion = "Av. Siempreviva 742"
+    db.commit()
+    ficha = cliente.get(f"/api/v1/publicaciones/{oferta['cara'].slug}").json()
+    assert "direccion" not in ficha
+    assert "Siempreviva" not in str(ficha)
+    assert ficha["lat"] == round(ficha["lat"], 2)
+    assert ficha["lon"] == round(ficha["lon"], 2)
+
+
+def test_la_direccion_aparece_recien_con_la_reserva_confirmada(
+    cliente, db, viajero, oferta  # noqa: F811
+):
+    oferta["cara"].direccion = "Av. Siempreviva 742"
+    db.commit()
+    reserva = reservar(cliente, viajero, oferta).json()
+    codigo = reserva["codigo"]
+    assert reserva["items"][0]["direccion"] is None
+    assert reserva["items"][0]["lat"] is None
+
+    pago = cliente.post(f"/api/v1/reservas/{codigo}/pagar", headers=viajero, json={}).json()
+    notificar(cliente, pago["id_externo"], codigo, total=reserva["total"])
+    item = cliente.get(f"/api/v1/reservas/{codigo}", headers=viajero).json()["items"][0]
+    assert item["direccion"] == "Av. Siempreviva 742"
+    from app.services.publicaciones import _coordenadas
+
+    assert (item["lat"], item["lon"]) == _coordenadas(db, oferta["cara"].id)
+
+
+def test_los_resultados_de_busqueda_muestran_el_punto_aproximado(cliente, oferta):
+    from tests.test_api_reservas import FECHAS
+
+    r = cliente.get(
+        "/api/v1/publicaciones/buscar",
+        params={"localidad": "bariloche", **FECHAS, "personas": 2},
+    ).json()
+    assert r["resultados"]
+    for x in r["resultados"]:
+        assert x["lat"] == round(x["lat"], 2) and x["lon"] == round(x["lon"], 2)

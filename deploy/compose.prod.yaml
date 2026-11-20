@@ -40,7 +40,8 @@ services:
       dockerfile: ../deploy/api.Dockerfile
     image: suite-cabana-api:latest
     container_name: suite-cabana-api
-    environment:
+    # El mismo entorno lo usa `tareas`: mismo código contra la misma base.
+    environment: &entorno-api
       ENVIRONMENT: production
       DATABASE_URL: postgresql+psycopg://suite:${POSTGRES_PASSWORD}@suite-cabana-postgres:5432/suite_cabana
       SECRET_KEY: ${SECRET_KEY:?falta SECRET_KEY}
@@ -58,6 +59,7 @@ services:
       SMTP_USUARIO: ${SMTP_USUARIO:-}
       SMTP_PASSWORD: ${SMTP_PASSWORD:-}
       SMTP_DESDE: ${SMTP_DESDE:-}
+      SMTP_TLS: ${SMTP_TLS:-true}
     volumes:
       - media:/data/media
     depends_on:
@@ -68,6 +70,18 @@ services:
       timeout: 5s
       retries: 10
       start_period: 20s
+    networks: [interna]
+
+  # Libera reservas vencidas y manda las notificaciones (backend/app/tareas.py).
+  # Una sola instancia: dos tomarían los mismos pendientes.
+  tareas:
+    <<: *restart
+    image: suite-cabana-api:latest
+    container_name: suite-cabana-tareas
+    command: ["python", "-m", "app.tareas"]
+    environment: *entorno-api
+    depends_on:
+      api: { condition: service_healthy }
     networks: [interna]
 
   web:

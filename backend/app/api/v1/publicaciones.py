@@ -22,6 +22,7 @@ from app.models import Comodidad, Localidad, Provincia, Publicacion, SubtipoServ
 from app.models.enums import EstadoPublicacion
 from app.services import busqueda, precios
 from app.services import publicaciones as fichas
+from app.services.privacidad import aproximar
 
 router = APIRouter(tags=["publicaciones"])
 
@@ -237,8 +238,8 @@ def buscar(
                 localidad=r.localidad,
                 provincia=r.provincia,
                 confirmacion_inmediata=r.confirmacion_inmediata,
-                lat=r.lat,
-                lon=r.lon,
+                lat=aproximar(r.lat),
+                lon=aproximar(r.lon),
                 distancia_km=r.distancia_km,
                 fotos=[FotoOut(**f) for f in r.fotos],
                 comodidades=r.comodidades,
@@ -334,8 +335,7 @@ class FichaOut(BaseModel):
     localidad_slug: str
     zona: str | None
     provincia: str
-    direccion: str | None
-    lat: float | None
+    lat: float | None = Field(description="Aproximada (~1 km): la exacta, con la reserva")
     lon: float | None
     hora_ingreso: str | None
     hora_salida: str | None
@@ -410,8 +410,8 @@ def _resumen_destino_out(r: fichas.ResumenDestino) -> ResumenDestinoOut:
         localidad=p.localidad.nombre,
         provincia=p.localidad.provincia.nombre,
         zona=p.zona.nombre if p.zona else None,
-        lat=r.lat,
-        lon=r.lon,
+        lat=aproximar(r.lat),
+        lon=aproximar(r.lon),
         capacidad_maxima=r.capacidad_maxima,
         tarifa_desde=r.tarifa_desde,
         confirmacion_inmediata=p.confirmacion_inmediata,
@@ -530,9 +530,8 @@ def ficha(
         localidad_slug=p.localidad.slug,
         zona=p.zona.nombre if p.zona else None,
         provincia=p.localidad.provincia.nombre,
-        direccion=p.direccion,
-        lat=f.lat,
-        lon=f.lon,
+        lat=aproximar(f.lat),
+        lon=aproximar(f.lon),
         hora_ingreso=p.hora_ingreso.isoformat(timespec="minutes") if p.hora_ingreso else None,
         hora_salida=p.hora_salida.isoformat(timespec="minutes") if p.hora_salida else None,
         confirmacion_inmediata=p.confirmacion_inmediata,

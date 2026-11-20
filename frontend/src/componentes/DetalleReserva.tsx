@@ -114,6 +114,26 @@ export default function DetalleReserva({
               {item && item.mascotas > 0 && `, ${plural(item.mascotas, "mascota", "mascotas")}`}
             </dd>
           </div>
+          {item && (item.direccion || item.lat !== null) && (
+            <div>
+              <dt>Dirección</dt>
+              <dd>
+                {item.direccion ?? "El anfitrión todavía no la cargó"}
+                {item.lat !== null && item.lon !== null && (
+                  <>
+                    {" · "}
+                    <a
+                      href={`https://www.openstreetmap.org/?mlat=${item.lat}&mlon=${item.lon}#map=17/${item.lat}/${item.lon}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                    >
+                      Ver en el mapa
+                    </a>
+                  </>
+                )}
+              </dd>
+            </div>
+          )}
         </dl>
       </section>
 

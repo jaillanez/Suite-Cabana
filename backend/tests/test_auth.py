@@ -1,3 +1,5 @@
+import pytest
+
 from app.core.security import crear_token
 from app.models import Prestador, Usuario
 
@@ -210,3 +212,59 @@ def test_la_cuenta_guarda_cuando_se_aceptaron(cliente, db):
     usuario = db.query(Usuario).filter(Usuario.email == "ana@ejemplo.com.ar").one()
     assert usuario.acepto_terminos_en is not None
     assert usuario.version_terminos
+
+
+# --- Envío del correo de verificación ---
+
+
+@pytest.fixture
+def smtp_falso(monkeypatch):
+    """SMTP configurado, con el envío capturado en vez de salir a la red."""
+    from app.core.config import get_settings
+    from app.services.notificaciones import correo
+
+    s = get_settings()
+    monkeypatch.setattr(s, "environment", "production")
+    monkeypatch.setattr(s, "smtp_host", "smtp.ejemplo.com")
+    monkeypatch.setattr(s, "smtp_desde", "Alojate Aquí <hola@ejemplo.com>")
+    monkeypatch.setattr(s, "url_publica_web", "https://alojateaqui.com.ar")
+    enviados = []
+    monkeypatch.setattr(correo.CorreoSMTP, "enviar", lambda self, m: enviados.append(m))
+    return enviados
+
+
+def test_al_registrarse_se_manda_el_enlace_de_verificacion(cliente, smtp_falso):
+    registrar(cliente)
+    assert len(smtp_falso) == 1
+    mensaje = smtp_falso[0]
+    assert mensaje.destino == "ana@ejemplo.com.ar"
+    assert "https://alojateaqui.com.ar/verificar-email?token=" in mensaje.cuerpo
+
+
+def test_pedir_verificacion_manda_el_correo_y_no_devuelve_el_enlace(cliente, smtp_falso):
+    token = registrar(cliente)
+    r = cliente.post("/api/v1/auth/verificacion", headers=encabezado(token))
+    cuerpo = r.json()
+    assert cuerpo["enviado"] is True
+    assert cuerpo["enlace"] is None
+    assert len(smtp_falso) == 2
+
+    # Y el enlace del correo verifica de verdad.
+    enlace = smtp_falso[-1].cuerpo.split("token=")[1].split()[0]
+    r = cliente.post("/api/v1/auth/verificacion/confirmar", json={"token": enlace})
+    assert r.status_code == 200
+    assert r.json()["email_verificado"] is True
+
+
+def test_si_el_correo_no_sale_la_cuenta_igual_se_crea(cliente, monkeypatch, smtp_falso):
+    from app.services.notificaciones import correo
+    from app.services.notificaciones.base import ErrorDeEnvio
+
+    def falla(self, m):
+        raise ErrorDeEnvio("caído")
+
+    monkeypatch.setattr(correo.CorreoSMTP, "enviar", falla)
+    token = registrar(cliente)
+    r = cliente.post("/api/v1/auth/verificacion", headers=encabezado(token))
+    assert r.json()["enviado"] is False
+    assert "No pudimos" in r.json()["detalle"]

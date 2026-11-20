@@ -4,9 +4,9 @@ Decisiones que conviene tener a la vista:
 
 - El token de sesión es un JWT firmado con `tipo: "acceso"`. Los de verificación de
   correo llevan otro tipo, así que un enlace de verificación no sirve para entrar.
-- El correo de verificación todavía no se envía: las notificaciones son el Bloque 6.
-  En entorno local el endpoint devuelve el enlace para poder probar el circuito
-  completo; en cualquier otro entorno no lo devuelve nunca.
+- El correo de verificación se envía por SMTP al registrarse y cada vez que se
+  pide. En local sin SMTP el endpoint devuelve el enlace para poder probar el
+  circuito; en cualquier otro entorno no lo devuelve nunca.
 - La verificación de teléfono queda pendiente: falta decidir el proveedor de
   WhatsApp (docs/01 §9), y el modelo ya tiene el campo.
 - Un usuario puede ser viajero y prestador a la vez; `es_operador` no se
@@ -36,6 +36,8 @@ from app.core.security import (
 )
 from app.models import Prestador, Usuario
 from app.services import cuenta_cobro, google
+from app.services.notificaciones.base import ErrorDeEnvio, Mensaje
+from app.services.notificaciones.correo import CorreoSMTP
 from app.services.pagos import ErrorDePasarela
 from app.services.pagos.mercadopago import CredencialInvalida
 
@@ -153,20 +155,53 @@ def _sesion(usuario: Usuario) -> Sesion:
 
 
 def _enlace_verificacion(usuario: Usuario) -> VerificacionPedida:
+    """Manda el enlace de verificación por correo.
+
+    Va directo y no por el buzón: quien lo pide está esperando en la pantalla, y
+    sin el correo verificado no puede reservar.
+    """
     s = get_settings()
     token = crear_token(
         str(usuario.id), tipo=TIPO_VERIFICACION, minutos=s.minutos_token_verificacion
     )
-    # TODO (Bloque 6): enviarlo por correo. Hasta entonces, en local se devuelve
-    # para poder probar el circuito; en otros entornos no se expone nunca.
-    es_local = s.environment == "local"
+    ruta = f"/verificar-email?token={token}"
+    if s.environment == "local" and not s.smtp_host:
+        return VerificacionPedida(
+            enviado=False,
+            detalle="En local no se mandan correos: usá el enlace de abajo para verificar.",
+            enlace=ruta,
+        )
+
+    canal = CorreoSMTP()
+    if not canal.disponible:
+        return VerificacionPedida(
+            enviado=False,
+            detalle="Todavía no podemos mandar correos. Probá de nuevo más tarde.",
+        )
+    enlace = f"{s.url_publica_web.rstrip('/')}{ruta}"
+    horas = s.minutos_token_verificacion // 60
+    try:
+        canal.enviar(
+            Mensaje(
+                destino=usuario.email,
+                asunto="Confirmá tu correo",
+                cuerpo=(
+                    f"Hola, {usuario.nombre}:\n\n"
+                    "Para terminar de crear tu cuenta y poder reservar, confirmá tu "
+                    f"correo con este enlace:\n\n{enlace}\n\n"
+                    f"Vale por {horas} horas. Si no creaste una cuenta, ignorá este "
+                    "mensaje.\n"
+                ),
+            )
+        )
+    except ErrorDeEnvio:
+        return VerificacionPedida(
+            enviado=False,
+            detalle="No pudimos mandarte el correo. Probá de nuevo en un rato.",
+        )
     return VerificacionPedida(
-        enviado=False,
-        detalle=(
-            "Todavía no enviamos correos: el envío entra con las notificaciones. "
-            + ("Usá el enlace de abajo para verificar." if es_local else "")
-        ).strip(),
-        enlace=f"/verificar-email?token={token}" if es_local else None,
+        enviado=True,
+        detalle=f"Te mandamos un enlace a {usuario.email}. Revisá también el spam.",
     )
 
 
@@ -193,6 +228,9 @@ def registro(datos: Registro, db: Session = Depends(get_db)) -> Sesion:
     )
     db.add(usuario)
     db.commit()
+    # Si el correo no sale, la cuenta igual queda creada: se puede pedir de nuevo
+    # desde Mi cuenta.
+    _enlace_verificacion(usuario)
     return _sesion(usuario)
 
 
