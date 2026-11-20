@@ -1,0 +1,103 @@
+# Suite Cabaña (alojateaqui.com.ar) en el VPS compartido.
+#
+# Independiente de las otras apps del servidor: red, volúmenes y base propios.
+# Ningún servicio publica puertos en el host. El único punto de contacto es
+# `web`, que se une a la red externa `suite-turnos_edge` para que el Caddy de
+# entrada le pase el tráfico del dominio. La API queda solo en la red interna:
+# Next le reenvía /api/v1 y /media (ver frontend/next.config.ts).
+#
+# Los nombres son únicos a propósito: en suite-turnos_edge ya hay un servicio
+# que responde como `api`, y `web` está en las dos redes.
+#
+# deploy.sh lo copia a /opt/suite-cabana/compose.yaml y lo usa desde ahí.
+name: suite-cabana
+
+x-restart: &restart
+  restart: unless-stopped
+
+services:
+  postgres:
+    <<: *restart
+    image: postgis/postgis:17-3.5-alpine
+    container_name: suite-cabana-postgres
+    environment:
+      POSTGRES_DB: suite_cabana
+      POSTGRES_USER: suite
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?falta POSTGRES_PASSWORD}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U suite -d suite_cabana"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+    networks: [interna]
+
+  api:
+    <<: *restart
+    build:
+      context: ./app/backend
+      dockerfile: ../deploy/api.Dockerfile
+    image: suite-cabana-api:latest
+    container_name: suite-cabana-api
+    environment:
+      ENVIRONMENT: production
+      DATABASE_URL: postgresql+psycopg://suite:${POSTGRES_PASSWORD}@suite-cabana-postgres:5432/suite_cabana
+      SECRET_KEY: ${SECRET_KEY:?falta SECRET_KEY}
+      CLAVE_CIFRADO: ${CLAVE_CIFRADO:?falta CLAVE_CIFRADO}
+      CORS_ORIGINS: '["https://${DOMINIO}"]'
+      URL_PUBLICA_API: https://${DOMINIO:?falta DOMINIO}
+      URL_PUBLICA_WEB: https://${DOMINIO}
+      MEDIA_DIR: /data/media
+      # Cada anfitrión cobra con su propia cuenta de Mercado Pago.
+      PASARELA_PREDETERMINADA: mercadopago
+      MP_COBRO_DIRECTO: "true"
+      GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID:-}
+      SMTP_HOST: ${SMTP_HOST:-}
+      SMTP_PUERTO: ${SMTP_PUERTO:-587}
+      SMTP_USUARIO: ${SMTP_USUARIO:-}
+      SMTP_PASSWORD: ${SMTP_PASSWORD:-}
+      SMTP_DESDE: ${SMTP_DESDE:-}
+    volumes:
+      - media:/data/media
+    depends_on:
+      postgres: { condition: service_healthy }
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/api/v1/salud', timeout=4)"]
+      interval: 15s
+      timeout: 5s
+      retries: 10
+      start_period: 20s
+    networks: [interna]
+
+  web:
+    <<: *restart
+    build:
+      context: ./app/frontend
+      dockerfile: ../deploy/web.Dockerfile
+      args:
+        NEXT_PUBLIC_API_URL: http://suite-cabana-api:8000/api/v1
+        NEXT_PUBLIC_SITE_URL: https://${DOMINIO}
+        NEXT_PUBLIC_GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID:-}
+    image: suite-cabana-web:latest
+    container_name: suite-cabana-web
+    depends_on:
+      api: { condition: service_healthy }
+    healthcheck:
+      test: ["CMD", "wget", "-q", "-O", "/dev/null", "http://127.0.0.1:3000/"]
+      interval: 15s
+      timeout: 5s
+      retries: 10
+      start_period: 20s
+    networks: [interna, edge]
+
+volumes:
+  postgres_data:
+  media:
+
+networks:
+  interna:
+    name: suite-cabana_interna
+  edge:
+    name: suite-turnos_edge
+    external: true

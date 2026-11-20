@@ -1,0 +1,10 @@
+
+# Suite Cabaña (alojateaqui.com.ar) — proyecto aparte en /opt/suite-cabana; lo agrega su deploy.sh.
+__DOMINIO__, __ALTERNATIVO__ {
+	encode zstd gzip
+	reverse_proxy suite-cabana-web:3000
+}
+
+www.__DOMINIO__ {
+	redir https://__DOMINIO__{uri} permanent
+}

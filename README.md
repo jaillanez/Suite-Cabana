@@ -352,6 +352,28 @@ Pendientes conocidos dentro de lo ya construido:
 - **WhatsApp**: los avisos se guardan en el buzón marcados como descartados, con el motivo.
   El día que haya proveedor se pueden reenviar, en vez de haberse perdido.
 
+## Producción (alojateaqui.com.ar)
+
+Corre en el VPS compartido, en `/opt/suite-cabana`, con el repo clonado en
+`/opt/suite-cabana/app`. Base, red y volúmenes propios; ningún puerto en el host.
+Solo el contenedor web entra a la red del Caddy de entrada (`suite-turnos_edge`).
+
+```bash
+git push                                        # el servidor baja de GitHub
+ssh root@173.212.195.122 /opt/suite-cabana/app/deploy/deploy.sh
+```
+
+`deploy/deploy.sh` genera una sola vez los secretos en `/opt/suite-cabana/.env`
+(`POSTGRES_PASSWORD`, `SECRET_KEY`, `CLAVE_CIFRADO`), aplica migraciones, carga el
+catálogo la primera vez y agrega el dominio al Caddy de entrada con copia previa.
+**`CLAVE_CIFRADO` no se puede perder ni cambiar**: cifra las credenciales de
+Mercado Pago de los anfitriones, y sin ella tendrían que volver a cargarlas.
+
+Cobros: `MP_COBRO_DIRECTO=true`. Cada anfitrión pega su Access Token en *Mi cuenta*
+y lo que le reservan entra en su cuenta de Mercado Pago. Con credencial propia
+Mercado Pago no permite retener la comisión en el mismo pago: queda registrada en
+cada reserva (*Cobros y comisiones*) y se factura aparte al anfitrión.
+
 ## Tests
 
 ```bash
