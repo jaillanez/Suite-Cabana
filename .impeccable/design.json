@@ -1,0 +1,179 @@
+{
+  "schemaVersion": 2,
+  "generatedAt": "2026-09-16T00:00:00Z",
+  "title": "Design System: Marketplace turístico argentino",
+  "extensions": {
+    "colorMeta": {
+      "fondo": { "role": "neutral", "displayName": "Blanco Ficha", "canonical": "#ffffff", "tonalRamp": ["#17171a", "#2e2f33", "#4a4b51", "#6e6f78", "#9b9ca4", "#c6c6cd", "#ededf0", "#ffffff"] },
+      "fondo-2": { "role": "neutral", "displayName": "Gris Papel", "canonical": "#f6f6f7", "tonalRamp": ["#17171a", "#2d2d31", "#47474d", "#6b6b73", "#98989f", "#c4c4ca", "#e4e4e7", "#f6f6f7"] },
+      "fondo-3": { "role": "neutral", "displayName": "Gris Placa", "canonical": "#ededf0", "tonalRamp": ["#16161a", "#2b2b31", "#45454d", "#686871", "#94949d", "#bfbfc7", "#dcdce1", "#ededf0"] },
+      "borde": { "role": "neutral", "displayName": "Gris Línea", "canonical": "#e3e3e7", "tonalRamp": ["#151519", "#29292f", "#42424a", "#63636d", "#8d8d97", "#b6b6c0", "#d2d2d9", "#e3e3e7"] },
+      "borde-fuerte": { "role": "neutral", "displayName": "Gris Trazo", "canonical": "#c6c6cd", "tonalRamp": ["#141418", "#26262c", "#3d3d45", "#5c5c66", "#84848f", "#a8a8b3", "#c6c6cd", "#e6e6ea"] },
+      "texto": { "role": "neutral", "displayName": "Tinta", "canonical": "#17171a", "tonalRamp": ["#0a0a0c", "#17171a", "#2c2c31", "#45454c", "#616169", "#8b8b93", "#b8b8c0", "#e6e6ea"] },
+      "texto-2": { "role": "neutral", "displayName": "Tinta Media", "canonical": "#56575f", "tonalRamp": ["#111216", "#22232a", "#36373f", "#56575f", "#74757e", "#9a9ba3", "#c2c3c9", "#e8e8ec"] },
+      "texto-3": { "role": "neutral", "displayName": "Tinta Tenue", "canonical": "#6e6f78", "tonalRamp": ["#131419", "#24252c", "#393a43", "#55565f", "#6e6f78", "#94959d", "#bebfc5", "#e7e7eb"] },
+      "acento": { "role": "primary", "displayName": "Verde Bosque Profundo", "canonical": "#145c4a", "tonalRamp": ["#041c16", "#072b22", "#0e4237", "#145c4a", "#1c7a62", "#33a488", "#79ccb5", "#edf4f2"] },
+      "acento-fuerte": { "role": "primary", "displayName": "Verde Bosque Oscuro", "canonical": "#0e4237", "tonalRamp": ["#03150f", "#06221b", "#0a3229", "#0e4237", "#155a49", "#26876e", "#5fbca2", "#dfeee9"] },
+      "acento-tenue": { "role": "primary", "displayName": "Verde Papel", "canonical": "#edf4f2", "tonalRamp": ["#0a221c", "#0f3a30", "#165243", "#1f7a63", "#34a487", "#72c5ae", "#b7e0d4", "#edf4f2"] },
+      "alerta": { "role": "tertiary", "displayName": "Rojo Ladrillo", "canonical": "#a32218", "tonalRamp": ["#2a0805", "#4a0f0a", "#6d1710", "#a32218", "#c63a2e", "#e0705f", "#f0a99d", "#fcf0ef"] },
+      "alerta-tenue": { "role": "tertiary", "displayName": "Rosa Papel", "canonical": "#fcf0ef", "tonalRamp": ["#2c0a07", "#4c110c", "#701a13", "#a5291d", "#cd5c4b", "#e29786", "#f3c8bf", "#fcf0ef"] }
+    },
+    "typographyMeta": {
+      "display": { "displayName": "Display", "purpose": "Titular de la home, topado en 17ch. Uno por página y solo en páginas de entrada." },
+      "headline": { "displayName": "Headline", "purpose": "h1 de resultados (\"N alojamientos en X\"); variantes de 1.25 / 1.125 / 1.0625rem para vacíos, secciones y encabezado del diálogo de filtros." },
+      "title": { "displayName": "Title", "purpose": "Título de tarjeta de resultado; 0.9375rem de una línea en la ficha compacta del mapa." },
+      "precio": { "displayName": "Precio", "purpose": "Total de la estadía: el peso tipográfico más alto de la página, siempre con cifras tabulares." },
+      "body": { "displayName": "Body", "purpose": "Texto base del documento y valor tipeado en los campos de la barra (peso 500)." },
+      "body-sm": { "displayName": "Apoyo", "purpose": "Ubicación, distancia, capacidad, filas del desglose, chips y orden." },
+      "label": { "displayName": "Label", "purpose": "Exclusivamente etiquetas de campos de formulario en la barra de búsqueda. Prohibido como volanta o antetítulo." }
+    },
+    "shadows": [
+      { "name": "sombra-1", "value": "0 1px 2px rgb(23 23 26 / 0.06), 0 1px 3px rgb(23 23 26 / 0.05)", "purpose": "Contacto: tarjeta en hover o vinculada al pin, pin en reposo, flechas de galería, resumen plegado, controles del mapa." },
+      { "name": "sombra-2", "value": "0 2px 4px rgb(23 23 26 / 0.05), 0 6px 16px rgb(23 23 26 / 0.09)", "purpose": "Flotante sobre el contenido: barra de búsqueda del hero, pin activo, aviso dentro del mapa." },
+      { "name": "sombra-3", "value": "0 4px 8px rgb(23 23 26 / 0.06), 0 14px 34px rgb(23 23 26 / 0.13)", "purpose": "Superpuesto: sugerencias de destino, diálogo de filtros, ficha sobre el mapa, barra desplegada en teléfono, botón flotante de alternar vista." }
+    ],
+    "motion": [
+      { "name": "transicion", "value": "180ms cubic-bezier(0.22, 1, 0.36, 1)", "purpose": "Única transición del sistema, aplicada solo a background, border-color, color, opacity, scale y box-shadow." },
+      { "name": "foto-hover", "value": "transform 400ms cubic-bezier(0.22, 1, 0.36, 1)", "purpose": "Escalado a 1.03 de la foto dentro del marco de la tarjeta en hover." },
+      { "name": "brillo-esqueleto", "value": "1.4s cubic-bezier(0.22, 1, 0.36, 1) infinite", "purpose": "Barrido diagonal fondo-2 → fondo-3 → fondo-2 del esqueleto de carga." },
+      { "name": "reduced-motion", "value": "prefers-reduced-motion: reduce → 0.01ms", "purpose": "Apaga animaciones, transiciones y scroll suave globalmente." }
+    ],
+    "breakpoints": [
+      { "name": "lista-mapa", "value": "1080px" },
+      { "name": "barra", "value": "900px" },
+      { "name": "chips", "value": "720px" },
+      { "name": "paginado", "value": "560px" }
+    ],
+    "layout": [
+      { "name": "contenedor-resultados", "value": "1480px" },
+      { "name": "contenedor-home-barra", "value": "1160px" },
+      { "name": "contenedor-home-contenido", "value": "1000px" },
+      { "name": "barra-alto", "value": "82px" },
+      { "name": "grilla-resultados", "value": "minmax(0, 1fr) minmax(360px, 40%)" },
+      { "name": "grilla-tarjetas", "value": "repeat(auto-fill, minmax(268px, 1fr))" }
+    ]
+  },
+  "components": [
+    {
+      "name": "Botón Buscar",
+      "kind": "button",
+      "refersTo": "boton-buscar",
+      "description": "La acción principal del sistema. Vive pegado al borde derecho de la barra de búsqueda y es el único botón verde de relleno junto a Aplicar.",
+      "html": "<button class=\"ds-btn-buscar\" type=\"submit\"><svg width=\"20\" height=\"20\" viewBox=\"0 0 20 20\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.6\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><circle cx=\"9\" cy=\"9\" r=\"5.4\"></circle><path d=\"m13.2 13.2 3.6 3.6\"></path></svg>Buscar</button>",
+      "css": ".ds-btn-buscar { display: inline-flex; align-items: center; gap: 0.5rem; padding: 0.875rem 1.25rem; border: 0; border-radius: var(--radio-l, 14px); background: var(--acento, #145c4a); color: #fff; font-weight: 600; font-size: 0.9375rem; cursor: pointer; transition: background var(--transicion, 180ms cubic-bezier(0.22,1,0.36,1)); } .ds-btn-buscar:hover { background: var(--acento-fuerte, #0e4237); } .ds-btn-buscar:focus-visible { outline: 2px solid #fff; outline-offset: -3px; }"
+    },
+    {
+      "name": "Campo de la barra de búsqueda",
+      "kind": "input",
+      "refersTo": "campo-barra",
+      "description": "Etiqueta en mayúscula chiquita sobre el valor. El input no dibuja foco propio: lo marca el campo entero cambiando de fondo.",
+      "html": "<div class=\"ds-campo\"><label for=\"ds-destino\">Destino</label><span class=\"ds-campo-linea\"><svg width=\"18\" height=\"18\" viewBox=\"0 0 20 20\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.6\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"M10 17.4s5.6-4.7 5.6-9a5.6 5.6 0 1 0-11.2 0c0 4.3 5.6 9 5.6 9Z\"></path><circle cx=\"10\" cy=\"8.2\" r=\"2.1\"></circle></svg><input id=\"ds-destino\" type=\"text\" placeholder=\"¿A dónde vas?\" value=\"San Martín de los Andes\"></span></div>",
+      "css": ".ds-campo { display: grid; gap: 2px; align-content: center; padding: 0.5rem 0.875rem; background: var(--fondo, #fff); border: 1px solid var(--borde, #e3e3e7); border-radius: var(--radio-l, 14px); min-width: 0; } .ds-campo:focus-within { background: var(--fondo-2, #f6f6f7); } .ds-campo label { font-size: 0.6875rem; font-weight: 600; letter-spacing: 0.04em; text-transform: uppercase; color: var(--texto-3, #6e6f78); } .ds-campo-linea { display: grid; grid-template-columns: 18px minmax(0, 1fr); align-items: center; gap: 0.5rem; } .ds-campo-linea svg { color: var(--texto-3, #6e6f78); } .ds-campo input { border: 0; background: none; padding: 0; width: 100%; min-width: 0; font: inherit; font-size: 0.9375rem; font-weight: 500; color: var(--texto, #17171a); caret-color: var(--acento, #145c4a); } .ds-campo input:focus { outline: none; } .ds-campo input::placeholder { color: var(--texto-3, #6e6f78); font-weight: 400; }"
+    },
+    {
+      "name": "Chip de filtro",
+      "kind": "chip",
+      "refersTo": "chip",
+      "description": "Pastilla blanca de borde fino que abre el diálogo de filtros o togglea un filtro directo. Seleccionada se pinta del verde acento.",
+      "html": "<button class=\"ds-chip\" type=\"button\"><svg width=\"15\" height=\"15\" viewBox=\"0 0 20 20\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.6\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"M2.8 5.4h14.4M5.4 10h9.2M8 14.6h4\"></path></svg>Filtros</button> <button class=\"ds-chip ds-chip-activo\" type=\"button\">Confirmación inmediata<span class=\"ds-chip-cuenta\">2</span></button>",
+      "css": ".ds-chip { display: inline-flex; align-items: center; gap: 0.375rem; padding: 0.375rem 0.75rem; border: 1px solid var(--borde-fuerte, #c6c6cd); border-radius: 999px; background: var(--fondo, #fff); color: var(--texto, #17171a); font: inherit; font-size: 0.8125rem; font-weight: 500; cursor: pointer; white-space: nowrap; transition: background var(--transicion, 180ms cubic-bezier(0.22,1,0.36,1)), border-color var(--transicion, 180ms cubic-bezier(0.22,1,0.36,1)), color var(--transicion, 180ms cubic-bezier(0.22,1,0.36,1)); } .ds-chip:hover { border-color: var(--texto-3, #6e6f78); background: var(--fondo-2, #f6f6f7); } .ds-chip:focus-visible { outline: 2px solid var(--acento, #145c4a); outline-offset: 2px; } .ds-chip-activo { background: var(--acento, #145c4a); border-color: var(--acento, #145c4a); color: #fff; } .ds-chip-activo:hover { background: var(--acento-fuerte, #0e4237); border-color: var(--acento-fuerte, #0e4237); } .ds-chip-cuenta { background: rgb(255 255 255 / 0.22); border-radius: 999px; padding: 0 0.375rem; font-size: 0.75rem; font-weight: 600; }"
+    },
+    {
+      "name": "Tarjeta de resultado",
+      "kind": "card",
+      "refersTo": "tarjeta-resultado",
+      "description": "La unidad de contenido del sistema: foto 4:3 a sangre, título enlazado a área completa, dato verificado, ubicación, capacidad y el total de la estadía como número más pesado del bloque.",
+      "html": "<article class=\"ds-tarjeta\"><div class=\"ds-tarjeta-marco\"><img src=\"data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='400' height='300'><rect width='400' height='300' fill='%23ededf0'/></svg>\" alt=\"\"></div><div class=\"ds-tarjeta-cuerpo\"><h3 class=\"ds-tarjeta-titulo\"><a class=\"ds-tarjeta-enlace\" href=\"#\">Cabaña del arroyo</a></h3><span class=\"ds-inmediata\"><svg width=\"14\" height=\"14\" viewBox=\"0 0 20 20\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.6\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"M11.2 2.4 4.8 11h4.2l-.6 6.6L15.4 9h-4.4l.2-6.6Z\"></path></svg>Confirmación inmediata</span><p class=\"ds-tarjeta-ubicacion\">Cabaña · San Martín de los Andes · Neuquén</p><p class=\"ds-tarjeta-distancia\">a 1.4 km del centro</p><div class=\"ds-precio\"><p class=\"ds-precio-total\">$ 186.000</p><p class=\"ds-precio-leyenda\">total por 3 noches</p></div></div></article>",
+      "css": ".ds-tarjeta { position: relative; display: grid; gap: 0.75rem; padding: 0.5rem; border-radius: var(--radio-l, 14px); max-width: 320px; transition: background var(--transicion, 180ms cubic-bezier(0.22,1,0.36,1)), box-shadow var(--transicion, 180ms cubic-bezier(0.22,1,0.36,1)); } .ds-tarjeta:hover { background: var(--fondo-2, #f6f6f7); box-shadow: 0 1px 2px rgb(23 23 26 / 0.06), 0 1px 3px rgb(23 23 26 / 0.05); } .ds-tarjeta-marco { position: relative; aspect-ratio: 4 / 3; border-radius: var(--radio, 10px); overflow: hidden; background: var(--fondo-3, #ededf0); } .ds-tarjeta-marco img { width: 100%; height: 100%; object-fit: cover; display: block; transition: transform 400ms cubic-bezier(0.22, 1, 0.36, 1); } .ds-tarjeta:hover .ds-tarjeta-marco img { transform: scale(1.03); } .ds-tarjeta-cuerpo { display: grid; gap: 0.25rem; padding: 0 0.25rem 0.25rem; } .ds-tarjeta-titulo { margin: 0; font-size: 1rem; font-weight: 600; line-height: 1.3; letter-spacing: -0.015em; } .ds-tarjeta-enlace { color: inherit; text-decoration: none; } .ds-tarjeta-enlace::after { content: \"\"; position: absolute; inset: 0; border-radius: var(--radio-l, 14px); z-index: 1; } .ds-tarjeta:hover .ds-tarjeta-enlace { text-decoration: underline; text-underline-offset: 3px; text-decoration-thickness: 1px; } .ds-inmediata { justify-self: start; display: inline-flex; align-items: center; gap: 0.3rem; font-size: 0.75rem; font-weight: 600; color: var(--acento, #145c4a); background: var(--acento-tenue, #edf4f2); padding: 0.1875rem 0.5rem 0.1875rem 0.375rem; border-radius: var(--radio-s, 6px); } .ds-tarjeta-ubicacion { margin: 0; font-size: 0.8125rem; color: var(--texto-2, #56575f); } .ds-tarjeta-distancia { margin: 0; font-size: 0.8125rem; color: var(--texto-3, #6e6f78); } .ds-precio { margin-top: 0.5rem; display: grid; gap: 0.125rem; } .ds-precio-total { margin: 0; font-size: 1.25rem; font-weight: 700; letter-spacing: -0.02em; font-variant-numeric: tabular-nums; font-feature-settings: \"tnum\" 1; } .ds-precio-leyenda { margin: 0; font-size: 0.8125rem; color: var(--texto-2, #56575f); }"
+    },
+    {
+      "name": "Pin de precio del mapa",
+      "kind": "custom",
+      "refersTo": "pin-mapa",
+      "description": "Marcador de MapLibre: pastilla con el total en pesos, en cifras tabulares. Activo (vinculado a su tarjeta) se pinta de verde y escala.",
+      "html": "<button class=\"ds-pin\" type=\"button\">$ 186.000</button> <button class=\"ds-pin ds-pin-activo\" type=\"button\">$ 214.500</button>",
+      "css": ".ds-pin { font: inherit; font-size: 0.8125rem; font-weight: 700; font-variant-numeric: tabular-nums; color: var(--texto, #17171a); background: var(--fondo, #fff); border: 1px solid var(--borde-fuerte, #c6c6cd); border-radius: 999px; padding: 0.25rem 0.625rem; cursor: pointer; box-shadow: 0 1px 2px rgb(23 23 26 / 0.06), 0 1px 3px rgb(23 23 26 / 0.05); transition: background var(--transicion, 180ms cubic-bezier(0.22,1,0.36,1)), color var(--transicion, 180ms cubic-bezier(0.22,1,0.36,1)), scale var(--transicion, 180ms cubic-bezier(0.22,1,0.36,1)); } .ds-pin:hover { scale: 1.06; } .ds-pin:focus-visible { outline: 2px solid var(--acento, #145c4a); outline-offset: 2px; } .ds-pin-activo { background: var(--acento, #145c4a); border-color: var(--acento, #145c4a); color: #fff; scale: 1.1; box-shadow: 0 2px 4px rgb(23 23 26 / 0.05), 0 6px 16px rgb(23 23 26 / 0.09); }"
+    },
+    {
+      "name": "Paginado",
+      "kind": "nav",
+      "refersTo": "paginado-actual",
+      "description": "Navegación entre páginas de resultados: flechas con borde y números en cuadrado de 34px; la página actual se invierte en tinta sólida.",
+      "html": "<nav class=\"ds-paginado\" aria-label=\"Paginación\"><a class=\"ds-pag-flecha\" href=\"#\"><svg width=\"20\" height=\"20\" viewBox=\"0 0 20 20\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.6\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"M12.4 4.6 7 10l5.4 5.4\"></path></svg><span>Anterior</span></a><a class=\"ds-pag-num ds-pag-actual\" href=\"#\">1</a><a class=\"ds-pag-num\" href=\"#\">2</a><a class=\"ds-pag-num\" href=\"#\">3</a><a class=\"ds-pag-flecha\" href=\"#\"><span>Siguiente</span><svg width=\"20\" height=\"20\" viewBox=\"0 0 20 20\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.6\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"M7.6 4.6 13 10l-5.4 5.4\"></path></svg></a></nav>",
+      "css": ".ds-paginado { display: flex; align-items: center; justify-content: center; gap: 0.75rem; color: var(--texto, #17171a); } .ds-pag-num { display: grid; place-items: center; min-width: 34px; height: 34px; padding: 0 0.5rem; border-radius: var(--radio-s, 6px); font-size: 0.875rem; font-weight: 500; color: inherit; text-decoration: none; } .ds-pag-num:hover { background: var(--fondo-2, #f6f6f7); } .ds-pag-actual, .ds-pag-actual:hover { background: var(--texto, #17171a); color: var(--fondo, #fff); font-weight: 600; } .ds-pag-flecha { display: inline-flex; align-items: center; gap: 0.375rem; padding: 0.4375rem 0.75rem; border: 1px solid var(--borde-fuerte, #c6c6cd); border-radius: var(--radio-s, 6px); font-size: 0.875rem; font-weight: 500; color: inherit; text-decoration: none; } .ds-pag-flecha:hover { background: var(--fondo-2, #f6f6f7); } .ds-paginado a:focus-visible { outline: 2px solid var(--acento, #145c4a); outline-offset: 2px; }"
+    },
+    {
+      "name": "Botón flotante de alternar vista",
+      "kind": "button",
+      "refersTo": "alternar-vista",
+      "description": "Único control invertido del sistema. Aparece solo por debajo de 1080px, fijo y centrado al pie, para cambiar entre lista y mapa.",
+      "html": "<button class=\"ds-alternar\" type=\"button\"><svg width=\"20\" height=\"20\" viewBox=\"0 0 20 20\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.6\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"M7.4 3.4 2.6 5.2v11.4l4.8-1.8 5.2 1.8 4.8-1.8V3.4l-4.8 1.8L7.4 3.4Z\"></path><path d=\"M7.4 3.4v11.4M12.6 5.2v11.4\"></path></svg>Ver mapa</button>",
+      "css": ".ds-alternar { display: inline-flex; align-items: center; gap: 0.5rem; padding: 0.6875rem 1.125rem; border: 0; border-radius: 999px; background: var(--texto, #17171a); color: var(--fondo, #fff); font: inherit; font-weight: 600; font-size: 0.875rem; cursor: pointer; box-shadow: 0 4px 8px rgb(23 23 26 / 0.06), 0 14px 34px rgb(23 23 26 / 0.13); } .ds-alternar:hover { background: #000; } .ds-alternar:focus-visible { outline: 2px solid var(--acento, #145c4a); outline-offset: 2px; }"
+    },
+    {
+      "name": "Esqueleto de carga",
+      "kind": "custom",
+      "refersTo": null,
+      "description": "Placeholder con la silueta exacta de la tarjeta real, para que la página no salte cuando llegan los datos. Barrido de 1.4s.",
+      "html": "<div class=\"ds-esqueleto\" aria-busy=\"true\"><span class=\"ds-esq-foto\"></span><span class=\"ds-esq-ancha\"></span><span class=\"ds-esq-angosta\"></span><span class=\"ds-esq-precio\"></span></div>",
+      "css": ".ds-esqueleto { display: grid; gap: 0.5rem; padding: 0.5rem; max-width: 300px; } .ds-esqueleto span { display: block; border-radius: var(--radio-s, 6px); background: linear-gradient(100deg, var(--fondo-2, #f6f6f7) 30%, var(--fondo-3, #ededf0) 48%, var(--fondo-2, #f6f6f7) 66%); background-size: 260% 100%; animation: ds-brillo 1.4s cubic-bezier(0.22, 1, 0.36, 1) infinite; } .ds-esq-foto { aspect-ratio: 4 / 3; border-radius: var(--radio, 10px); } .ds-esq-ancha { height: 14px; width: 72%; } .ds-esq-angosta { height: 12px; width: 44%; } .ds-esq-precio { height: 20px; width: 38%; margin-top: 0.25rem; } @keyframes ds-brillo { from { background-position: 140% 0; } to { background-position: -40% 0; } } @media (prefers-reduced-motion: reduce) { .ds-esqueleto span { animation-duration: 0.01ms !important; } }"
+    }
+  ],
+  "narrative": {
+    "northStar": "El mostrador que no miente",
+    "overview": "El equipo eligió explícitamente el estándar de la categoría por sobre las direcciones propias, con la vara declarada en Airbnb, Booking y Despegar (PRODUCT.md, 2026-09-16). Eso es una decisión registrada, no una falta de ambición: el viajero argentino comparando de noche en el teléfono tiene que reconocer el patrón en un segundo —barra de búsqueda persistente, chips de filtro, grilla de tarjetas con foto dominante, mapa con precios en los pines— y no gastar ni un latido en aprender un mundo visual nuevo. La convención es el compromiso y se ejecuta a fidelidad completa, sin ironía, sin guiños, sin un detalle raro metido para tener personalidad.\n\nCon la forma prestada, la identidad se muda al único lugar donde se puede ganar: la precisión. El número más grande de la pantalla es el total real de esas fechas, en cifras tabulares, con el desglose abierto a un clic y sin cargos escondidos. Donde la categoría pone estrellas, acá va \"Confirmación inmediata\", que es un dato verdadero y verificado contra el calendario. No hay \"desde $X\", no hay contadores de urgencia, no hay reseñas inventadas. El ground es claro y casi blanco, el cromatismo está racionado a un solo verde profundo, y todo el peso visual lo cargan la foto del alojamiento y la cifra del precio.\n\nLa densidad es alta pero aireada: texto base de 15px, tipografía de trabajo (Archivo, de Omnibus-Type, Buenos Aires) con cifras tabulares parejas, grises de tres escalones para jerarquizar sin recurrir al color, y bordes de 1px como separador por defecto en lugar de sombras. Las sombras existen y son suaves y difusas, pero están reservadas para lo que realmente flota. No hay modo oscuro: color-scheme: light está declarado como decisión, no como omisión.",
+    "keyCharacteristics": [
+      "Fondo claro casi blanco (#ffffff) con superficies de descanso en gris papel (#f6f6f7); nada de lienzos de color.",
+      "Un único acento, verde bosque profundo (#145c4a), racionado a la acción principal, el estado seleccionado y los datos verificados.",
+      "El precio total es el elemento tipográfico más pesado de la página (1.25rem / 700 / tabular).",
+      "Íconos de set propio, 20×20, trazo 1.6, siempre en currentColor; ninguna fuente de glifos.",
+      "Radios de 6/10/14px más pastillas de 999px para chips y pines; nada de esquinas vivas.",
+      "El estado vive en la URL y la primera carga es del servidor: el esqueleto de carga tiene la forma exacta de las tarjetas, así la página no salta.",
+      "Sin modo oscuro, sin estrellas, sin reseñas, sin señales de urgencia."
+    ],
+    "rules": [
+      { "name": "La regla de un solo verde", "body": "El sistema tiene un acento y ese acento es el verde. Si una pantalla nueva necesita un segundo color para distinguir dos cosas, la respuesta es jerarquía tipográfica o un escalón de gris, no un color nuevo.", "section": "colors" },
+      { "name": "La regla del verde ganado", "body": "El verde marca tres cosas y nada más: la acción principal, el estado seleccionado y el dato verificado (confirmación inmediata, descuento aplicado). No entra en ilustraciones, fondos de sección, franjas ni gráficos.", "section": "colors" },
+      { "name": "La regla de la línea antes que la sombra", "body": "Para separar dos superficies, primero un borde de 1px en borde; la sombra recién aparece cuando algo de verdad se despega del plano.", "section": "colors" },
+      { "name": "La regla de la cifra tabular", "body": "Todo importe lleva la clase .cifra (font-variant-numeric: tabular-nums, font-feature-settings: \"tnum\" 1). Los precios se leen en columna y una columna con cifras de ancho variable es una columna que no se puede comparar. Vale también para los contadores de la home y para los precios dentro de los pines del mapa.", "section": "typography" },
+      { "name": "La regla del peso más alto", "body": "En cualquier superficie donde aparezca un precio total, ese número es el elemento tipográfico más pesado del bloque. Nada compite con él: ni el título de la tarjeta, ni el botón.", "section": "typography" },
+      { "name": "La regla de la etiqueta que etiqueta", "body": "La mayúscula chiquita espaciada existe únicamente como <label> de un control de formulario. Está prohibido usarla como volanta, antetítulo o categoría decorativa encima de un encabezado.", "section": "typography" },
+      { "name": "La regla del total nombrado", "body": "Un precio nunca aparece solo. Debajo va siempre su leyenda (\"total por 3 noches\") y al lado su desglose; jamás un \"desde $X\".", "section": "typography" },
+      { "name": "La regla del primer pantallazo", "body": "En resultados, el viajero tiene que ver al mismo tiempo cuántos lugares hay, el precio total del primero y el mapa entero. Cualquier bloque nuevo (banners, promociones, filtros extra) entra dentro de la columna de la lista, nunca como franja a todo el ancho por encima.", "section": "layout" },
+      { "name": "La regla de la barra que no se va", "body": "Destino, fechas y personas son editables en todo momento y desde cualquier scroll. Una pantalla que pierde la barra de búsqueda no es de este sistema.", "section": "layout" },
+      { "name": "La regla de una cosa por vez en el teléfono", "body": "Por debajo de 1080px, lista y mapa no comparten pantalla ni compiten: se alternan con un único control flotante.", "section": "layout" },
+      { "name": "La regla de la sombra que responde", "body": "Ninguna superficie nace con sombra. --sombra-1 es respuesta a un estado (hover, foco, vínculo con el mapa); --sombra-2 y --sombra-3 son propiedad de lo que flota por encima del documento. Una tarjeta en reposo dentro de la grilla es plana.", "section": "elevation" },
+      { "name": "La regla de la sombra difusa", "body": "Toda sombra del sistema es blanda y de dos capas. Sombras de desplazamiento duro, contornos negros, dobles bordes tipo sello: fuera del mundo.", "section": "elevation" },
+      { "name": "La regla de los tres radios", "body": "6 para lo que se toca, 10 para lo que contiene, 14 para lo que agrupa, 999px solo para pastillas. Un radio nuevo es una decisión de sistema, no de componente.", "section": "shapes" },
+      { "name": "La regla del vínculo", "body": "Toda superficie que muestre a la vez una lista y un mapa mantiene el resaltado bidireccional y accesible por teclado (onFocus/onBlur, no solo onMouseEnter).", "section": "components" },
+      { "name": "La regla del estado con nombre", "body": "Ningún estado se resuelve con un spinner genérico ni con una frase muerta. Carga = esqueleto con la forma del contenido. Vacío = motivo explícito, más una salida (sugerencias, cambiar fechas).", "section": "components" },
+      { "name": "La regla del dato provisorio declarado", "body": "Mientras los datos sean de semilla, la pantalla lo dice en su propia superficie. Un alojamiento de ejemplo no puede pasar por real ni por un descuido. Las fotos provisorias llevan procedencia y crédito en frontend/public/fotos/demo/creditos.json.", "section": "components" }
+    ],
+    "dos": [
+      "Do usar las variables de frontend/src/app/globals.css para todo color, radio, sombra y transición. Un valor literal en un módulo CSS es deuda, no una decisión.",
+      "Do poner .cifra en todo importe, contador y precio de pin.",
+      "Do dejar el total de la estadía como el número más pesado del bloque, con su leyenda \"total por N noches\" y su desglose accesible en el mismo lugar.",
+      "Do formatear plata con pesos() / pesosExactos() de frontend/src/lib/formato.ts (Intl es-AR, ARS) y fechas con diaMes / diaMesAnio / rangoFechas. Los importes llegan de la API como string para no perder precisión y solo se muestran; nunca se hace aritmética de dinero en el cliente.",
+      "Do escribir la copia en español rioplatense con voseo (\"Encontrá dónde quedarte\", \"Sumá tu alojamiento\").",
+      "Do usar los íconos de Iconos.tsx a 20/18/15px con currentColor. Si falta uno, se dibuja en ese archivo con trazo 1.6 sobre caja de 20.",
+      "Do mantener :focus-visible visible en todo control y el enlace de salto al contenido; el piso es navegación por teclado completa.",
+      "Do dar a cada estado (carga, vacío, error) una forma propia con la silueta del contenido real.",
+      "Do declarar como datos de ejemplo todo contenido de semilla, en la misma pantalla donde se muestra.",
+      "Do aislar el nombre de marca en Marca.tsx."
+    ],
+    "donts": [
+      "Don't mostrar estrellas, puntajes, reseñas ni \"N personas están viendo esto\": no hay reseñas en el producto y la urgencia falsa está rechazada por el contrato de dirección. Donde la categoría pone estrellas va \"Confirmación inmediata\", que es verificable.",
+      "Don't mostrar \"desde $X\", precios por noche como cifra principal ni totales sin desglose. El precio que se ve es el total real de esas fechas.",
+      "Don't agregar un segundo acento cromático, degradados de color, franjas de color ni fondos ilustrados. El único verde es acento.",
+      "Don't construir un modo oscuro ni suponer uno: color-scheme: light es una decisión tomada. Una pantalla nueva no inventa la contraparte oscura por su cuenta.",
+      "Don't escribir colores, radios ni sombras en hexadecimal o px dentro de un módulo CSS.",
+      "Don't usar la etiqueta en mayúscula espaciada como volanta, antetítulo o categoría decorativa. Es solo <label> de un campo.",
+      "Don't usar íconos de fuentes de glifos, emojis como íconos ni paquetes externos de íconos: el set propio es el único.",
+      "Don't meter sombras de desplazamiento duro, contornos negros ni bordes de más de 1px.",
+      "Don't poner una franja a todo el ancho por encima de la lista en /buscar: empuja el mapa bajo el pliegue y rompe el primer pantallazo.",
+      "Don't anidar controles interactivos dentro del área del enlace de la tarjeta sin subirlos de capa.",
+      "Don't inventar nombres de alojamientos, cantidades de propiedades, sponsors, métricas de cobertura ni precios presentados como vigentes.",
+      "Don't animar geometría de layout ni ignorar prefers-reduced-motion."
+    ]
+  }
+}

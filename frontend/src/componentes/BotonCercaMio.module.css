@@ -1,0 +1,45 @@
+.caja {
+  display: grid;
+  gap: 0.375rem;
+  justify-items: end;
+  flex: none;
+}
+
+.boton {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4375rem;
+  font: inherit;
+  font-size: 0.875rem;
+  font-weight: 600;
+  padding: 0.5rem 0.875rem;
+  border: 1px solid var(--borde-fuerte);
+  border-radius: var(--radio-s);
+  background: var(--fondo);
+  color: var(--texto);
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background var(--transicion);
+}
+
+.boton:hover:not(:disabled) {
+  background: var(--fondo-2);
+}
+
+.boton:disabled {
+  opacity: 0.55;
+  cursor: progress;
+}
+
+.pin {
+  width: 15px;
+  height: 15px;
+  color: var(--acento);
+}
+
+.error {
+  font-size: 0.75rem;
+  color: var(--alerta);
+  max-width: 34ch;
+  text-align: right;
+}

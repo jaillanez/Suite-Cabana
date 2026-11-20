@@ -1,0 +1,129 @@
+.formulario {
+  display: grid;
+  gap: 1rem;
+}
+
+.campos {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.875rem;
+}
+
+.completo {
+  grid-column: 1 / -1;
+}
+
+.medio {
+  grid-column: span 1;
+}
+
+.formulario label {
+  display: grid;
+  gap: 0.3125rem;
+  min-width: 0;
+}
+
+.formulario label > span {
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: var(--texto-2);
+}
+
+.formulario select,
+.formulario textarea,
+.formulario input {
+  padding: 0.625rem 0.75rem;
+  border: 1px solid var(--borde-fuerte);
+  border-radius: var(--radio);
+  background: var(--fondo);
+  font-size: 0.9375rem;
+  width: 100%;
+  min-width: 0;
+}
+
+.formulario select:focus-visible,
+.formulario textarea:focus-visible,
+.formulario input:focus-visible {
+  outline: 2px solid var(--acento);
+  outline-offset: 1px;
+  border-color: var(--acento);
+}
+
+.ayuda {
+  font-size: 0.75rem;
+  color: var(--texto-3);
+}
+
+.enviar {
+  padding: 0.75rem;
+  border: 0;
+  border-radius: var(--radio);
+  background: var(--acento);
+  color: #fff;
+  font-weight: 600;
+  font-size: 0.9375rem;
+  cursor: pointer;
+}
+
+.enviar:hover:not(:disabled) {
+  background: var(--acento-fuerte);
+}
+
+.enviar:disabled {
+  background: var(--fondo-3);
+  color: var(--texto-3);
+  cursor: progress;
+}
+
+.error {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.5rem;
+  padding: 0.625rem 0.75rem;
+  border: 1px solid #e9c4c0;
+  background: var(--alerta-tenue);
+  color: var(--alerta);
+  border-radius: var(--radio);
+  font-size: 0.8125rem;
+  font-weight: 500;
+}
+
+.icono {
+  width: 16px;
+  height: 16px;
+  flex: none;
+  margin-top: 1px;
+}
+
+@media (max-width: 520px) {
+  .campos {
+    grid-template-columns: 1fr;
+  }
+}
+
+.terminos {
+  display: grid !important;
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: start;
+  gap: 0.625rem;
+}
+
+.terminos input {
+  width: auto;
+  margin-top: 0.1875rem;
+  accent-color: var(--acento);
+}
+
+.terminos span {
+  font-size: 0.8125rem;
+  font-weight: 400 !important;
+  color: var(--texto-2);
+  line-height: 1.5;
+}
+
+.terminos a {
+  color: var(--acento);
+  font-weight: 600;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}

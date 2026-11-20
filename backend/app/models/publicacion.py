@@ -1,5 +1,6 @@
 import uuid
 from datetime import date, datetime, time
+from decimal import Decimal
 
 from geoalchemy2 import Geography
 from sqlalchemy import (
@@ -10,13 +11,19 @@ from sqlalchemy import (
     SmallInteger,
     String,
     Table,
+    UniqueConstraint,
     text,
 )
 from sqlalchemy.dialects.postgresql import DATERANGE, JSONB, ExcludeConstraint, Range
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.models.base import Base, Dinero, IdMixin, Porcentaje, TiempoMixin, pg_enum
-from app.models.enums import EstadoPublicacion, OrigenBloqueo
+from app.models.enums import (
+    EstadoPublicacion,
+    EstadoReservaExterna,
+    OrigenBloqueo,
+    OrigenReservaExterna,
+)
 
 publicacion_comodidad = Table(
     "publicacion_comodidad",
@@ -30,7 +37,10 @@ class Publicacion(IdMixin, TiempoMixin, Base):
     """Ficha visible. Ej.: 'Complejo Los Álamos'."""
 
     __tablename__ = "publicacion"
-    __table_args__ = (Index("ix_publicacion_ubicacion", "ubicacion", postgresql_using="gist"),)
+    __table_args__ = (
+        Index("ix_publicacion_ubicacion", "ubicacion", postgresql_using="gist"),
+        Index("ix_publicacion_es_demo", "es_demo"),
+    )
 
     prestador_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("prestador.id"), index=True)
     tipo_servicio_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("tipo_servicio.id"))
@@ -57,10 +67,15 @@ class Publicacion(IdMixin, TiempoMixin, Base):
     politica_cancelacion_id: Mapped[uuid.UUID | None] = mapped_column(
         ForeignKey("politica_cancelacion.id")
     )
+    es_demo: Mapped[bool] = mapped_column(default=False)  # datos de ejemplo, nunca reales
     calificacion_promedio: Mapped[float | None]
     cantidad_resenas: Mapped[int] = mapped_column(default=0)
 
     prestador: Mapped["Prestador"] = relationship(back_populates="publicaciones")  # noqa: F821
+    localidad: Mapped["Localidad"] = relationship()  # noqa: F821
+    zona: Mapped["Zona | None"] = relationship()  # noqa: F821
+    subtipo: Mapped["SubtipoServicio | None"] = relationship()  # noqa: F821
+    politica_cancelacion: Mapped["PoliticaCancelacion | None"] = relationship()  # noqa: F821
     unidades: Mapped[list["Unidad"]] = relationship(back_populates="publicacion")
     fotos: Mapped[list["Foto"]] = relationship(order_by="Foto.orden")
     comodidades: Mapped[list["Comodidad"]] = relationship(  # noqa: F821
@@ -90,11 +105,11 @@ class Unidad(IdMixin, TiempoMixin, Base):
     capacidad_base: Mapped[int | None] = mapped_column(SmallInteger)  # sobre esta, persona extra
     activa: Mapped[bool] = mapped_column(default=True)
 
-    cargo_limpieza: Mapped[Dinero] = mapped_column(default=0)
-    cargo_persona_extra: Mapped[Dinero] = mapped_column(default=0)
-    cargo_mascota: Mapped[Dinero] = mapped_column(default=0)
-    descuento_semanal: Mapped[Porcentaje] = mapped_column(default=0)
-    descuento_mensual: Mapped[Porcentaje] = mapped_column(default=0)
+    cargo_limpieza: Mapped[Dinero] = mapped_column(default=Decimal(0))
+    cargo_persona_extra: Mapped[Dinero] = mapped_column(default=Decimal(0))
+    cargo_mascota: Mapped[Dinero] = mapped_column(default=Decimal(0))
+    descuento_semanal: Mapped[Porcentaje] = mapped_column(default=Decimal(0))
+    descuento_mensual: Mapped[Porcentaje] = mapped_column(default=Decimal(0))
 
     ical_export_token: Mapped[uuid.UUID] = mapped_column(default=uuid.uuid4, unique=True)
 
@@ -132,9 +147,74 @@ class CalendarioExterno(IdMixin, Base):
 
     unidad_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("unidad.id"), index=True)
     nombre: Mapped[str] = mapped_column(String(60))
+    # Qué plataforma es: permite mostrar el ícono y las instrucciones correctas.
+    plataforma: Mapped[str] = mapped_column(String(30), default="otro")
     url: Mapped[str]
     ultima_sincronizacion: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     ultimo_error: Mapped[str | None]
+
+
+class ReservaExterna(IdMixin, TiempoMixin, Base):
+    """Una venta que no pasó por nosotros, pero que ocupa la noche igual.
+
+    Existe porque el anfitrión vende en varios lados. Lo que entra por Despegar
+    —que no publica iCal— o por WhatsApp tiene que tapar esa fecha en todas las
+    otras plataformas, y para eso primero tiene que estar acá.
+
+    No es una `Reserva`: no la vendimos nosotros, así que no lleva comisión, ni
+    pago, ni ítems. Es el registro de una venta ajena más el bloqueo que produce.
+
+    `POR_REVISAR` es deliberado. Cuando un mail no se entiende del todo, la
+    reserva queda esperando en vez de bloquear fechas por las dudas o —peor—
+    de fallar en silencio. Un calendario que se calla cuando no entendió es
+    exactamente cómo se vende dos veces la misma noche.
+    """
+
+    __tablename__ = "reserva_externa"
+    __table_args__ = (
+        # Un mail reenviado dos veces, o un webhook reintentado, no puede
+        # producir dos reservas. La unicidad va por prestador y no por unidad:
+        # cuando el mail todavía no dice a qué cabaña va, `unidad_id` es NULL, y
+        # en Postgres dos NULL nunca chocan —la idempotencia se perdería justo
+        # en el caso donde más hace falta.
+        UniqueConstraint("prestador_id", "huella", name="uq_reserva_externa_huella"),
+    )
+
+    #: El dueño. Va siempre, incluso cuando todavía no se sabe la unidad: sin
+    #: esto una reserva a medias no pertenece a nadie, y termina apareciendo en
+    #: la bandeja de todos los anfitriones.
+    prestador_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("prestador.id"), index=True)
+    #: Opcional a propósito: si el mail no dice a qué cabaña va, la reserva se
+    #: guarda igual y espera que el anfitrión lo diga. Perder el mensaje sería
+    #: peor que guardarlo incompleto.
+    unidad_id: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("unidad.id"), index=True)
+    origen: Mapped[OrigenReservaExterna] = mapped_column(
+        pg_enum(OrigenReservaExterna, "origen_reserva_externa")
+    )
+    estado: Mapped[EstadoReservaExterna] = mapped_column(
+        pg_enum(EstadoReservaExterna, "estado_reserva_externa"),
+        default=EstadoReservaExterna.CONFIRMADA,
+    )
+    #: Código de `canales.PLATAFORMAS`, o "particular" si la vendió el anfitrión.
+    plataforma: Mapped[str] = mapped_column(String(30), default="particular")
+    fecha_inicio: Mapped[date | None]
+    fecha_fin: Mapped[date | None]
+    huesped: Mapped[str | None] = mapped_column(String(120))
+    contacto: Mapped[str | None] = mapped_column(String(120))
+    personas: Mapped[int | None] = mapped_column(SmallInteger)
+    #: Lo que cobró el anfitrión. Informativo: no genera comisión ni cobro nuestro.
+    monto: Mapped[Dinero | None]
+    codigo_externo: Mapped[str | None] = mapped_column(String(80))
+    nota: Mapped[str | None] = mapped_column(String(400))
+    #: Qué no se pudo leer del mail. Vacío cuando se entendió todo.
+    faltantes: Mapped[list | None] = mapped_column(JSONB)
+    #: Identidad estable del mensaje que la originó (Message-ID, o un hash del
+    #: cuerpo cuando no lo hay). Es lo que hace idempotente la importación.
+    huella: Mapped[str | None] = mapped_column(String(120))
+    #: El mail crudo, para poder rehacer la lectura si mejoramos el análisis.
+    mensaje: Mapped[dict | None] = mapped_column(JSONB)
+
+    bloqueos: Mapped[list["BloqueoFecha"]] = relationship(back_populates="reserva_externa")
 
 
 class BloqueoFecha(IdMixin, TiempoMixin, Base):
@@ -166,4 +246,9 @@ class BloqueoFecha(IdMixin, TiempoMixin, Base):
     calendario_externo_id: Mapped[uuid.UUID | None] = mapped_column(
         ForeignKey("calendario_externo.id", ondelete="CASCADE")
     )
+    reserva_externa_id: Mapped[uuid.UUID | None] = mapped_column(
+        ForeignKey("reserva_externa.id", ondelete="CASCADE")
+    )
     nota: Mapped[str | None] = mapped_column(String(200))
+
+    reserva_externa: Mapped[ReservaExterna | None] = relationship(back_populates="bloqueos")

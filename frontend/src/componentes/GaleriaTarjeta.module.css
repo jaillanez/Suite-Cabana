@@ -1,0 +1,110 @@
+.marco {
+  position: relative;
+  aspect-ratio: 4 / 3;
+  border-radius: var(--radio);
+  overflow: hidden;
+  background: var(--fondo-3);
+}
+
+.carril {
+  display: flex;
+  height: 100%;
+  overflow-x: auto;
+  overscroll-behavior-x: contain;
+  scroll-snap-type: x mandatory;
+  scrollbar-width: none;
+}
+
+.carril::-webkit-scrollbar {
+  display: none;
+}
+
+.carril img {
+  flex: 0 0 100%;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  scroll-snap-align: center;
+  scroll-snap-stop: always;
+  transition: transform 400ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.vacio {
+  display: grid;
+  place-items: center;
+  color: var(--texto-3);
+  font-size: 0.8125rem;
+  border: 1px dashed var(--borde-fuerte);
+}
+
+.flecha {
+  position: absolute;
+  top: 50%;
+  translate: 0 -50%;
+  z-index: 3;
+  display: grid;
+  place-items: center;
+  width: 30px;
+  height: 30px;
+  padding: 0;
+  border: 1px solid rgb(23 23 26 / 0.08);
+  border-radius: 999px;
+  background: rgb(255 255 255 / 0.94);
+  color: var(--texto);
+  cursor: pointer;
+  opacity: 0;
+  transition:
+    opacity var(--transicion),
+    scale var(--transicion);
+  box-shadow: var(--sombra-1);
+}
+
+.flecha:disabled {
+  opacity: 0 !important;
+  pointer-events: none;
+}
+
+.izq {
+  left: 8px;
+}
+
+.der {
+  right: 8px;
+}
+
+.marco:hover .flecha,
+.flecha:focus-visible {
+  opacity: 1;
+}
+
+/* Sin mouse no hay hover: ahí el carril se desliza con el dedo y las flechas
+   no tienen nada que aportar. */
+@media (hover: none) {
+  .flecha {
+    display: none;
+  }
+}
+
+.puntos {
+  position: absolute;
+  bottom: 8px;
+  left: 50%;
+  translate: -50% 0;
+  z-index: 3;
+  display: flex;
+  gap: 5px;
+  pointer-events: none;
+}
+
+.puntos span {
+  width: 6px;
+  height: 6px;
+  border-radius: 999px;
+  background: rgb(255 255 255 / 0.55);
+  box-shadow: 0 1px 2px rgb(23 23 26 / 0.3);
+  transition: background var(--transicion);
+}
+
+.puntos .activo {
+  background: #fff;
+}

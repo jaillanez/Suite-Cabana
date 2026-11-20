@@ -1,7 +1,14 @@
 import uuid
 from datetime import date, datetime
 
-from sqlalchemy import CheckConstraint, DateTime, ForeignKey, SmallInteger, String
+from sqlalchemy import (
+    CheckConstraint,
+    DateTime,
+    ForeignKey,
+    SmallInteger,
+    String,
+    UniqueConstraint,
+)
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
@@ -25,6 +32,9 @@ class Reserva(IdMixin, TiempoMixin, Base):
     vence_pago_en: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     vence_aprobacion_en: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     politica_cancelacion: Mapped[dict | None] = mapped_column(JSONB)  # snapshot
+    # docs/01 §5 R11: también se aceptan al reservar.
+    acepto_terminos_en: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    version_terminos: Mapped[str | None] = mapped_column(String(20))
     cancelada_en: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     motivo_cancelacion: Mapped[str | None]
 
@@ -52,6 +62,7 @@ class ItemReserva(IdMixin, Base):
     subtotal: Mapped[Dinero]  # precio del prestador
 
     reserva: Mapped[Reserva] = relationship(back_populates="items")
+    unidad: Mapped["Unidad"] = relationship()  # noqa: F821
     comision: Mapped["ComisionAplicada | None"] = relationship(  # noqa: F821
         back_populates="item_reserva"
     )
@@ -59,27 +70,37 @@ class ItemReserva(IdMixin, Base):
 
 class Pago(IdMixin, TiempoMixin, Base):
     __tablename__ = "pago"
+    # El id externo solo tiene que ser único dentro de su pasarela. Declarado acá
+    # y no solo en la migración: lo que no está en el modelo, autogenerate lo borra.
+    __table_args__ = (UniqueConstraint("pasarela", "id_externo", name="uq_pago_pasarela"),)
 
     reserva_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("reserva.id"), index=True)
     tipo: Mapped[TipoPago] = mapped_column(pg_enum(TipoPago, "tipo_pago"))
-    mp_payment_id: Mapped[str | None] = mapped_column(String(40), unique=True)
-    mp_preference_id: Mapped[str | None] = mapped_column(String(80))
+    pasarela: Mapped[str] = mapped_column(String(40), default="mercadopago")
+    id_externo: Mapped[str | None] = mapped_column(String(80))
+    id_preferencia: Mapped[str | None] = mapped_column(String(80))
     estado: Mapped[str] = mapped_column(String(30))
     monto: Mapped[Dinero]
     monto_prestador: Mapped[Dinero]
     monto_comision: Mapped[Dinero]
     iva_comision: Mapped[Dinero]
-    datos_mp: Mapped[dict | None] = mapped_column(JSONB)
+    datos: Mapped[dict | None] = mapped_column(JSONB)
 
     reserva: Mapped[Reserva] = relationship(back_populates="pagos")
 
 
-class NotificacionMP(IdMixin, TiempoMixin, Base):
-    """Registro de webhooks de Mercado Pago para procesarlos una sola vez."""
+class NotificacionPago(IdMixin, TiempoMixin, Base):
+    """Webhook de una pasarela, registrado para procesarlo una sola vez.
 
-    __tablename__ = "notificacion_mp"
+    La unicidad es por (pasarela, id_externo): dos billeteras distintas pueden
+    usar el mismo id sin pisarse.
+    """
 
-    id_externo: Mapped[str] = mapped_column(String(80), unique=True)
+    __tablename__ = "notificacion_pago"
+    __table_args__ = (UniqueConstraint("pasarela", "id_externo"),)
+
+    pasarela: Mapped[str] = mapped_column(String(40), index=True)
+    id_externo: Mapped[str] = mapped_column(String(80))
     topico: Mapped[str] = mapped_column(String(40))
     payload: Mapped[dict] = mapped_column(JSONB)
     procesada_en: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))

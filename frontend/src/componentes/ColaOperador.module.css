@@ -1,0 +1,224 @@
+.cola {
+  display: grid;
+  gap: 1rem;
+}
+
+.ficha {
+  display: grid;
+  grid-template-columns: 260px minmax(0, 1fr);
+  gap: 1.25rem;
+  padding: 1rem;
+  border: 1px solid var(--borde);
+  border-radius: var(--radio-l);
+}
+
+.fotos {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 4px;
+  align-content: start;
+}
+
+.fotos img {
+  width: 100%;
+  aspect-ratio: 4 / 3;
+  object-fit: cover;
+  border-radius: var(--radio-s);
+  background: var(--fondo-3);
+}
+
+.sinFotos {
+  grid-column: 1 / -1;
+  display: grid;
+  place-items: center;
+  aspect-ratio: 4 / 3;
+  border: 1px dashed var(--borde-fuerte);
+  border-radius: var(--radio-s);
+  font-size: 0.8125rem;
+  color: var(--texto-3);
+}
+
+.cuerpo {
+  display: grid;
+  gap: 0.375rem;
+  align-content: start;
+  min-width: 0;
+}
+
+.cuerpo h2 {
+  font-size: 1.0625rem;
+}
+
+.meta {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+  font-size: 0.875rem;
+  color: var(--texto-2);
+}
+
+.verificado {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  font-size: 0.6875rem;
+  font-weight: 600;
+  color: var(--acento);
+  background: var(--acento-tenue);
+  padding: 0.125rem 0.4375rem;
+  border-radius: var(--radio-s);
+}
+
+.verificado svg {
+  width: 12px;
+  height: 12px;
+}
+
+.numeros {
+  font-size: 0.8125rem;
+  color: var(--texto-3);
+}
+
+.descripcion {
+  font-size: 0.875rem;
+  color: var(--texto-2);
+  line-height: 1.5;
+  max-width: 68ch;
+  margin: 0.25rem 0 0.5rem;
+}
+
+.acciones {
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.aprobar,
+.ver {
+  padding: 0.5rem 0.875rem;
+  border-radius: var(--radio);
+  font-size: 0.875rem;
+  font-weight: 600;
+  cursor: pointer;
+  border: 1px solid transparent;
+}
+
+.aprobar {
+  background: var(--acento);
+  color: #fff;
+  border: 0;
+}
+
+.aprobar:hover:not(:disabled) {
+  background: var(--acento-fuerte);
+}
+
+.aprobar:disabled {
+  background: var(--fondo-3);
+  color: var(--texto-3);
+}
+
+.ver {
+  background: var(--fondo);
+  border-color: var(--borde-fuerte);
+  color: var(--texto);
+}
+
+.ver:hover {
+  background: var(--fondo-2);
+  text-decoration: none;
+}
+
+.rechazo {
+  margin-top: 0.375rem;
+}
+
+.rechazo summary {
+  font-size: 0.8125rem;
+  color: var(--texto-2);
+  cursor: pointer;
+  width: fit-content;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.rechazo[open] summary {
+  margin-bottom: 0.5rem;
+}
+
+.rechazo label {
+  display: grid;
+  gap: 0.3125rem;
+  margin-bottom: 0.5rem;
+}
+
+.rechazo span {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--texto-2);
+}
+
+.rechazo textarea {
+  padding: 0.5rem 0.625rem;
+  border: 1px solid var(--borde-fuerte);
+  border-radius: var(--radio-s);
+  font: inherit;
+  font-size: 0.875rem;
+  resize: vertical;
+  width: 100%;
+  max-width: 520px;
+}
+
+.rechazo button {
+  padding: 0.4375rem 0.875rem;
+  border: 1px solid var(--borde-fuerte);
+  border-radius: var(--radio-s);
+  background: var(--fondo);
+  font-size: 0.8125rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.rechazo button:hover:not(:disabled) {
+  background: var(--alerta-tenue);
+  border-color: #e9c4c0;
+  color: var(--alerta);
+}
+
+.vacio {
+  padding: 2.5rem;
+  border: 1px dashed var(--borde-fuerte);
+  border-radius: var(--radio-l);
+  background: var(--fondo-2);
+  color: var(--texto-2);
+  text-align: center;
+}
+
+.error {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.75rem 1rem;
+  border: 1px solid #e9c4c0;
+  background: var(--alerta-tenue);
+  color: var(--alerta);
+  border-radius: var(--radio);
+  font-size: 0.875rem;
+  margin-bottom: 1rem;
+}
+
+.icono {
+  width: 16px;
+  height: 16px;
+  flex: none;
+}
+
+@media (max-width: 760px) {
+  .ficha {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .fotos {
+    grid-template-columns: repeat(4, 1fr);
+  }
+}

@@ -1,0 +1,82 @@
+.paginado {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.75rem;
+  padding: 2rem 0 0.5rem;
+}
+
+.numeros {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+}
+
+.numeros li {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+}
+
+.numero {
+  display: grid;
+  place-items: center;
+  min-width: 34px;
+  height: 34px;
+  padding: 0 0.5rem;
+  border-radius: var(--radio-s);
+  font-size: 0.875rem;
+  font-weight: 500;
+}
+
+.numero:hover {
+  background: var(--fondo-2);
+  text-decoration: none;
+}
+
+.actual {
+  background: var(--texto);
+  color: var(--fondo);
+  font-weight: 600;
+}
+
+.actual:hover {
+  background: var(--texto);
+}
+
+.puntos {
+  color: var(--texto-3);
+  padding: 0 0.125rem;
+}
+
+.flecha {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.375rem;
+  padding: 0.4375rem 0.75rem;
+  border: 1px solid var(--borde-fuerte);
+  border-radius: var(--radio-s);
+  font-size: 0.875rem;
+  font-weight: 500;
+}
+
+.flecha:hover {
+  background: var(--fondo-2);
+  text-decoration: none;
+}
+
+.inactivo {
+  color: var(--texto-3);
+  border-color: var(--borde);
+  cursor: default;
+}
+
+.inactivo:hover {
+  background: none;
+}
+
+@media (max-width: 560px) {
+  .flecha span {
+    display: none;
+  }
+}

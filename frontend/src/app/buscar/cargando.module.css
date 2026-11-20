@@ -1,0 +1,78 @@
+.pagina {
+  max-width: 1480px;
+  margin: 0 auto;
+  padding: 1.5rem 1.5rem 3rem;
+  display: grid;
+  gap: 1.5rem;
+}
+
+.encabezado {
+  display: grid;
+  gap: 0.5rem;
+}
+
+.grilla {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(268px, 1fr));
+  gap: 1.5rem 1rem;
+}
+
+.tarjeta {
+  display: grid;
+  gap: 0.5rem;
+  padding: 0.5rem;
+}
+
+.foto,
+.lineaAncha,
+.lineaAngosta,
+.precio {
+  display: block;
+  border-radius: var(--radio-s);
+  background: linear-gradient(
+    100deg,
+    var(--fondo-2) 30%,
+    var(--fondo-3) 48%,
+    var(--fondo-2) 66%
+  );
+  background-size: 260% 100%;
+  animation: brillo 1.4s cubic-bezier(0.22, 1, 0.36, 1) infinite;
+}
+
+.foto {
+  aspect-ratio: 4 / 3;
+  border-radius: var(--radio);
+}
+
+.lineaAncha {
+  height: 14px;
+  width: 72%;
+}
+
+.lineaAngosta {
+  height: 12px;
+  width: 44%;
+}
+
+.precio {
+  height: 20px;
+  width: 38%;
+  margin-top: 0.25rem;
+}
+
+.oculto {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+}
+
+@keyframes brillo {
+  from {
+    background-position: 140% 0;
+  }
+  to {
+    background-position: -40% 0;
+  }
+}

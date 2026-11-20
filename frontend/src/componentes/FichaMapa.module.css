@@ -1,0 +1,105 @@
+.ficha {
+  position: absolute;
+  inset: auto 0.75rem 0.75rem;
+  z-index: 10;
+  background: var(--fondo);
+  border: 1px solid var(--borde);
+  border-radius: var(--radio);
+  box-shadow: var(--sombra-3);
+  overflow: hidden;
+}
+
+.enlace {
+  display: grid;
+  grid-template-columns: 108px minmax(0, 1fr);
+  gap: 0.75rem;
+  padding: 0.5rem;
+}
+
+.enlace:hover {
+  text-decoration: none;
+}
+
+.foto {
+  width: 108px;
+  height: 92px;
+  object-fit: cover;
+  border-radius: var(--radio-s);
+  background: var(--fondo-3);
+}
+
+.sinFoto {
+  display: block;
+  border: 1px dashed var(--borde-fuerte);
+}
+
+.cuerpo {
+  display: grid;
+  gap: 0.0625rem;
+  align-content: center;
+  padding-right: 1.75rem;
+  min-width: 0;
+}
+
+.cuerpo h3 {
+  font-size: 0.9375rem;
+  line-height: 1.25;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.detalle {
+  font-size: 0.75rem;
+  color: var(--texto-2);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.inmediata {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  font-size: 0.6875rem;
+  font-weight: 600;
+  color: var(--acento);
+  margin: 0.125rem 0;
+}
+
+.inmediata svg {
+  width: 13px;
+  height: 13px;
+}
+
+.precio {
+  font-size: 1.0625rem;
+  font-weight: 700;
+  margin-top: 0.125rem;
+}
+
+.leyenda {
+  font-size: 0.75rem;
+  color: var(--texto-2);
+}
+
+.cerrar {
+  position: absolute;
+  top: 0.4375rem;
+  right: 0.4375rem;
+  z-index: 2;
+  display: grid;
+  place-items: center;
+  width: 26px;
+  height: 26px;
+  padding: 0;
+  border: 1px solid var(--borde);
+  border-radius: 999px;
+  background: var(--fondo);
+  color: var(--texto-2);
+  cursor: pointer;
+}
+
+.cerrar:hover {
+  background: var(--fondo-2);
+}

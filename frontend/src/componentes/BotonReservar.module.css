@@ -1,0 +1,71 @@
+.formulario {
+  display: grid;
+  gap: 0.5rem;
+}
+
+.boton {
+  width: 100%;
+  padding: 0.75rem;
+  border: 0;
+  border-radius: var(--radio);
+  background: var(--acento);
+  color: #fff;
+  font-weight: 600;
+  font-size: 0.9375rem;
+  cursor: pointer;
+}
+
+.boton:hover:not(:disabled) {
+  background: var(--acento-fuerte);
+}
+
+.boton:disabled {
+  background: var(--fondo-3);
+  color: var(--texto-3);
+  cursor: not-allowed;
+}
+
+.error {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.5rem;
+  padding: 0.5rem 0.75rem;
+  border: 1px solid #e9c4c0;
+  background: var(--alerta-tenue);
+  color: var(--alerta);
+  border-radius: var(--radio-s);
+  font-size: 0.8125rem;
+  font-weight: 500;
+}
+
+.icono {
+  width: 15px;
+  height: 15px;
+  flex: none;
+  margin-top: 1px;
+}
+
+.terminos {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: start;
+  gap: 0.5rem;
+}
+
+.terminos input {
+  margin-top: 0.125rem;
+  accent-color: var(--acento);
+}
+
+.terminos span {
+  font-size: 0.75rem;
+  color: var(--texto-2);
+  line-height: 1.45;
+}
+
+.terminos a {
+  color: var(--acento);
+  font-weight: 600;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}

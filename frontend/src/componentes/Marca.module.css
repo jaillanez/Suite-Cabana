@@ -1,0 +1,22 @@
+.marca {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  color: var(--acento);
+  font-weight: 700;
+  font-size: 1rem;
+  letter-spacing: -0.02em;
+  white-space: nowrap;
+}
+
+.marca:hover {
+  text-decoration: none;
+}
+
+/* En la barra de resultados el buscador manda: por debajo de 1080px queda solo
+   el símbolo. En la home el nombre se lee siempre. */
+@media (max-width: 1080px) {
+  .compacta span {
+    display: none;
+  }
+}

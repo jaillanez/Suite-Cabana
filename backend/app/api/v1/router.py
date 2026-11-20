@@ -1,7 +1,28 @@
 from fastapi import APIRouter
 
-from app.api.v1 import comisiones, salud
+from app.api.v1 import (
+    admin,
+    agenda,
+    auth,
+    comisiones,
+    correo,
+    ical,
+    mis_publicaciones,
+    panel,
+    publicaciones,
+    reservas,
+    salud,
+)
 
 api_router = APIRouter(prefix="/api/v1")
 api_router.include_router(salud.router)
+api_router.include_router(auth.router)
 api_router.include_router(comisiones.router)
+api_router.include_router(publicaciones.router)
+api_router.include_router(mis_publicaciones.router)
+api_router.include_router(admin.router)
+api_router.include_router(ical.router)
+api_router.include_router(agenda.router)
+api_router.include_router(correo.router)
+api_router.include_router(reservas.router)
+api_router.include_router(panel.router)

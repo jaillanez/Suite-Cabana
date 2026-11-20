@@ -1,0 +1,227 @@
+.pagina {
+  max-width: 1160px;
+  margin: 0 auto;
+  padding: 1.25rem 1.5rem 4rem;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 1.25rem;
+}
+
+.migas {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  font-size: 0.8125rem;
+  color: var(--texto-2);
+}
+
+.migas span[aria-hidden] {
+  color: var(--borde-fuerte);
+}
+
+.titulos {
+  display: grid;
+  gap: 0.3125rem;
+  justify-items: start;
+}
+
+.titulos h1 {
+  font-size: clamp(1.5rem, 3.2vw, 2rem);
+  letter-spacing: -0.025em;
+}
+
+.ubicacion {
+  display: flex;
+  align-items: center;
+  gap: 0.375rem;
+  font-size: 0.9375rem;
+  color: var(--texto-2);
+}
+
+.iconoChico {
+  width: 16px;
+  height: 16px;
+  flex: none;
+}
+
+.inmediata {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--acento);
+  background: var(--acento-tenue);
+  padding: 0.1875rem 0.5rem 0.1875rem 0.375rem;
+  border-radius: var(--radio-s);
+}
+
+.inmediata svg {
+  width: 14px;
+  height: 14px;
+}
+
+.columnas {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(320px, 380px);
+  gap: 3rem;
+  align-items: start;
+  margin-top: 0.75rem;
+}
+
+.izquierda {
+  display: grid;
+  gap: 2rem;
+  min-width: 0;
+}
+
+.izquierda section {
+  display: grid;
+  gap: 0.5rem;
+  padding-bottom: 2rem;
+  border-bottom: 1px solid var(--borde);
+}
+
+.izquierda section:last-child {
+  border-bottom: 0;
+  padding-bottom: 0;
+}
+
+.subtitulo {
+  font-size: 1.0625rem;
+}
+
+.descripcion {
+  color: var(--texto-2);
+  max-width: 68ch;
+  line-height: 1.6;
+}
+
+.prestador {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.875rem;
+  color: var(--texto-2);
+}
+
+.prestador strong {
+  color: var(--texto);
+}
+
+.verificado {
+  font-size: 0.6875rem;
+  font-weight: 600;
+  color: var(--acento);
+  background: var(--acento-tenue);
+  padding: 0.125rem 0.4375rem;
+  border-radius: var(--radio-s);
+}
+
+.desde {
+  font-size: 0.8125rem;
+  color: var(--texto-3);
+}
+
+.comodidades {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(190px, 1fr));
+  gap: 0.625rem 1rem;
+  margin-top: 0.25rem;
+}
+
+.comodidades li {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.875rem;
+  color: var(--texto-2);
+}
+
+.unidades {
+  display: grid;
+  gap: 0.5rem;
+  margin-top: 0.25rem;
+}
+
+.unidades li {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1.5rem;
+  padding: 0.875rem 1rem;
+  border: 1px solid var(--borde);
+  border-radius: var(--radio);
+}
+
+.unidadNombre {
+  font-weight: 600;
+  font-size: 0.9375rem;
+}
+
+.unidadDetalle {
+  font-size: 0.8125rem;
+  color: var(--texto-2);
+}
+
+.unidadPrecio {
+  display: grid;
+  justify-items: end;
+  text-align: right;
+  white-space: nowrap;
+}
+
+.unidadPrecio span:first-child {
+  font-weight: 700;
+  font-size: 1rem;
+}
+
+.unidadPrecio span:last-child {
+  font-size: 0.75rem;
+  color: var(--texto-3);
+}
+
+.horarios {
+  font-size: 0.875rem;
+  color: var(--texto-2);
+}
+
+.tramos {
+  display: grid;
+  gap: 0.375rem;
+  margin-top: 0.25rem;
+}
+
+.tramos li {
+  display: flex;
+  gap: 0.625rem;
+  font-size: 0.875rem;
+  color: var(--texto-2);
+}
+
+.tramos span:first-child {
+  min-width: 15ch;
+  font-weight: 600;
+  color: var(--texto);
+}
+
+.nota {
+  font-size: 0.8125rem;
+  color: var(--texto-3);
+  max-width: 62ch;
+}
+
+.mapa {
+  margin-top: 0.5rem;
+}
+
+@media (max-width: 960px) {
+  .columnas {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 2rem;
+  }
+  .pagina {
+    padding: 1rem 1rem 3rem;
+  }
+}

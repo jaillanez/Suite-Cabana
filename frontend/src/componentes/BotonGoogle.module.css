@@ -1,0 +1,35 @@
+.caja {
+  display: grid;
+  gap: 0.875rem;
+  justify-items: center;
+}
+
+.separador {
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  align-items: center;
+  gap: 0.75rem;
+  width: 100%;
+  color: var(--texto-3);
+  font-size: 0.75rem;
+}
+
+.separador::before,
+.separador::after {
+  content: "";
+  height: 1px;
+  background: var(--borde);
+}
+
+.boton {
+  min-height: 40px;
+  display: grid;
+  place-items: center;
+}
+
+.error {
+  font-size: 0.8125rem;
+  color: var(--alerta);
+  font-weight: 500;
+  text-align: center;
+}

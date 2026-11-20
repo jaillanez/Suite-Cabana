@@ -4,10 +4,29 @@ jobs:
   backend:
     runs-on: ubuntu-latest
     defaults: {run: {working-directory: backend}}
+    # Los tests de búsqueda se apoyan en rangos de fecha, la restricción de
+    # exclusión y PostGIS: sin una base de verdad se saltean en silencio.
+    services:
+      db:
+        image: postgis/postgis:16-3.4
+        env:
+          POSTGRES_USER: suite
+          POSTGRES_PASSWORD: suite
+          POSTGRES_DB: suite_cabana_test
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd "pg_isready -U suite"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    env:
+      TEST_DATABASE_URL: postgresql+psycopg://suite:suite@localhost:5432/suite_cabana_test
+      PGPASSWORD: suite
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
         with: {python-version: "3.12"}
+      - run: psql -h localhost -U suite -d suite_cabana_test -c "CREATE EXTENSION IF NOT EXISTS btree_gist"
       - run: pip install -e ".[dev]"
       - run: ruff check .
       - run: pytest
@@ -19,4 +38,5 @@ jobs:
       - uses: actions/setup-node@v4
         with: {node-version: "22"}
       - run: npm ci
+      - run: npx tsc --noEmit
       - run: npm run build

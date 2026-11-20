@@ -1,0 +1,168 @@
+.pagina {
+  max-width: 880px;
+  margin: 0 auto;
+  padding: 2.5rem 1.5rem 4rem;
+  display: grid;
+  gap: 1.5rem;
+}
+
+.titulo {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+.titulo h1 {
+  font-size: clamp(1.5rem, 3.4vw, 2rem);
+  letter-spacing: -0.025em;
+}
+
+.nueva {
+  padding: 0.5625rem 1rem;
+  border-radius: var(--radio);
+  background: var(--acento);
+  color: #fff;
+  font-weight: 600;
+  font-size: 0.875rem;
+  white-space: nowrap;
+}
+
+.nueva:hover {
+  background: var(--acento-fuerte);
+  text-decoration: none;
+}
+
+.subtitulo {
+  color: var(--texto-2);
+  max-width: 58ch;
+  margin-top: -0.75rem;
+}
+
+.aviso {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.625rem;
+  padding: 0.75rem 1rem;
+  border: 1px solid #e8d9a8;
+  background: #fdf8ea;
+  border-radius: var(--radio);
+  font-size: 0.8125rem;
+  color: #6b5518;
+  line-height: 1.5;
+}
+
+.icono {
+  width: 17px;
+  height: 17px;
+  flex: none;
+  margin-top: 1px;
+  color: #9a7a1e;
+}
+
+.lista {
+  display: grid;
+  gap: 0.5rem;
+}
+
+.fila {
+  display: grid;
+  grid-template-columns: 84px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 1rem;
+  padding: 0.75rem;
+  border: 1px solid var(--borde);
+  border-radius: var(--radio);
+  transition: background var(--transicion), border-color var(--transicion);
+}
+
+.fila:hover {
+  background: var(--fondo-2);
+  border-color: var(--borde-fuerte);
+  text-decoration: none;
+}
+
+.miniatura,
+.miniatura img,
+.sinFoto {
+  width: 84px;
+  height: 63px;
+  border-radius: var(--radio-s);
+  object-fit: cover;
+  display: block;
+  background: var(--fondo-3);
+}
+
+.sinFoto {
+  border: 1px dashed var(--borde-fuerte);
+}
+
+.datos {
+  display: grid;
+  gap: 0.125rem;
+  min-width: 0;
+}
+
+.datos strong {
+  font-size: 0.9375rem;
+  font-weight: 600;
+}
+
+.lugar,
+.numeros {
+  font-size: 0.8125rem;
+  color: var(--texto-2);
+}
+
+.faltan {
+  color: #8a6d1c;
+}
+
+.vacio {
+  display: grid;
+  gap: 0.625rem;
+  justify-items: start;
+  padding: 2.5rem;
+  border: 1px dashed var(--borde-fuerte);
+  border-radius: var(--radio-l);
+  background: var(--fondo-2);
+}
+
+.vacio h2 {
+  font-size: 1.125rem;
+}
+
+.vacio p {
+  color: var(--texto-2);
+  max-width: 54ch;
+}
+
+@media (max-width: 620px) {
+  .fila {
+    grid-template-columns: 64px minmax(0, 1fr);
+    grid-template-areas: "foto datos" "estado estado";
+    row-gap: 0.625rem;
+  }
+  .miniatura, .miniatura img, .sinFoto { width: 64px; height: 48px; }
+}
+
+.accionesTitulo {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.secundaria {
+  font-size: 0.875rem;
+  font-weight: 600;
+  padding: 0.5rem 0.875rem;
+  border: 1px solid var(--borde-fuerte);
+  border-radius: var(--radio-s);
+  white-space: nowrap;
+}
+
+.secundaria:hover {
+  background: var(--fondo-2);
+  text-decoration: none;
+}

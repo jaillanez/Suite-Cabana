@@ -1,0 +1,171 @@
+.lista {
+  display: grid;
+  gap: 0.875rem;
+}
+
+.ficha {
+  border: 1px solid var(--borde);
+  border-radius: var(--radio-l);
+  padding: 1rem 1.125rem;
+  display: grid;
+  gap: 0.75rem;
+}
+
+.encabezado {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+.encabezado strong {
+  display: block;
+  font-size: 0.9375rem;
+}
+
+.detalle {
+  display: block;
+  font-size: 0.8125rem;
+  color: var(--texto-2);
+}
+
+.plata {
+  display: grid;
+  gap: 0.25rem;
+  margin: 0;
+  max-width: 380px;
+}
+
+.plata > div {
+  display: flex;
+  justify-content: space-between;
+  gap: 1.5rem;
+  font-size: 0.875rem;
+}
+
+.plata dt {
+  color: var(--texto-2);
+}
+
+.plata dd {
+  margin: 0;
+  font-weight: 500;
+}
+
+.neto {
+  border-top: 1px solid var(--borde);
+  padding-top: 0.4375rem;
+  margin-top: 0.125rem;
+}
+
+.neto dt {
+  color: var(--texto) !important;
+  font-weight: 600;
+}
+
+.neto dd {
+  font-weight: 700;
+  color: var(--acento-fuerte);
+}
+
+.decision {
+  display: grid;
+  gap: 0.625rem;
+  border-top: 1px solid var(--borde);
+  padding-top: 0.75rem;
+}
+
+.aviso {
+  font-size: 0.8125rem;
+  color: #6b5518;
+  background: #fdf8ea;
+  border: 1px solid #e8d9a8;
+  border-radius: var(--radio-s);
+  padding: 0.5rem 0.75rem;
+  max-width: 62ch;
+}
+
+.botones {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.aceptar {
+  padding: 0.5625rem 1rem;
+  border: 0;
+  border-radius: var(--radio);
+  background: var(--acento);
+  color: #fff;
+  font-weight: 600;
+  font-size: 0.875rem;
+  cursor: pointer;
+}
+
+.aceptar:hover:not(:disabled) {
+  background: var(--acento-fuerte);
+}
+
+.rechazo summary {
+  font-size: 0.8125rem;
+  color: var(--texto-2);
+  cursor: pointer;
+  width: fit-content;
+}
+
+.rechazo label {
+  display: grid;
+  gap: 0.3125rem;
+  margin: 0.5rem 0;
+  max-width: 460px;
+}
+
+.rechazo span {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--texto-2);
+}
+
+.rechazo textarea {
+  padding: 0.5rem 0.625rem;
+  border: 1px solid var(--borde-fuerte);
+  border-radius: var(--radio-s);
+  font: inherit;
+  font-size: 0.875rem;
+  resize: vertical;
+}
+
+.rechazo button {
+  padding: 0.4375rem 0.875rem;
+  border: 1px solid var(--borde-fuerte);
+  border-radius: var(--radio-s);
+  background: var(--fondo);
+  font-size: 0.8125rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.rechazo button:hover:not(:disabled) {
+  background: var(--alerta-tenue);
+  border-color: #e9c4c0;
+  color: var(--alerta);
+}
+
+.error {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.75rem 1rem;
+  border: 1px solid #e9c4c0;
+  background: var(--alerta-tenue);
+  color: var(--alerta);
+  border-radius: var(--radio);
+  font-size: 0.875rem;
+  margin-bottom: 1rem;
+}
+
+.icono {
+  width: 16px;
+  height: 16px;
+  flex: none;
+}

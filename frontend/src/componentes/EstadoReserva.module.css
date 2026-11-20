@@ -1,0 +1,62 @@
+.estado {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4375rem;
+  padding: 0.25rem 0.625rem 0.25rem 0.5rem;
+  border-radius: 999px;
+  border: 1px solid var(--borde);
+  background: var(--fondo-2);
+  font-size: 0.75rem;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.punto {
+  width: 7px;
+  height: 7px;
+  border-radius: 999px;
+  background: var(--texto-3);
+}
+
+.pendiente_pago,
+.pendiente_aprobacion {
+  background: #fdf8ea;
+  border-color: #e8d9a8;
+  color: #6b5518;
+}
+
+.pendiente_pago .punto,
+.pendiente_aprobacion .punto {
+  background: #9a7a1e;
+}
+
+.confirmada,
+.completada {
+  background: var(--acento-tenue);
+  border-color: #bcd6ce;
+  color: var(--acento-fuerte);
+}
+
+.confirmada .punto,
+.completada .punto {
+  background: var(--acento);
+}
+
+.cancelada .punto {
+  background: var(--borde-fuerte);
+}
+
+.en_reclamo {
+  background: var(--alerta-tenue);
+  border-color: #e9c4c0;
+  color: var(--alerta);
+}
+
+.en_reclamo .punto {
+  background: var(--alerta);
+}
+
+.explica {
+  font-weight: 400;
+  white-space: normal;
+}

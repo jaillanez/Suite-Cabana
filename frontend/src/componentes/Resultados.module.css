@@ -1,0 +1,81 @@
+.contenedor {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(360px, 40%);
+  gap: 1.5rem;
+  align-items: start;
+}
+
+.columna {
+  display: grid;
+  gap: 1.25rem;
+  min-width: 0;
+}
+
+.lista {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(268px, 1fr));
+  gap: 1.5rem 1rem;
+}
+
+/* El mapa arranca en la misma línea que el título y ocupa el alto del viewport
+   menos la barra fija: entero en el primer pantallazo, sin quedar bajo el pliegue. */
+.mapa {
+  position: sticky;
+  top: calc(var(--barra-alto) + 1.5rem);
+  height: calc(100vh - var(--barra-alto) - 3rem);
+  min-height: 420px;
+}
+
+.mapaCargando {
+  height: 100%;
+  border-radius: var(--radio);
+  border: 1px solid var(--borde);
+  background: var(--fondo-2);
+}
+
+.alternar {
+  display: none;
+  position: fixed;
+  bottom: 1.25rem;
+  left: 50%;
+  translate: -50% 0;
+  z-index: 40;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.6875rem 1.125rem;
+  border: 0;
+  border-radius: 999px;
+  background: var(--texto);
+  color: var(--fondo);
+  font-weight: 600;
+  font-size: 0.875rem;
+  cursor: pointer;
+  box-shadow: var(--sombra-3);
+}
+
+/* En pantalla chica se ve una cosa o la otra: el mapa y la lista no compiten. */
+@media (max-width: 1080px) {
+  .contenedor {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .alternar {
+    display: inline-flex;
+  }
+
+  .mapa {
+    position: fixed;
+    inset: calc(var(--barra-alto) + 0.5rem) 0.75rem 4.5rem;
+    height: auto;
+    min-height: 0;
+    z-index: 35;
+  }
+
+  .vistaLista .mapa {
+    display: none;
+  }
+
+  .vistaMapa .columna {
+    display: none;
+  }
+}

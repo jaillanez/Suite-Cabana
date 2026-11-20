@@ -1,0 +1,41 @@
+.pagina {
+  max-width: 480px;
+  margin: 0 auto;
+  padding: 6rem 1.5rem;
+  display: grid;
+  gap: 0.625rem;
+  justify-items: start;
+}
+
+.codigo {
+  font-size: 0.8125rem;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.08em;
+  color: var(--texto-3);
+}
+
+.pagina h1 {
+  font-size: 1.75rem;
+  letter-spacing: -0.025em;
+}
+
+.cuerpo {
+  color: var(--texto-2);
+  max-width: 44ch;
+}
+
+.accion {
+  margin-top: 0.75rem;
+  padding: 0.6875rem 1.125rem;
+  border-radius: var(--radio);
+  background: var(--acento);
+  color: #fff;
+  font-weight: 600;
+  font-size: 0.9375rem;
+}
+
+.accion:hover {
+  background: var(--acento-fuerte);
+  text-decoration: none;
+}

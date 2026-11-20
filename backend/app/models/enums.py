@@ -21,6 +21,25 @@ class OrigenBloqueo(StrEnum):
     ICAL = "ical"
     RETENCION = "retencion"  # fechas retenidas mientras el viajero paga
     RESERVA = "reserva"
+    #: Vendida fuera de la plataforma: por Despegar, por WhatsApp, por teléfono.
+    #: No lleva comisión —no la vendimos nosotros— pero sí ocupa la noche.
+    EXTERNA = "externa"
+
+
+class OrigenReservaExterna(StrEnum):
+    """De dónde entró una venta que no pasó por Suite Cabaña."""
+
+    PARTICULAR = "particular"  # WhatsApp, teléfono, un huésped que vuelve
+    CORREO = "correo"  # la leímos de un mail de la plataforma
+
+
+class EstadoReservaExterna(StrEnum):
+    #: La entendimos entera y ya bloqueó las fechas.
+    CONFIRMADA = "confirmada"
+    #: Algo no se entendió del mail: espera que el anfitrión la revise. No bloquea.
+    POR_REVISAR = "por_revisar"
+    #: El anfitrión la descartó, o la venta se cayó.
+    DESCARTADA = "descartada"
 
 
 class EstadoReserva(StrEnum):
@@ -43,3 +62,15 @@ class QuienPaga(StrEnum):
     PRESTADOR = "prestador"
     VIAJERO = "viajero"
     DIVIDIDO = "dividido"
+
+
+class CanalNotificacion(StrEnum):
+    EMAIL = "email"
+    WHATSAPP = "whatsapp"
+
+
+class EstadoNotificacion(StrEnum):
+    PENDIENTE = "pendiente"
+    ENVIADA = "enviada"
+    FALLIDA = "fallida"
+    DESCARTADA = "descartada"  # el canal no está configurado

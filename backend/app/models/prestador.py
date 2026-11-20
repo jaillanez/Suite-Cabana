@@ -17,6 +17,7 @@ class Prestador(IdMixin, TiempoMixin, Base):
     categoria: Mapped[str | None] = mapped_column(String(40))  # usada por reglas de comisión
     fecha_alta: Mapped[date] = mapped_column(default=date.today)
     verificado: Mapped[bool] = mapped_column(default=False)
+    es_demo: Mapped[bool] = mapped_column(default=False)  # datos de ejemplo, nunca reales
 
     # Mercado Pago (OAuth marketplace)
     mp_user_id: Mapped[str | None] = mapped_column(String(40))

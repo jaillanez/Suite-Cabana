@@ -1,0 +1,70 @@
+.marco {
+  position: relative;
+  height: 100%;
+  min-height: 320px;
+  border-radius: var(--radio);
+  overflow: hidden;
+  border: 1px solid var(--borde);
+  background: var(--fondo-2);
+}
+
+.mapa {
+  position: absolute;
+  inset: 0;
+}
+
+.pin {
+  font-family: inherit;
+  font-size: 0.8125rem;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  color: var(--texto);
+  background: var(--fondo);
+  border: 1px solid var(--borde-fuerte);
+  border-radius: 999px;
+  padding: 0.25rem 0.625rem;
+  cursor: pointer;
+  box-shadow: var(--sombra-1);
+  transition:
+    background var(--transicion),
+    color var(--transicion),
+    scale var(--transicion);
+}
+
+.pin:hover {
+  scale: 1.06;
+}
+
+.activo {
+  background: var(--acento);
+  border-color: var(--acento);
+  color: #fff;
+  scale: 1.1;
+  z-index: 5;
+  box-shadow: var(--sombra-2);
+}
+
+.aviso {
+  position: absolute;
+  inset: auto 1rem 1rem;
+  z-index: 2;
+  background: var(--fondo);
+  border: 1px solid var(--borde);
+  border-radius: var(--radio);
+  padding: 0.625rem 0.875rem;
+  font-size: 0.8125rem;
+  color: var(--texto-2);
+  box-shadow: var(--sombra-2);
+  text-align: center;
+}
+
+/* Los controles del mapa también son parte del diseño. */
+.marco :global(.maplibregl-ctrl-group) {
+  border-radius: var(--radio-s);
+  box-shadow: var(--sombra-1);
+  border: 1px solid var(--borde);
+}
+
+.marco :global(.maplibregl-ctrl-attrib) {
+  font-size: 0.6875rem;
+}

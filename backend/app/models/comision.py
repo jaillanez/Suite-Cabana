@@ -1,5 +1,6 @@
 import uuid
 from datetime import date, datetime
+from decimal import Decimal
 
 from sqlalchemy import DateTime, ForeignKey, Index, SmallInteger, String, text
 from sqlalchemy.dialects.postgresql import JSONB
@@ -49,14 +50,14 @@ class ReglaComision(IdMixin, TiempoMixin, Base):
     categoria_prestador: Mapped[str | None] = mapped_column(String(40))
 
     # Valor
-    porcentaje: Mapped[Porcentaje] = mapped_column(default=0)
-    monto_fijo: Mapped[Dinero] = mapped_column(default=0)
+    porcentaje: Mapped[Porcentaje] = mapped_column(default=Decimal(0))
+    monto_fijo: Mapped[Dinero] = mapped_column(default=Decimal(0))
     minimo: Mapped[Dinero | None]
     maximo: Mapped[Dinero | None]
     quien_paga: Mapped[QuienPaga] = mapped_column(
         pg_enum(QuienPaga, "quien_paga"), default=QuienPaga.PRESTADOR
     )
-    porcentaje_viajero: Mapped[Porcentaje] = mapped_column(default=0)  # si es dividido
+    porcentaje_viajero: Mapped[Porcentaje] = mapped_column(default=Decimal(0))  # si es dividido
     iva_incluido: Mapped[bool] = mapped_column(default=False)
 
     creado_por_id: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("usuario.id"))

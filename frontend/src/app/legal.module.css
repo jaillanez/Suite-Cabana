@@ -1,0 +1,106 @@
+.pagina {
+  max-width: 720px;
+  margin: 0 auto;
+  padding: 2.5rem 1.5rem 4rem;
+  display: grid;
+  gap: 1.75rem;
+}
+
+.pagina h1 {
+  font-size: clamp(1.625rem, 3.6vw, 2.25rem);
+  letter-spacing: -0.028em;
+  margin-bottom: -1.25rem;
+}
+
+.version {
+  font-size: 0.8125rem;
+  color: var(--texto-3);
+  font-variant-numeric: tabular-nums;
+}
+
+.pagina section {
+  display: grid;
+  gap: 0.75rem;
+}
+
+.pagina h2 {
+  font-size: 1.125rem;
+}
+
+.pagina p {
+  color: var(--texto-2);
+  line-height: 1.65;
+  max-width: 66ch;
+}
+
+.pagina strong {
+  color: var(--texto);
+}
+
+.pagina ul {
+  display: grid;
+  gap: 0.5rem;
+}
+
+.pagina li {
+  color: var(--texto-2);
+  line-height: 1.6;
+  padding-left: 1.125rem;
+  position: relative;
+  max-width: 66ch;
+}
+
+.pagina li::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 0.65em;
+  width: 5px;
+  height: 5px;
+  border-radius: 999px;
+  background: var(--borde-fuerte);
+}
+
+.borrador {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.625rem;
+  padding: 0.875rem 1rem;
+  border: 1px solid #e8d9a8;
+  background: #fdf8ea;
+  border-radius: var(--radio);
+  font-size: 0.875rem;
+  color: #6b5518 !important;
+  line-height: 1.55;
+}
+
+.borrador strong {
+  color: #5a4714;
+}
+
+.icono {
+  width: 17px;
+  height: 17px;
+  flex: none;
+  margin-top: 2px;
+  color: #9a7a1e;
+}
+
+.pendiente {
+  font-size: 0.8125rem;
+  color: var(--texto-3) !important;
+  border-left: 1px solid var(--borde-fuerte);
+  padding-left: 0.75rem;
+}
+
+.pie {
+  border-top: 1px solid var(--borde);
+  padding-top: 1.25rem;
+}
+
+.pie a {
+  color: var(--acento);
+  font-weight: 600;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}

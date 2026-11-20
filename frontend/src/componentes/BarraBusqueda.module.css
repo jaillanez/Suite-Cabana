@@ -1,0 +1,278 @@
+.barra {
+  position: relative;
+}
+
+.campos {
+  display: grid;
+  gap: 1px;
+  background: var(--borde);
+  border: 1px solid var(--borde);
+  border-radius: var(--radio-l);
+}
+
+.hero .campos {
+  grid-template-columns: 1.55fr 1fr 1fr 1.05fr auto;
+  box-shadow: var(--sombra-2);
+}
+
+.compacta .campos {
+  grid-template-columns: 1.4fr 0.95fr 0.95fr 1fr auto;
+  border-radius: var(--radio);
+}
+
+.campo {
+  display: grid;
+  gap: 2px;
+  align-content: center;
+  padding: 0.5rem 0.875rem;
+  background: var(--fondo);
+  position: relative;
+  min-width: 0;
+}
+
+.campos > .campo:first-child {
+  border-radius: var(--radio-l) 0 0 var(--radio-l);
+}
+
+.compacta .campos > .campo:first-child {
+  border-radius: var(--radio) 0 0 var(--radio);
+}
+
+.campo:focus-within {
+  background: var(--fondo-2);
+}
+
+.campo label {
+  font-size: 0.6875rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--texto-3);
+}
+
+.campo input,
+.campo select {
+  border: 0;
+  background: none;
+  padding: 0;
+  width: 100%;
+  min-width: 0;
+  font-size: 0.9375rem;
+  font-weight: 500;
+}
+
+/* El select nativo dibuja su flecha dentro de la caja: sin este aire, el texto
+   se le monta encima. */
+.campo select {
+  padding-right: 1.25rem;
+  text-overflow: ellipsis;
+}
+
+.campo input:focus,
+.campo select:focus {
+  outline: none;
+}
+
+.campo input::placeholder {
+  color: var(--texto-3);
+  font-weight: 400;
+}
+
+.conIcono {
+  display: grid;
+  grid-template-columns: 18px minmax(0, 1fr);
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.icono {
+  width: 18px;
+  height: 18px;
+  color: var(--texto-3);
+}
+
+.compacta .campo {
+  padding: 0.375rem 0.75rem;
+}
+
+.buscar {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0 1.25rem;
+  margin: 0;
+  border: 0;
+  border-radius: 0 var(--radio-l) var(--radio-l) 0;
+  background: var(--acento);
+  color: #fff;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background var(--transicion);
+}
+
+.compacta .buscar {
+  border-radius: 0 var(--radio) var(--radio) 0;
+  padding: 0 1rem;
+}
+
+.buscar:hover {
+  background: var(--acento-fuerte);
+}
+
+.buscar:focus-visible {
+  outline-offset: -3px;
+  outline-color: #fff;
+}
+
+/* Resumen plegado: solo existe en la barra compacta y en pantalla chica. */
+.resumen {
+  display: none;
+  align-items: center;
+  gap: 0.625rem;
+  width: 100%;
+  padding: 0.5rem 0.875rem;
+  border: 1px solid var(--borde-fuerte);
+  border-radius: 999px;
+  background: var(--fondo);
+  text-align: left;
+  cursor: pointer;
+  box-shadow: var(--sombra-1);
+}
+
+.resumen > span {
+  display: grid;
+  min-width: 0;
+}
+
+.resumen strong {
+  font-size: 0.875rem;
+  font-weight: 600;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  text-transform: capitalize;
+}
+
+.resumenDetalle {
+  font-size: 0.75rem;
+  color: var(--texto-2);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.sugerencias {
+  position: absolute;
+  top: calc(100% + 6px);
+  left: 0;
+  right: 0;
+  min-width: min(320px, calc(100vw - 2.5rem));
+  z-index: 30;
+  background: var(--fondo);
+  border: 1px solid var(--borde);
+  border-radius: var(--radio);
+  box-shadow: var(--sombra-3);
+  padding: 0.25rem;
+  max-height: 340px;
+  overflow-y: auto;
+}
+
+.sugerencias button {
+  display: grid;
+  grid-template-columns: 18px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 0.625rem;
+  width: 100%;
+  padding: 0.5rem 0.625rem;
+  border: 0;
+  border-radius: var(--radio-s);
+  background: none;
+  text-align: left;
+  cursor: pointer;
+}
+
+.sugerencias button > span {
+  display: grid;
+  min-width: 0;
+}
+
+.sugerencias strong {
+  font-weight: 600;
+  font-size: 0.9375rem;
+}
+
+.resaltado {
+  background: var(--fondo-2);
+}
+
+.iconoSugerencia {
+  width: 18px;
+  height: 18px;
+  color: var(--texto-3);
+}
+
+.provincia {
+  font-size: 0.8125rem;
+  color: var(--texto-2);
+}
+
+.cuenta {
+  font-size: 0.8125rem;
+  color: var(--texto-3);
+  background: var(--fondo-2);
+  border-radius: 999px;
+  padding: 0.125rem 0.5rem;
+}
+
+.error {
+  margin-top: 0.5rem;
+  background: var(--alerta-tenue);
+  color: var(--alerta);
+  font-size: 0.8125rem;
+  font-weight: 500;
+  padding: 0.5rem 0.875rem;
+  border-radius: var(--radio-s);
+}
+
+@media (max-width: 900px) {
+  .campos,
+  .hero .campos,
+  .compacta .campos {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .destino,
+  .personas {
+    grid-column: 1 / -1;
+  }
+
+  .campos > .campo:first-child {
+    border-radius: var(--radio-l) var(--radio-l) 0 0;
+  }
+
+  .buscar {
+    grid-column: 1 / -1;
+    border-radius: 0 0 var(--radio-l) var(--radio-l);
+    padding: 0.75rem;
+    justify-content: center;
+  }
+
+  /* La barra compacta arranca plegada y se abre al tocarla. */
+  .compacta .resumen {
+    display: flex;
+  }
+
+  .compacta .campos {
+    display: none;
+  }
+
+  .compacta.expandido .campos {
+    display: grid;
+    position: absolute;
+    top: calc(100% + 8px);
+    left: 0;
+    right: 0;
+    z-index: 45;
+    box-shadow: var(--sombra-3);
+  }
+}

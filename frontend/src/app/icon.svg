@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <!-- El glifo de la marca son trazos finos: a 16 px se borran. Acá la casa va
+       sólida y sobre fondo lleno, que es lo único que se lee en una pestaña. -->
+  <rect width="512" height="512" rx="112" fill="#145c4a"/>
+  <path d="M256 118 74 272h60v138a26 26 0 0 0 26 26h192a26 26 0 0 0 26-26V272h60z"
+        fill="#ffffff"/>
+  <path d="M212 436V330a14 14 0 0 1 14-14h60a14 14 0 0 1 14 14v106z" fill="#145c4a"/>
+</svg>

@@ -1,0 +1,57 @@
+.pagina {
+  max-width: 1320px;
+  margin: 0 auto;
+  padding: 2.5rem 1.5rem 5rem;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 1.75rem;
+}
+
+.titulo {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 1rem;
+}
+
+.titulo h1 {
+  font-size: 1.625rem;
+  letter-spacing: -0.02em;
+}
+
+.titulo p {
+  font-size: 0.875rem;
+  color: var(--texto-2);
+  max-width: 62ch;
+  margin-top: 0.25rem;
+}
+
+.ventana {
+  display: flex;
+  gap: 1px;
+  background: var(--borde);
+  border: 1px solid var(--borde);
+  border-radius: var(--radio-s);
+  overflow: hidden;
+  flex: none;
+}
+
+.ventana a {
+  font-size: 0.8125rem;
+  padding: 0.4375rem 0.75rem;
+  background: var(--fondo);
+  color: var(--texto-2);
+  transition: background var(--transicion);
+}
+
+.ventana a:hover {
+  background: var(--fondo-2);
+  text-decoration: none;
+}
+
+.ventana a[aria-current="page"] {
+  background: var(--acento);
+  color: #fff;
+  font-weight: 600;
+}

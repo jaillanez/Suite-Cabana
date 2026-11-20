@@ -1,0 +1,263 @@
+.calendario {
+  display: grid;
+  gap: 1.25rem;
+  padding-top: 0.75rem;
+}
+
+.calendario section {
+  display: grid;
+  gap: 0.5rem;
+}
+
+.calendario h4 {
+  font-size: 0.875rem;
+  font-weight: 700;
+  margin: 0;
+}
+
+.ayuda {
+  font-size: 0.75rem;
+  color: var(--texto-3);
+  max-width: 68ch;
+  line-height: 1.5;
+}
+
+.cargando,
+.vacio {
+  font-size: 0.8125rem;
+  color: var(--texto-3);
+}
+
+.tramos {
+  display: grid;
+  gap: 0.25rem;
+}
+
+/* El origen del bloqueo se distingue con un punto, igual que los estados de una
+   publicación: una franja de color al costado es el tic más reconocible de una
+   interfaz generada, y acá no aporta nada que el punto no diga. */
+.tramos li {
+  display: grid;
+  grid-template-columns: 11rem minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.375rem 0.625rem;
+  border-radius: var(--radio-s);
+  background: var(--fondo-2);
+  font-size: 0.8125rem;
+}
+
+.tramos li::before {
+  content: "";
+  position: absolute;
+  margin-left: -0.375rem;
+  margin-top: 0.0625rem;
+  width: 7px;
+  height: 7px;
+  border-radius: 999px;
+  background: var(--borde-fuerte);
+}
+
+.manual::before {
+  background: var(--texto-3);
+}
+
+.reserva::before {
+  background: var(--acento);
+}
+
+.ical::before {
+  background: #9a7a1e;
+}
+
+.retencion::before {
+  background: var(--alerta);
+}
+
+.fechas {
+  font-weight: 600;
+  padding-left: 0.5rem;
+}
+
+.etiqueta {
+  color: var(--texto-2);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.fuente {
+  color: var(--texto-3);
+}
+
+.tramos button {
+  display: grid;
+  place-items: center;
+  width: 24px;
+  height: 24px;
+  padding: 0;
+  border: 0;
+  border-radius: 999px;
+  background: none;
+  color: var(--texto-3);
+  cursor: pointer;
+}
+
+.tramos button:hover:not(:disabled) {
+  background: var(--fondo-3);
+  color: var(--alerta);
+}
+
+.tramos svg {
+  width: 13px;
+  height: 13px;
+}
+
+.fila {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  align-items: center;
+}
+
+.fila input {
+  flex: 1 1 130px;
+  min-width: 0;
+  padding: 0.4375rem 0.625rem;
+  border: 1px solid var(--borde-fuerte);
+  border-radius: var(--radio-s);
+  font-size: 0.8125rem;
+  background: var(--fondo);
+  font-family: inherit;
+}
+
+.ancho {
+  flex: 3 1 260px;
+}
+
+.fila button {
+  padding: 0.4375rem 0.875rem;
+  border: 1px solid var(--borde-fuerte);
+  border-radius: var(--radio-s);
+  background: var(--fondo);
+  font-size: 0.8125rem;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.fila button:hover:not(:disabled) {
+  background: var(--fondo-2);
+}
+
+.externos {
+  display: grid;
+  gap: 0.375rem;
+}
+
+.externos li {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto auto;
+  align-items: center;
+  gap: 0.625rem;
+  padding: 0.5rem 0.625rem;
+  border: 1px solid var(--borde);
+  border-radius: var(--radio-s);
+}
+
+.externos strong {
+  font-size: 0.875rem;
+  display: block;
+}
+
+.estadoSync {
+  font-size: 0.75rem;
+  color: var(--texto-3);
+}
+
+.externos button {
+  padding: 0.3125rem 0.625rem;
+  border: 1px solid var(--borde-fuerte);
+  border-radius: var(--radio-s);
+  background: var(--fondo);
+  font-size: 0.75rem;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.quitar {
+  border-color: transparent !important;
+  color: var(--texto-2);
+}
+
+.quitar:hover:not(:disabled) {
+  color: var(--alerta);
+}
+
+.exportar {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.exportar code {
+  flex: 1 1 320px;
+  min-width: 0;
+  padding: 0.4375rem 0.625rem;
+  border: 1px solid var(--borde);
+  border-radius: var(--radio-s);
+  background: var(--fondo-2);
+  font-size: 0.75rem;
+  overflow-x: auto;
+  white-space: nowrap;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+}
+
+.exportar button {
+  padding: 0.4375rem 0.875rem;
+  border: 1px solid var(--borde-fuerte);
+  border-radius: var(--radio-s);
+  background: var(--fondo);
+  font-size: 0.8125rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.error {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem 0.75rem;
+  border: 1px solid #e9c4c0;
+  background: var(--alerta-tenue);
+  color: var(--alerta);
+  border-radius: var(--radio-s);
+  font-size: 0.8125rem;
+}
+
+.aviso {
+  padding: 0.5rem 0.75rem;
+  border: 1px solid #bcd6ce;
+  background: var(--acento-tenue);
+  color: var(--acento-fuerte);
+  border-radius: var(--radio-s);
+  font-size: 0.8125rem;
+}
+
+.icono {
+  width: 15px;
+  height: 15px;
+  flex: none;
+}
+
+@media (max-width: 640px) {
+  .tramos li {
+    grid-template-columns: minmax(0, 1fr) auto;
+  }
+  .etiqueta {
+    grid-column: 1 / -1;
+    white-space: normal;
+  }
+}

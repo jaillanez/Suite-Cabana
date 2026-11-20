@@ -1,0 +1,112 @@
+.pagina {
+  max-width: 720px;
+  margin: 0 auto;
+  padding: 3rem 1.5rem 4rem;
+  display: grid;
+  gap: 2rem;
+}
+
+.pagina h1 {
+  font-size: clamp(1.75rem, 4vw, 2.5rem);
+  letter-spacing: -0.03em;
+}
+
+.bajada {
+  font-size: 1.0625rem;
+  color: var(--texto-2);
+  max-width: 58ch;
+  margin-top: -1.25rem;
+}
+
+.pagina section {
+  display: grid;
+  gap: 0.75rem;
+}
+
+.pagina h2 {
+  font-size: 1.125rem;
+}
+
+.pasos {
+  display: grid;
+  gap: 1rem;
+  counter-reset: paso;
+}
+
+.pasos li {
+  display: grid;
+  grid-template-columns: 28px minmax(0, 1fr);
+  align-items: start;
+  gap: 0.875rem;
+  color: var(--texto-2);
+  line-height: 1.6;
+  max-width: 62ch;
+}
+
+/* El número ocupa la primera columna y el texto entero la segunda. Sin este
+   envoltorio el texto suelto caería en la columna del número. */
+.pasos li > span {
+  display: block;
+  min-width: 0;
+}
+
+.pasos li::before {
+  counter-increment: paso;
+  content: counter(paso);
+  display: grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 999px;
+  background: var(--acento-tenue);
+  color: var(--acento);
+  font-weight: 700;
+  font-size: 0.8125rem;
+  font-variant-numeric: tabular-nums;
+}
+
+.pasos strong {
+  color: var(--texto);
+  font-weight: 600;
+}
+
+.requisitos {
+  display: grid;
+  gap: 0.4375rem;
+  color: var(--texto-2);
+}
+
+.requisitos li {
+  padding-left: 1.125rem;
+  position: relative;
+}
+
+.requisitos li::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 0.55em;
+  width: 5px;
+  height: 5px;
+  border-radius: 999px;
+  background: var(--borde-fuerte);
+}
+
+.nota {
+  font-size: 0.8125rem;
+  color: var(--texto-3);
+  max-width: 60ch;
+}
+
+.salida {
+  border-top: 1px solid var(--borde);
+  padding-top: 1.5rem;
+  color: var(--texto-2);
+}
+
+.salida a {
+  color: var(--acento);
+  font-weight: 600;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}

@@ -1,0 +1,507 @@
+/* `min-width: 0` en toda la cadena: sin eso, un hijo de grid no baja del ancho
+   de su contenido y la tabla de 60 días se lleva el scroll al body entero. */
+.pantalla {
+  display: grid;
+  gap: 2rem;
+  min-width: 0;
+}
+
+/* --- Resumen --- */
+
+.cifras {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 2.5rem;
+  padding-bottom: 1.5rem;
+  border-bottom: 1px solid var(--borde);
+}
+
+.cifras div {
+  display: grid;
+  gap: 0.125rem;
+}
+
+.cifras strong {
+  font-size: 1.75rem;
+  font-weight: 600;
+  line-height: 1;
+  letter-spacing: -0.02em;
+}
+
+.cifras span {
+  font-size: 0.8125rem;
+  color: var(--texto-2);
+}
+
+.malo strong {
+  color: var(--alerta);
+}
+
+/* --- Acción --- */
+
+.acciones {
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: 0.75rem 1.25rem;
+  margin-top: -0.75rem;
+}
+
+.sincronizar {
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: #fff;
+  background: var(--acento);
+  border: 1px solid var(--acento);
+  border-radius: var(--radio-s);
+  padding: 0.5rem 1rem;
+  cursor: pointer;
+  transition: background var(--transicion);
+}
+
+.sincronizar:hover:not(:disabled) {
+  background: var(--acento-fuerte);
+}
+
+.sincronizar:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.ayuda {
+  font-size: 0.8125rem;
+  color: var(--texto-2);
+  max-width: 62ch;
+  flex: 1 1 22ch;
+}
+
+.fallas {
+  display: grid;
+  gap: 0.375rem;
+  font-size: 0.8125rem;
+  padding: 0.75rem 0.875rem;
+  background: var(--alerta-tenue);
+  border-radius: var(--radio);
+}
+
+.fallas li {
+  display: grid;
+  grid-template-columns: 16px 1fr;
+  align-items: start;
+  gap: 0.5rem;
+  color: var(--alerta);
+}
+
+.icono {
+  width: 16px;
+  height: 16px;
+  flex: none;
+}
+
+.vacio {
+  font-size: 0.875rem;
+  color: var(--texto-2);
+}
+
+/* --- La grilla ---
+   Scrollea la grilla, nunca la página: la columna de unidades queda fija para
+   que una fila a 60 días siga sabiendo de quién es. */
+
+/* `position: relative` no es decorativo: los textos `.oculto` de las celdas son
+   absolutos, y sin un ancestro posicionado se cuelgan del documento —quedando
+   fuera de este scroll— y estiran la página hasta la última columna. */
+.marco {
+  position: relative;
+  min-width: 0;
+  overflow-x: auto;
+  border: 1px solid var(--borde);
+  border-radius: var(--radio);
+  background: var(--fondo);
+}
+
+.grilla {
+  border-collapse: separate;
+  border-spacing: 0;
+  table-layout: fixed;
+}
+
+.esquina,
+.unidad {
+  position: sticky;
+  left: 0;
+  z-index: 2;
+  width: 190px;
+  min-width: 190px;
+  text-align: left;
+  background: var(--fondo);
+  border-right: 1px solid var(--borde-fuerte);
+}
+
+.esquina {
+  z-index: 3;
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--texto-3);
+  padding: 0 0.875rem;
+  background: var(--fondo-2);
+  vertical-align: bottom;
+  padding-bottom: 0.5rem;
+}
+
+.mes {
+  position: sticky;
+  top: 0;
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-align: left;
+  color: var(--texto-2);
+  background: var(--fondo-2);
+  border-bottom: 1px solid var(--borde);
+  padding: 0.375rem 0;
+}
+
+.mes span {
+  position: sticky;
+  left: 202px;
+  padding-left: 0.375rem;
+}
+
+.dia {
+  width: 26px;
+  min-width: 26px;
+  font-size: 0.6875rem;
+  font-weight: 500;
+  color: var(--texto-3);
+  background: var(--fondo-2);
+  border-bottom: 1px solid var(--borde);
+  padding: 0.25rem 0 0.375rem;
+}
+
+.dia span {
+  display: block;
+  line-height: 1.25;
+}
+
+.diaSemana {
+  font-size: 0.5625rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--texto-3);
+  opacity: 0.7;
+}
+
+.unidad {
+  font-weight: 400;
+  padding: 0;
+  border-bottom: 1px solid var(--borde);
+}
+
+.unidad a {
+  display: grid;
+  gap: 0.0625rem;
+  padding: 0.5rem 0.875rem;
+  min-width: 0;
+}
+
+.unidad a:hover {
+  background: var(--fondo-2);
+  text-decoration: none;
+}
+
+.unidad strong {
+  font-size: 0.8125rem;
+  font-weight: 600;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.unidad span {
+  font-size: 0.6875rem;
+  color: var(--texto-3);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.celda {
+  height: 38px;
+  border-bottom: 1px solid var(--borde);
+  border-right: 1px solid var(--fondo-3);
+  padding: 0;
+  background-clip: padding-box;
+}
+
+.finde {
+  background-color: var(--fondo-2);
+}
+
+/* Hoy: una línea, no un relleno. La columna sigue leyéndose. */
+.hoy {
+  box-shadow: inset 1px 0 0 var(--texto);
+}
+
+/* --- Los cuatro orígenes ---
+   El verde es una sola cosa: plata nuestra. Lo que viene de afuera es gris, y lo
+   que cerró el anfitrión es rayado. Así el color informa en vez de decorar. */
+
+.reserva {
+  background-color: var(--acento);
+}
+
+.retencion {
+  background-color: var(--acento-tenue);
+  box-shadow: inset 0 0 0 1px var(--acento);
+}
+
+.ical {
+  background-color: var(--texto-2);
+}
+
+.manual {
+  background-image: repeating-linear-gradient(
+    -45deg,
+    var(--borde-fuerte) 0 2px,
+    var(--fondo-3) 2px 6px
+  );
+}
+
+/* Dentro de una barra, la división entre noches se marca apenas: sirve para
+   contarlas, no para partirla en bloques. */
+.reserva,
+.ical {
+  border-right-color: rgb(255 255 255 / 0.22);
+}
+
+.termina {
+  border-right-color: var(--fondo-3);
+}
+
+.empieza {
+  border-top-left-radius: var(--radio-s);
+  border-bottom-left-radius: var(--radio-s);
+}
+
+.termina {
+  border-top-right-radius: var(--radio-s);
+  border-bottom-right-radius: var(--radio-s);
+}
+
+/* --- Referencias --- */
+
+.referencias {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem 1.5rem;
+  font-size: 0.8125rem;
+  color: var(--texto-2);
+  margin-top: -1.25rem;
+}
+
+.referencias li {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.muestra {
+  width: 22px;
+  height: 12px;
+  border-radius: 3px;
+  flex: none;
+}
+
+/* --- Conexiones --- */
+
+.conexiones h2,
+.guia h2 {
+  font-size: 1.0625rem;
+  margin-bottom: 0.75rem;
+}
+
+.conexiones ul {
+  display: grid;
+  gap: 0.375rem;
+}
+
+.conexiones li {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto auto;
+  align-items: center;
+  gap: 1rem;
+  padding: 0.75rem 0.875rem;
+  border: 1px solid var(--borde);
+  border-radius: var(--radio);
+  font-size: 0.8125rem;
+}
+
+.conError {
+  border-color: var(--alerta);
+  background: var(--alerta-tenue);
+}
+
+.quien {
+  display: grid;
+  gap: 0.0625rem;
+  min-width: 0;
+}
+
+.quien strong {
+  font-weight: 600;
+}
+
+.quien span {
+  color: var(--texto-3);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.cuando {
+  display: flex;
+  align-items: center;
+  gap: 0.375rem;
+  color: var(--texto-2);
+  text-align: right;
+}
+
+.conError .cuando {
+  color: var(--alerta);
+}
+
+/* --- Guía por plataforma --- */
+
+.tarjetas {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: 0.5rem;
+  margin-top: 1rem;
+}
+
+.tarjetas details {
+  border: 1px solid var(--borde);
+  border-radius: var(--radio);
+  padding: 0.75rem 0.875rem;
+  font-size: 0.8125rem;
+  transition: border-color var(--transicion);
+}
+
+.tarjetas details:hover {
+  border-color: var(--borde-fuerte);
+}
+
+.tarjetas summary {
+  display: grid;
+  gap: 0.125rem;
+  cursor: pointer;
+  list-style: none;
+}
+
+.tarjetas summary::-webkit-details-marker {
+  display: none;
+}
+
+.tarjetas summary strong {
+  font-size: 0.875rem;
+  font-weight: 600;
+}
+
+.tarjetas summary span {
+  color: var(--texto-3);
+}
+
+.tarjetas ol {
+  display: grid;
+  gap: 0.375rem;
+  margin-top: 0.75rem;
+  padding-top: 0.75rem;
+  border-top: 1px solid var(--borde);
+  counter-reset: paso;
+  color: var(--texto-2);
+}
+
+/* El número va en su propia columna; el texto, entero en la suya. Sin el span
+   envolviendo el contenido, la grilla parte el texto palabra por palabra. */
+.tarjetas ol li {
+  display: grid;
+  grid-template-columns: 20px minmax(0, 1fr);
+  gap: 0.5rem;
+  counter-increment: paso;
+}
+
+.tarjetas ol li::before {
+  content: counter(paso);
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--texto-3);
+  text-align: right;
+}
+
+.ejemplo {
+  margin-top: 0.625rem;
+  color: var(--texto-3);
+  font-size: 0.75rem;
+}
+
+.ejemplo code {
+  display: block;
+  margin-top: 0.25rem;
+  padding: 0.375rem 0.5rem;
+  background: var(--fondo-2);
+  border-radius: var(--radio-s);
+  overflow-x: auto;
+  white-space: nowrap;
+  font-size: 0.6875rem;
+}
+
+.nota {
+  margin-top: 0.625rem;
+  color: var(--texto-2);
+}
+
+.pendientes {
+  margin-top: 1.5rem;
+  padding: 1rem 1.125rem;
+  background: var(--fondo-2);
+  border-radius: var(--radio);
+}
+
+.pendientes h3 {
+  font-size: 0.875rem;
+  margin-bottom: 0.5rem;
+}
+
+.pendientes ul {
+  display: grid;
+  gap: 0.5rem;
+}
+
+.pendientes li {
+  display: grid;
+  gap: 0.125rem;
+  font-size: 0.8125rem;
+}
+
+.pendientes strong {
+  font-weight: 600;
+}
+
+.pendientes span {
+  color: var(--texto-2);
+  max-width: 78ch;
+}
+
+@media (max-width: 640px) {
+  .cifras {
+    gap: 1.5rem;
+  }
+
+  .conexiones li {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 0.375rem;
+  }
+
+  .cuando {
+    text-align: left;
+  }
+}

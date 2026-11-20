@@ -1,0 +1,50 @@
+.barra {
+  position: sticky;
+  top: 0;
+  z-index: 50;
+  background: var(--fondo);
+  border-bottom: 1px solid var(--borde);
+}
+
+.interna {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  max-width: 1160px;
+  margin: 0 auto;
+  padding: 0 1.5rem;
+  min-height: var(--barra-alto);
+}
+
+.interna nav {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.875rem;
+  font-weight: 500;
+}
+
+.interna nav a {
+  padding: 0.5rem 0.75rem;
+  border-radius: var(--radio-s);
+}
+
+.interna nav a:hover {
+  background: var(--fondo-2);
+  text-decoration: none;
+}
+
+.publicar {
+  border: 1px solid var(--borde-fuerte);
+  font-weight: 600;
+}
+
+@media (max-width: 620px) {
+  .interna {
+    padding: 0 1rem;
+  }
+  .interna nav a:first-child {
+    display: none;
+  }
+}

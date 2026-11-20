@@ -1,0 +1,1005 @@
+{
+  "nota": "Fotos de Wikimedia Commons con licencia libre, tomadas de categorías curadas y usadas solo como material provisorio de desarrollo. No corresponden a los alojamientos de la semilla, que son ficticios. Reemplazar por fotos reales de los prestadores antes de cualquier uso público.",
+  "fotos": [
+    {
+      "archivo": "000-1-everglades-105-jpg.jpg",
+      "url": "/fotos/demo/000-1-everglades-105-jpg.jpg",
+      "categoria": "cabana",
+      "titulo": "(1)Everglades 105.jpg",
+      "autor": "Sardaka",
+      "licencia": "CC BY-SA 4.0",
+      "origen": "https://commons.wikimedia.org/wiki/File:(1)Everglades_105.jpg",
+      "categoria_commons": "Log cabins"
+    },
+    {
+      "archivo": "001-cabin-32903449-jpeg.jpg",
+      "url": "/fotos/demo/001-cabin-32903449-jpeg.jpg",
+      "categoria": "cabana",
+      "titulo": "Cabin (32903449).jpeg",
+      "autor": "Olav Gjerde",
+      "licencia": "CC BY-SA 3.0",
+      "origen": "https://commons.wikimedia.org/wiki/File:Cabin_(32903449).jpeg",
+      "categoria_commons": "Log cabins"
+    },
+    {
+      "archivo": "002-cattle-in-snow-panoramio-jpg.jpg",
+      "url": "/fotos/demo/002-cattle-in-snow-panoramio-jpg.jpg",
+      "categoria": "cabana",
+      "titulo": "Cattle in snow - panoramio.jpg",
+      "autor": "b_sambuu",
+      "licencia": "CC BY 3.0",
+      "origen": "https://commons.wikimedia.org/wiki/File:Cattle_in_snow_-_panoramio.jpg",
+      "categoria_commons": "Log cabins"
+    },
+    {
+      "archivo": "003-h-llvallen-vid-ottsj-jpg.jpg",
+      "url": "/fotos/demo/003-h-llvallen-vid-ottsj-jpg.jpg",
+      "categoria": "cabana",
+      "titulo": "Hållvallen vid Ottsjö.jpg",
+      "autor": "YetiGoat",
+      "licencia": "CC0",
+      "origen": "https://commons.wikimedia.org/wiki/File:H%C3%A5llvallen_vid_Ottsj%C3%B6.jpg",
+      "categoria_commons": "Log cabins"
+    },
+    {
+      "archivo": "004-living-history-of-life-in-a-log-cabin-at-gre.jpg",
+      "url": "/fotos/demo/004-living-history-of-life-in-a-log-cabin-at-gre.jpg",
+      "categoria": "cabana",
+      "titulo": "Living history of life in a log cabin at Great Smoky Mountains National Park, Tennessee and North Carolina (960fb83d-d848-4a09-920b-2f73bab64d57).jpg",
+      "autor": "NPS staff",
+      "licencia": "Public domain",
+      "origen": "https://commons.wikimedia.org/wiki/File:Living_history_of_life_in_a_log_cabin_at_Great_Smoky_Mountains_National_Park,_Tennessee_and_North_Carolina_(960fb83d-d848-4a09-920b-2f73bab64d57).jpg",
+      "categoria_commons": "Log cabins"
+    },
+    {
+      "archivo": "005-modern-log-cabin-across-from-the-red-dog-cem.jpg",
+      "url": "/fotos/demo/005-modern-log-cabin-across-from-the-red-dog-cem.jpg",
+      "categoria": "cabana",
+      "titulo": "Modern log cabin across from the Red Dog Cemetery.jpg",
+      "autor": "Cullen328",
+      "licencia": "CC BY-SA 4.0",
+      "origen": "https://commons.wikimedia.org/wiki/File:Modern_log_cabin_across_from_the_Red_Dog_Cemetery.jpg",
+      "categoria_commons": "Log cabins"
+    },
+    {
+      "archivo": "006-old-trapper-cabin-in-forest-jpg.jpg",
+      "url": "/fotos/demo/006-old-trapper-cabin-in-forest-jpg.jpg",
+      "categoria": "cabana",
+      "titulo": "Old trapper cabin in forest.jpg",
+      "autor": "U.S. Fish and Wildlife Service",
+      "licencia": "Public domain",
+      "origen": "https://commons.wikimedia.org/wiki/File:Old_trapper_cabin_in_forest.jpg",
+      "categoria_commons": "Log cabins"
+    },
+    {
+      "archivo": "007-rankas-pagasts-latvia-panoramio-jpg.jpg",
+      "url": "/fotos/demo/007-rankas-pagasts-latvia-panoramio-jpg.jpg",
+      "categoria": "cabana",
+      "titulo": "Rankas pagasts, Latvia - panoramio.jpg",
+      "autor": "Aleksandrs Timofejev…",
+      "licencia": "CC BY 3.0",
+      "origen": "https://commons.wikimedia.org/wiki/File:Rankas_pagasts,_Latvia_-_panoramio.jpg",
+      "categoria_commons": "Log cabins"
+    },
+    {
+      "archivo": "008-a-wooden-house-jpg.jpg",
+      "url": "/fotos/demo/008-a-wooden-house-jpg.jpg",
+      "categoria": "cabana",
+      "titulo": "A wooden house.jpg",
+      "autor": "Kwameghana",
+      "licencia": "CC BY-SA 4.0",
+      "origen": "https://commons.wikimedia.org/wiki/File:A_wooden_house.jpg",
+      "categoria_commons": "Wooden houses"
+    },
+    {
+      "archivo": "009-arkitektur-i-v-rberg-1-jpg.jpg",
+      "url": "/fotos/demo/009-arkitektur-i-v-rberg-1-jpg.jpg",
+      "categoria": "cabana",
+      "titulo": "Arkitektur i Vårberg 1.JPG",
+      "autor": "Kongha",
+      "licencia": "CC0",
+      "origen": "https://commons.wikimedia.org/wiki/File:Arkitektur_i_V%C3%A5rberg_1.JPG",
+      "categoria_commons": "Wooden houses"
+    },
+    {
+      "archivo": "010-back-of-abandonned-wooden-house-in-minato-ku.jpg",
+      "url": "/fotos/demo/010-back-of-abandonned-wooden-house-in-minato-ku.jpg",
+      "categoria": "cabana",
+      "titulo": "Back of abandonned wooden house in Minato-ku.jpg",
+      "autor": "Syced",
+      "licencia": "CC0",
+      "origen": "https://commons.wikimedia.org/wiki/File:Back_of_abandonned_wooden_house_in_Minato-ku.jpg",
+      "categoria_commons": "Wooden houses"
+    },
+    {
+      "archivo": "011-eldhus-jpg.jpg",
+      "url": "/fotos/demo/011-eldhus-jpg.jpg",
+      "categoria": "cabana",
+      "titulo": "Eldhus.jpg",
+      "autor": "User:Friman",
+      "licencia": "Public domain",
+      "origen": "https://commons.wikimedia.org/wiki/File:Eldhus.jpg",
+      "categoria_commons": "Wooden houses"
+    },
+    {
+      "archivo": "012-go-sht-chopish-uchun-mo-ljallangan-yog-och-p.jpg",
+      "url": "/fotos/demo/012-go-sht-chopish-uchun-mo-ljallangan-yog-och-p.jpg",
+      "categoria": "cabana",
+      "titulo": "Go‘sht chopish uchun mo‘ljallangan yog‘och.png",
+      "autor": "AIDEPCUL",
+      "licencia": "CC BY 4.0",
+      "origen": "https://commons.wikimedia.org/wiki/File:Go%E2%80%98sht_chopish_uchun_mo%E2%80%98ljallangan_yog%E2%80%98och.png",
+      "categoria_commons": "Wooden houses"
+    },
+    {
+      "archivo": "013-gurez-valley-05-jpg.jpg",
+      "url": "/fotos/demo/013-gurez-valley-05-jpg.jpg",
+      "categoria": "cabana",
+      "titulo": "Gurez Valley 05.jpg",
+      "autor": "Journo Mohsin",
+      "licencia": "CC BY-SA 4.0",
+      "origen": "https://commons.wikimedia.org/wiki/File:Gurez_Valley_05.jpg",
+      "categoria_commons": "Wooden houses"
+    },
+    {
+      "archivo": "014-gurez-valley-06-jpg.jpg",
+      "url": "/fotos/demo/014-gurez-valley-06-jpg.jpg",
+      "categoria": "cabana",
+      "titulo": "Gurez Valley 06.jpg",
+      "autor": "Journo Mohsin",
+      "licencia": "CC BY-SA 4.0",
+      "origen": "https://commons.wikimedia.org/wiki/File:Gurez_Valley_06.jpg",
+      "categoria_commons": "Wooden houses"
+    },
+    {
+      "archivo": "015-house-wooden-jpg.jpg",
+      "url": "/fotos/demo/015-house-wooden-jpg.jpg",
+      "categoria": "cabana",
+      "titulo": "House Wooden.jpg",
+      "autor": "Amuzujoe",
+      "licencia": "CC BY-SA 4.0",
+      "origen": "https://commons.wikimedia.org/wiki/File:House_Wooden.jpg",
+      "categoria_commons": "Wooden houses"
+    },
+    {
+      "archivo": "016-1-voor-restauratie-jpg.jpg",
+      "url": "/fotos/demo/016-1-voor-restauratie-jpg.jpg",
+      "categoria": "cabana",
+      "titulo": "1 voor restauratie.jpg",
+      "autor": "AmelandArchitect",
+      "licencia": "CC BY-SA 4.0",
+      "origen": "https://commons.wikimedia.org/wiki/File:1_voor_restauratie.jpg",
+      "categoria_commons": "Chalets"
+    },
+    {
+      "archivo": "017-2-tijdelijk-verplaatst-jpg.jpg",
+      "url": "/fotos/demo/017-2-tijdelijk-verplaatst-jpg.jpg",
+      "categoria": "cabana",
+      "titulo": "2 tijdelijk verplaatst.jpg",
+      "autor": "AmelandArchitect",
+      "licencia": "CC BY-SA 4.0",
+      "origen": "https://commons.wikimedia.org/wiki/File:2_tijdelijk_verplaatst.jpg",
+      "categoria_commons": "Chalets"
+    },
+    {
+      "archivo": "018-beach-chalets-jpg.jpg",
+      "url": "/fotos/demo/018-beach-chalets-jpg.jpg",
+      "categoria": "cabana",
+      "titulo": "Beach Chalets.jpg",
+      "autor": "Seedeblay",
+      "licencia": "CC BY-SA 4.0",
+      "origen": "https://commons.wikimedia.org/wiki/File:Beach_Chalets.jpg",
+      "categoria_commons": "Chalets"
+    },
+    {
+      "archivo": "019-binn-alte-br-cke-von-1564-jpg.jpg",
+      "url": "/fotos/demo/019-binn-alte-br-cke-von-1564-jpg.jpg",
+      "categoria": "cabana",
+      "titulo": "Binn, alte Brücke von 1564.JPG",
+      "autor": "René Merz",
+      "licencia": "CC BY-SA 4.0",
+      "origen": "https://commons.wikimedia.org/wiki/File:Binn,_alte_Br%C3%BCcke_von_1564.JPG",
+      "categoria_commons": "Chalets"
+    },
+    {
+      "archivo": "020-casina-di-caccia-torlonia-jpg.jpg",
+      "url": "/fotos/demo/020-casina-di-caccia-torlonia-jpg.jpg",
+      "categoria": "cabana",
+      "titulo": "Casina di Caccia Torlonia.jpg",
+      "autor": "Valemdc77",
+      "licencia": "CC BY-SA 4.0",
+      "origen": "https://commons.wikimedia.org/wiki/File:Casina_di_Caccia_Torlonia.jpg",
+      "categoria_commons": "Chalets"
+    },
+    {
+      "archivo": "021-chalet-le-bouchet-mont-charvin-51355679805-j.jpg",
+      "url": "/fotos/demo/021-chalet-le-bouchet-mont-charvin-51355679805-j.jpg",
+      "categoria": "cabana",
+      "titulo": "Chalet @ Le Bouchet-Mont-Charvin (51355679805).jpg",
+      "autor": "Guilhem Vellut from Annecy, France",
+      "licencia": "CC BY 2.0",
+      "origen": "https://commons.wikimedia.org/wiki/File:Chalet_@_Le_Bouchet-Mont-Charvin_(51355679805).jpg",
+      "categoria_commons": "Chalets"
+    },
+    {
+      "archivo": "022-20231202-mg-3979-ptm-web-jpg.jpg",
+      "url": "/fotos/demo/022-20231202-mg-3979-ptm-web-jpg.jpg",
+      "categoria": "casa",
+      "titulo": "20231202 MG 3979 PTM-web.jpg",
+      "autor": "Rodaxx",
+      "licencia": "CC BY-SA 4.0",
+      "origen": "https://commons.wikimedia.org/wiki/File:20231202_MG_3979_PTM-web.jpg",
+      "categoria_commons": "Cottages"
+    },
+    {
+      "archivo": "023-ann-s-farm-7-jpg.jpg",
+      "url": "/fotos/demo/023-ann-s-farm-7-jpg.jpg",
+      "categoria": "casa",
+      "titulo": "Ann's Farm (7).jpg",
+      "autor": "Elekes Andor",
+      "licencia": "CC BY-SA 4.0",
+      "origen": "https://commons.wikimedia.org/wiki/File:Ann%27s_Farm_(7).jpg",
+      "categoria_commons": "Cottages"
+    },
+    {
+      "archivo": "024-berrynarbor-panoramio-jpg.jpg",
+      "url": "/fotos/demo/024-berrynarbor-panoramio-jpg.jpg",
+      "categoria": "casa",
+      "titulo": "Berrynarbor - panoramio.jpg",
+      "autor": "Mark A Coleman",
+      "licencia": "CC BY 3.0",
+      "origen": "https://commons.wikimedia.org/wiki/File:Berrynarbor_-_panoramio.jpg",
+      "categoria_commons": "Cottages"
+    },
+    {
+      "archivo": "025-brandon-wentland-2014-unsplash-png.jpg",
+      "url": "/fotos/demo/025-brandon-wentland-2014-unsplash-png.jpg",
+      "categoria": "casa",
+      "titulo": "Brandon Wentland 2014 (Unsplash).png",
+      "autor": "Brandon Wentland brandonwentland",
+      "licencia": "CC0",
+      "origen": "https://commons.wikimedia.org/wiki/File:Brandon_Wentland_2014_(Unsplash).png",
+      "categoria_commons": "Cottages"
+    },
+    {
+      "archivo": "026-cabanas-curarrehue-jpg.jpg",
+      "url": "/fotos/demo/026-cabanas-curarrehue-jpg.jpg",
+      "categoria": "casa",
+      "titulo": "Cabanas curarrehue.jpg",
+      "autor": "Dentren | T a l k .",
+      "licencia": "CC BY-SA 3.0",
+      "origen": "https://commons.wikimedia.org/wiki/File:Cabanas_curarrehue.jpg",
+      "categoria_commons": "Cottages"
+    },
+    {
+      "archivo": "027-camping-area-view-with-bonfire-in-bir-billin.jpg",
+      "url": "/fotos/demo/027-camping-area-view-with-bonfire-in-bir-billin.jpg",
+      "categoria": "casa",
+      "titulo": "Camping area view with Bonfire in Bir Billing.jpg",
+      "autor": "Panchkaranvarun",
+      "licencia": "CC BY 4.0",
+      "origen": "https://commons.wikimedia.org/wiki/File:Camping_area_view_with_Bonfire_in_Bir_Billing.jpg",
+      "categoria_commons": "Cottages"
+    },
+    {
+      "archivo": "028-ciprian-boiciuc-2017-05-17-unsplash-jpg.jpg",
+      "url": "/fotos/demo/028-ciprian-boiciuc-2017-05-17-unsplash-jpg.jpg",
+      "categoria": "casa",
+      "titulo": "Ciprian Boiciuc 2017-05-17 (Unsplash).jpg",
+      "autor": "Ciprian Boiciuc ciprian",
+      "licencia": "CC0",
+      "origen": "https://commons.wikimedia.org/wiki/File:Ciprian_Boiciuc_2017-05-17_(Unsplash).jpg",
+      "categoria_commons": "Cottages"
+    },
+    {
+      "archivo": "029-english-limestone-cottage-with-garden-in-ful.jpg",
+      "url": "/fotos/demo/029-english-limestone-cottage-with-garden-in-ful.jpg",
+      "categoria": "casa",
+      "titulo": "English Limestone Cottage with Garden in full bloom (9708824109).jpg",
+      "autor": "F. D. Richards from Clinton, MI",
+      "licencia": "CC BY-SA 2.0",
+      "origen": "https://commons.wikimedia.org/wiki/File:English_Limestone_Cottage_with_Garden_in_full_bloom_(9708824109).jpg",
+      "categoria_commons": "Cottages"
+    },
+    {
+      "archivo": "030-balls-park-jpg.jpg",
+      "url": "/fotos/demo/030-balls-park-jpg.jpg",
+      "categoria": "casa",
+      "titulo": "Balls Park.jpg",
+      "autor": "Guy WF Loftus",
+      "licencia": "CC0",
+      "origen": "https://commons.wikimedia.org/wiki/File:Balls_Park.jpg",
+      "categoria_commons": "Country houses"
+    },
+    {
+      "archivo": "031-national-park-of-sayram-ugam-jpg.jpg",
+      "url": "/fotos/demo/031-national-park-of-sayram-ugam-jpg.jpg",
+      "categoria": "casa",
+      "titulo": "National Park of Sayram-Ugam.jpg",
+      "autor": "Jupiterjo",
+      "licencia": "CC BY-SA 4.0",
+      "origen": "https://commons.wikimedia.org/wiki/File:National_Park_of_Sayram-Ugam.jpg",
+      "categoria_commons": "Country houses"
+    },
+    {
+      "archivo": "032-per-le-antiche-scale-jpg.jpg",
+      "url": "/fotos/demo/032-per-le-antiche-scale-jpg.jpg",
+      "categoria": "casa",
+      "titulo": "Per le antiche scale.jpg",
+      "autor": "Vincenzo Piccinato",
+      "licencia": "CC BY-SA 4.0",
+      "origen": "https://commons.wikimedia.org/wiki/File:Per_le_antiche_scale.jpg",
+      "categoria_commons": "Country houses"
+    },
+    {
+      "archivo": "033-jpg.jpg",
+      "url": "/fotos/demo/033-jpg.jpg",
+      "categoria": "casa",
+      "titulo": "Разрушающийся дом в усадьбе Спасское.jpg",
+      "autor": "Vitaliy VK",
+      "licencia": "CC BY-SA 4.0",
+      "origen": "https://commons.wikimedia.org/wiki/File:%D0%A0%D0%B0%D0%B7%D1%80%D1%83%D1%88%D0%B0%D1%8E%D1%89%D0%B8%D0%B9%D1%81%D1%8F_%D0%B4%D0%BE%D0%BC_%D0%B2_%D1%83%D1%81%D0%B0%D0%B4%D1%8C%D0%B1%D0%B5_%D0%A1%D0%BF%D0%B0%D1%81%D1%81%D0%BA%D0%BE%D0%B5.jpg",
+      "categoria_commons": "Country houses"
+    },
+    {
+      "archivo": "034-2-jpg.jpg",
+      "url": "/fotos/demo/034-2-jpg.jpg",
+      "categoria": "casa",
+      "titulo": "Старый деревенский дом 2.jpg",
+      "autor": "Vitaliy VK",
+      "licencia": "CC BY-SA 4.0",
+      "origen": "https://commons.wikimedia.org/wiki/File:%D0%A1%D1%82%D0%B0%D1%80%D1%8B%D0%B9_%D0%B4%D0%B5%D1%80%D0%B5%D0%B2%D0%B5%D0%BD%D1%81%D0%BA%D0%B8%D0%B9_%D0%B4%D0%BE%D0%BC_2.jpg",
+      "categoria_commons": "Country houses"
+    },
+    {
+      "archivo": "035-arquitectodeangelis1-jpg.jpg",
+      "url": "/fotos/demo/035-arquitectodeangelis1-jpg.jpg",
+      "categoria": "casa",
+      "titulo": "Arquitectodeangelis1.JPG",
+      "autor": "Lord06",
+      "licencia": "Public domain",
+      "origen": "https://commons.wikimedia.org/wiki/File:Arquitectodeangelis1.JPG",
+      "categoria_commons": "Houses in Argentina"
+    },
+    {
+      "archivo": "036-arquitectodeangelis2-jpg.jpg",
+      "url": "/fotos/demo/036-arquitectodeangelis2-jpg.jpg",
+      "categoria": "casa",
+      "titulo": "Arquitectodeangelis2.JPG",
+      "autor": "Lord06",
+      "licencia": "Public domain",
+      "origen": "https://commons.wikimedia.org/wiki/File:Arquitectodeangelis2.JPG",
+      "categoria_commons": "Houses in Argentina"
+    },
+    {
+      "archivo": "037-av-canterac-panoramio-jpg.jpg",
+      "url": "/fotos/demo/037-av-canterac-panoramio-jpg.jpg",
+      "categoria": "casa",
+      "titulo": "Av. Canterac - panoramio.jpg",
+      "autor": "paul berrospi",
+      "licencia": "CC BY 3.0",
+      "origen": "https://commons.wikimedia.org/wiki/File:Av._Canterac_-_panoramio.jpg",
+      "categoria_commons": "Houses in Argentina"
+    },
+    {
+      "archivo": "038-calle-de-gualeguay-jpg.jpg",
+      "url": "/fotos/demo/038-calle-de-gualeguay-jpg.jpg",
+      "categoria": "casa",
+      "titulo": "Calle de Gualeguay.JPG",
+      "autor": "Alexrebolledo",
+      "licencia": "CC BY-SA 3.0",
+      "origen": "https://commons.wikimedia.org/wiki/File:Calle_de_Gualeguay.JPG",
+      "categoria_commons": "Houses in Argentina"
+    },
+    {
+      "archivo": "039-cametnorte-0058-jpg.jpg",
+      "url": "/fotos/demo/039-cametnorte-0058-jpg.jpg",
+      "categoria": "casa",
+      "titulo": "CametNorte-0058.jpg",
+      "autor": "Ezarate",
+      "licencia": "CC BY-SA 4.0",
+      "origen": "https://commons.wikimedia.org/wiki/File:CametNorte-0058.jpg",
+      "categoria_commons": "Houses in Argentina"
+    },
+    {
+      "archivo": "040-carloskeen1202-jpg.jpg",
+      "url": "/fotos/demo/040-carloskeen1202-jpg.jpg",
+      "categoria": "casa",
+      "titulo": "CarlosKeen1202.jpg",
+      "autor": "Jmpznz",
+      "licencia": "CC BY-SA 3.0",
+      "origen": "https://commons.wikimedia.org/wiki/File:CarlosKeen1202.jpg",
+      "categoria_commons": "Houses in Argentina"
+    },
+    {
+      "archivo": "041-casabarriolostroncosmdparg-jpg.jpg",
+      "url": "/fotos/demo/041-casabarriolostroncosmdparg-jpg.jpg",
+      "categoria": "casa",
+      "titulo": "CasaBarrioLosTroncosMDPArg.jpg",
+      "autor": "Ezarate",
+      "licencia": "CC BY-SA 4.0",
+      "origen": "https://commons.wikimedia.org/wiki/File:CasaBarrioLosTroncosMDPArg.jpg",
+      "categoria_commons": "Houses in Argentina"
+    },
+    {
+      "archivo": "042-casa-beamonte-jpg.jpg",
+      "url": "/fotos/demo/042-casa-beamonte-jpg.jpg",
+      "categoria": "casa",
+      "titulo": "Casa Beamonte.jpg",
+      "autor": "Miguel Angel Roca",
+      "licencia": "CC BY-SA 3.0",
+      "origen": "https://commons.wikimedia.org/wiki/File:Casa_Beamonte.jpg",
+      "categoria_commons": "Houses in Argentina"
+    },
+    {
+      "archivo": "043-1-tang-tret-2-jpg.jpg",
+      "url": "/fotos/demo/043-1-tang-tret-2-jpg.jpg",
+      "categoria": "departamento",
+      "titulo": "1- TANG TRET (2).jpg",
+      "autor": "Moc hoa binh",
+      "licencia": "CC BY-SA 4.0",
+      "origen": "https://commons.wikimedia.org/wiki/File:1-_TANG_TRET_(2).jpg",
+      "categoria_commons": "Living rooms"
+    },
+    {
+      "archivo": "044-2019-12-24-kar-csony-dsc-0092-49268571453-jp.jpg",
+      "url": "/fotos/demo/044-2019-12-24-kar-csony-dsc-0092-49268571453-jp.jpg",
+      "categoria": "departamento",
+      "titulo": "2019 12 24 Karácsony DSC 0092 (49268571453).jpg",
+      "autor": "János Korom Dr. &gt;17 Million views from Wien, Austria",
+      "licencia": "CC BY-SA 2.0",
+      "origen": "https://commons.wikimedia.org/wiki/File:2019_12_24_Kar%C3%A1csony_DSC_0092_(49268571453).jpg",
+      "categoria_commons": "Living rooms"
+    },
+    {
+      "archivo": "045-7-5-wohnzimmer-poliert-jpg.jpg",
+      "url": "/fotos/demo/045-7-5-wohnzimmer-poliert-jpg.jpg",
+      "categoria": "departamento",
+      "titulo": "7.5 Wohnzimmer. Poliert.jpg",
+      "autor": "J.Stiegler",
+      "licencia": "CC BY-SA 3.0",
+      "origen": "https://commons.wikimedia.org/wiki/File:7.5_Wohnzimmer._Poliert.jpg",
+      "categoria_commons": "Living rooms"
+    },
+    {
+      "archivo": "046-alberonatalelor-jpg.jpg",
+      "url": "/fotos/demo/046-alberonatalelor-jpg.jpg",
+      "categoria": "departamento",
+      "titulo": "AlberoNataleLor.JPG",
+      "autor": "Loroli",
+      "licencia": "Public domain",
+      "origen": "https://commons.wikimedia.org/wiki/File:AlberoNataleLor.JPG",
+      "categoria_commons": "Living rooms"
+    },
+    {
+      "archivo": "047-betonepox-ob-vac-pokoj-jpg.jpg",
+      "url": "/fotos/demo/047-betonepox-ob-vac-pokoj-jpg.jpg",
+      "categoria": "departamento",
+      "titulo": "Betonepox obývací pokoj.JPG",
+      "autor": "Koenigsmark Lenka",
+      "licencia": "CC BY-SA 3.0",
+      "origen": "https://commons.wikimedia.org/wiki/File:Betonepox_ob%C3%BDvac%C3%AD_pokoj.JPG",
+      "categoria_commons": "Living rooms"
+    },
+    {
+      "archivo": "048-bilioth-que-albi-et-bureau-volga-jpg.jpg",
+      "url": "/fotos/demo/048-bilioth-que-albi-et-bureau-volga-jpg.jpg",
+      "categoria": "departamento",
+      "titulo": "Biliothèque ALBI et bureau VOLGA.jpg",
+      "autor": "TEMAHOME President",
+      "licencia": "CC BY-SA 4.0",
+      "origen": "https://commons.wikimedia.org/wiki/File:Bilioth%C3%A8que_ALBI_et_bureau_VOLGA.jpg",
+      "categoria_commons": "Living rooms"
+    },
+    {
+      "archivo": "049-citib-51-jpg.jpg",
+      "url": "/fotos/demo/049-citib-51-jpg.jpg",
+      "categoria": "departamento",
+      "titulo": "CITIB-51.jpg",
+      "autor": "Jan Prucha",
+      "licencia": "CC BY-SA 3.0",
+      "origen": "https://commons.wikimedia.org/wiki/File:CITIB-51.jpg",
+      "categoria_commons": "Living rooms"
+    },
+    {
+      "archivo": "050-cozy-living-room-with-a-gray-sofa-jpg.jpg",
+      "url": "/fotos/demo/050-cozy-living-room-with-a-gray-sofa-jpg.jpg",
+      "categoria": "departamento",
+      "titulo": "Cozy living room with a gray sofa.jpg",
+      "autor": "Shixart1985",
+      "licencia": "CC BY 2.0",
+      "origen": "https://commons.wikimedia.org/wiki/File:Cozy_living_room_with_a_gray_sofa.jpg",
+      "categoria_commons": "Living rooms"
+    },
+    {
+      "archivo": "051-amtrak-superliner-bedroom-50985509448-png.jpg",
+      "url": "/fotos/demo/051-amtrak-superliner-bedroom-50985509448-png.jpg",
+      "categoria": "interior",
+      "titulo": "Amtrak Superliner bedroom (50985509448).png",
+      "autor": "Ben Schumin from Montgomery Village, Maryland, USA",
+      "licencia": "CC BY-SA 2.0",
+      "origen": "https://commons.wikimedia.org/wiki/File:Amtrak_Superliner_bedroom_(50985509448).png",
+      "categoria_commons": "Bedrooms"
+    },
+    {
+      "archivo": "052-armadi-inloopkast-jpg.jpg",
+      "url": "/fotos/demo/052-armadi-inloopkast-jpg.jpg",
+      "categoria": "interior",
+      "titulo": "Armadi inloopkast.jpg",
+      "autor": "Armadi",
+      "licencia": "CC BY-SA 3.0",
+      "origen": "https://commons.wikimedia.org/wiki/File:Armadi_inloopkast.jpg",
+      "categoria_commons": "Bedrooms"
+    },
+    {
+      "archivo": "053-bedroom-in-apartment-dnipro-ukraine-15-12-19.jpg",
+      "url": "/fotos/demo/053-bedroom-in-apartment-dnipro-ukraine-15-12-19.jpg",
+      "categoria": "interior",
+      "titulo": "Bedroom in apartment; Dnipro, Ukraine; 15.12.19.jpg",
+      "autor": "VKras",
+      "licencia": "CC BY-SA 4.0",
+      "origen": "https://commons.wikimedia.org/wiki/File:Bedroom_in_apartment;_Dnipro,_Ukraine;_15.12.19.jpg",
+      "categoria_commons": "Bedrooms"
+    },
+    {
+      "archivo": "054-bedroom-in-the-bosniak-house-jpg.jpg",
+      "url": "/fotos/demo/054-bedroom-in-the-bosniak-house-jpg.jpg",
+      "categoria": "interior",
+      "titulo": "Bedroom in the Bosniak house.jpg",
+      "autor": "Damien Smith",
+      "licencia": "CC BY-SA 2.0",
+      "origen": "https://commons.wikimedia.org/wiki/File:Bedroom_in_the_Bosniak_house.jpg",
+      "categoria_commons": "Bedrooms"
+    },
+    {
+      "archivo": "055-bedroom-logela-jpg.jpg",
+      "url": "/fotos/demo/055-bedroom-logela-jpg.jpg",
+      "categoria": "interior",
+      "titulo": "Bedroom logela.jpg",
+      "autor": "Gorkaazk",
+      "licencia": "CC BY-SA 4.0",
+      "origen": "https://commons.wikimedia.org/wiki/File:Bedroom_logela.jpg",
+      "categoria_commons": "Bedrooms"
+    },
+    {
+      "archivo": "056-bedroom-with-wooden-bed-1133-jpg.jpg",
+      "url": "/fotos/demo/056-bedroom-with-wooden-bed-1133-jpg.jpg",
+      "categoria": "interior",
+      "titulo": "Bedroom with wooden bed (1133).jpg",
+      "autor": "linhvan",
+      "licencia": "CC BY 3.0",
+      "origen": "https://commons.wikimedia.org/wiki/File:Bedroom_with_wooden_bed_(1133).jpg",
+      "categoria_commons": "Bedrooms"
+    },
+    {
+      "archivo": "057-cam-dubla-cu-baie-privata-nr-5-jpg.jpg",
+      "url": "/fotos/demo/057-cam-dubla-cu-baie-privata-nr-5-jpg.jpg",
+      "categoria": "interior",
+      "titulo": "Cam dubla cu baie privata nr 5.jpg",
+      "autor": "CabanaGeorgiana1986",
+      "licencia": "CC BY-SA 4.0",
+      "origen": "https://commons.wikimedia.org/wiki/File:Cam_dubla_cu_baie_privata_nr_5.jpg",
+      "categoria_commons": "Bedrooms"
+    },
+    {
+      "archivo": "058-chambre-royale-jpg.jpg",
+      "url": "/fotos/demo/058-chambre-royale-jpg.jpg",
+      "categoria": "interior",
+      "titulo": "Chambre Royale.jpg",
+      "autor": "Sgagnon",
+      "licencia": "CC BY-SA 3.0",
+      "origen": "https://commons.wikimedia.org/wiki/File:Chambre_Royale.jpg",
+      "categoria_commons": "Bedrooms"
+    },
+    {
+      "archivo": "059-2025-05-08-11-54-07-kitchen-and-dining-area.jpg",
+      "url": "/fotos/demo/059-2025-05-08-11-54-07-kitchen-and-dining-area.jpg",
+      "categoria": "interior",
+      "titulo": "2025-05-08 11 54 07 Kitchen and dining area within Playpad Bucks in Middletown Township, Bucks County, Pennsylvania.jpg",
+      "autor": "Famartin",
+      "licencia": "CC BY-SA 4.0",
+      "origen": "https://commons.wikimedia.org/wiki/File:2025-05-08_11_54_07_Kitchen_and_dining_area_within_Playpad_Bucks_in_Middletown_Township,_Bucks_County,_Pennsylvania.jpg",
+      "categoria_commons": "Kitchens"
+    },
+    {
+      "archivo": "060-a-couple-stands-by-a-window-in-a-kitchen-pre.jpg",
+      "url": "/fotos/demo/060-a-couple-stands-by-a-window-in-a-kitchen-pre.jpg",
+      "categoria": "interior",
+      "titulo": "A couple stands by a window in a kitchen, preparing coffee with an espresso machine.jpg",
+      "autor": "Shixart1985",
+      "licencia": "CC BY 2.0",
+      "origen": "https://commons.wikimedia.org/wiki/File:A_couple_stands_by_a_window_in_a_kitchen,_preparing_coffee_with_an_espresso_machine.jpg",
+      "categoria_commons": "Kitchens"
+    },
+    {
+      "archivo": "061-a-person-holds-a-patterned-cup-in-a-contempo.jpg",
+      "url": "/fotos/demo/061-a-person-holds-a-patterned-cup-in-a-contempo.jpg",
+      "categoria": "interior",
+      "titulo": "A person holds a patterned cup in a contemporary kitchen.jpg",
+      "autor": "Shixart1985",
+      "licencia": "CC BY 2.0",
+      "origen": "https://commons.wikimedia.org/wiki/File:A_person_holds_a_patterned_cup_in_a_contemporary_kitchen.jpg",
+      "categoria_commons": "Kitchens"
+    },
+    {
+      "archivo": "062-baking-cookies-with-family-during-the-holida.jpg",
+      "url": "/fotos/demo/062-baking-cookies-with-family-during-the-holida.jpg",
+      "categoria": "interior",
+      "titulo": "Baking cookies with family during the holiday season in a cozy kitchen.jpg",
+      "autor": "Shixart1985",
+      "licencia": "CC BY 2.0",
+      "origen": "https://commons.wikimedia.org/wiki/File:Baking_cookies_with_family_during_the_holiday_season_in_a_cozy_kitchen.jpg",
+      "categoria_commons": "Kitchens"
+    },
+    {
+      "archivo": "063-ceramic-citrus-reamer-blocks-seeds-invention.jpg",
+      "url": "/fotos/demo/063-ceramic-citrus-reamer-blocks-seeds-invention.jpg",
+      "categoria": "interior",
+      "titulo": "Ceramic Citrus Reamer Blocks Seeds - Inventions - 2026 May 03.png",
+      "autor": "JianfaTsai",
+      "licencia": "CC0",
+      "origen": "https://commons.wikimedia.org/wiki/File:Ceramic_Citrus_Reamer_Blocks_Seeds_-_Inventions_-_2026_May_03.png",
+      "categoria_commons": "Kitchens"
+    },
+    {
+      "archivo": "064-changelings-here-jpg.jpg",
+      "url": "/fotos/demo/064-changelings-here-jpg.jpg",
+      "categoria": "interior",
+      "titulo": "Changelings Here.jpg",
+      "autor": "Krunchyman",
+      "licencia": "CC BY-SA 3.0",
+      "origen": "https://commons.wikimedia.org/wiki/File:Changelings_Here.jpg",
+      "categoria_commons": "Kitchens"
+    },
+    {
+      "archivo": "065-034a-padua-dining-room-jpg.jpg",
+      "url": "/fotos/demo/065-034a-padua-dining-room-jpg.jpg",
+      "categoria": "interior",
+      "titulo": "034a Padua dining-room.jpg",
+      "autor": "Czaich Á. Gilbert és Fráter Aladár",
+      "licencia": "Public domain",
+      "origen": "https://commons.wikimedia.org/wiki/File:034a_Padua_dining-room.jpg",
+      "categoria_commons": "Dining rooms"
+    },
+    {
+      "archivo": "066-19diningrmdiegorgto-jpg.jpg",
+      "url": "/fotos/demo/066-19diningrmdiegorgto-jpg.jpg",
+      "categoria": "interior",
+      "titulo": "19DiningRmDiegoRGTO.JPG",
+      "autor": "AlejandroLinaresGarcia",
+      "licencia": "CC BY-SA 4.0",
+      "origen": "https://commons.wikimedia.org/wiki/File:19DiningRmDiegoRGTO.JPG",
+      "categoria_commons": "Dining rooms"
+    },
+    {
+      "archivo": "067-2025-05-08-11-54-00-kitchen-and-dining-area.jpg",
+      "url": "/fotos/demo/067-2025-05-08-11-54-00-kitchen-and-dining-area.jpg",
+      "categoria": "interior",
+      "titulo": "2025-05-08 11 54 00 Kitchen and dining area within Playpad Bucks in Middletown Township, Bucks County, Pennsylvania.jpg",
+      "autor": "Famartin",
+      "licencia": "CC BY-SA 4.0",
+      "origen": "https://commons.wikimedia.org/wiki/File:2025-05-08_11_54_00_Kitchen_and_dining_area_within_Playpad_Bucks_in_Middletown_Township,_Bucks_County,_Pennsylvania.jpg",
+      "categoria_commons": "Dining rooms"
+    },
+    {
+      "archivo": "068-arnaga-s-m-jpg.jpg",
+      "url": "/fotos/demo/068-arnaga-s-m-jpg.jpg",
+      "categoria": "interior",
+      "titulo": "Arnaga - SàM.jpg",
+      "autor": "A1AA1A",
+      "licencia": "CC BY-SA 4.0",
+      "origen": "https://commons.wikimedia.org/wiki/File:Arnaga_-_S%C3%A0M.jpg",
+      "categoria_commons": "Dining rooms"
+    },
+    {
+      "archivo": "069-at-berrington-hall-2022-153-jpg.jpg",
+      "url": "/fotos/demo/069-at-berrington-hall-2022-153-jpg.jpg",
+      "categoria": "interior",
+      "titulo": "At Berrington Hall 2022 153.jpg",
+      "autor": "Photograph by Mike Peel ( www.mikepeel.net ).",
+      "licencia": "CC BY-SA 4.0",
+      "origen": "https://commons.wikimedia.org/wiki/File:At_Berrington_Hall_2022_153.jpg",
+      "categoria_commons": "Dining rooms"
+    },
+    {
+      "archivo": "070-b-atrice-von-wattenwyl-haus-speisesaal-jpg.jpg",
+      "url": "/fotos/demo/070-b-atrice-von-wattenwyl-haus-speisesaal-jpg.jpg",
+      "categoria": "interior",
+      "titulo": "Béatrice-von-Wattenwyl-Haus - Speisesaal.jpg",
+      "autor": "Sandstein",
+      "licencia": "CC BY 3.0",
+      "origen": "https://commons.wikimedia.org/wiki/File:B%C3%A9atrice-von-Wattenwyl-Haus_-_Speisesaal.jpg",
+      "categoria_commons": "Dining rooms"
+    },
+    {
+      "archivo": "071-a-bathroom-at-local-peter-pan-s-play-area-jp.jpg",
+      "url": "/fotos/demo/071-a-bathroom-at-local-peter-pan-s-play-area-jp.jpg",
+      "categoria": "interior",
+      "titulo": "A bathroom at local peter pan's play area.jpg",
+      "autor": "AguyfromacityinNL",
+      "licencia": "CC BY 3.0",
+      "origen": "https://commons.wikimedia.org/wiki/File:A_bathroom_at_local_peter_pan%27s_play_area.jpg",
+      "categoria_commons": "Bathrooms"
+    },
+    {
+      "archivo": "072-automatic-bathroom-pod-2307476156-jpg.jpg",
+      "url": "/fotos/demo/072-automatic-bathroom-pod-2307476156-jpg.jpg",
+      "categoria": "interior",
+      "titulo": "Automatic bathroom pod? (2307476156).jpg",
+      "autor": "Tony Webster from Portland, Oregon, United States",
+      "licencia": "CC BY 2.0",
+      "origen": "https://commons.wikimedia.org/wiki/File:Automatic_bathroom_pod%3F_(2307476156).jpg",
+      "categoria_commons": "Bathrooms"
+    },
+    {
+      "archivo": "073-badezimmer-jpg.jpg",
+      "url": "/fotos/demo/073-badezimmer-jpg.jpg",
+      "categoria": "interior",
+      "titulo": "Badezimmer.jpg",
+      "autor": "Riki1979 at de.wikipedia",
+      "licencia": "Public domain",
+      "origen": "https://commons.wikimedia.org/wiki/File:Badezimmer.jpg",
+      "categoria_commons": "Bathrooms"
+    },
+    {
+      "archivo": "074-bathroom-renovation-15459640079-jpg.jpg",
+      "url": "/fotos/demo/074-bathroom-renovation-15459640079-jpg.jpg",
+      "categoria": "interior",
+      "titulo": "Bathroom Renovation (15459640079).jpg",
+      "autor": "marsupium photography",
+      "licencia": "CC BY-SA 2.0",
+      "origen": "https://commons.wikimedia.org/wiki/File:Bathroom_Renovation_(15459640079).jpg",
+      "categoria_commons": "Bathrooms"
+    },
+    {
+      "archivo": "075-bathroom-in-former-psychiatric-institute-dr.jpg",
+      "url": "/fotos/demo/075-bathroom-in-former-psychiatric-institute-dr.jpg",
+      "categoria": "interior",
+      "titulo": "Bathroom in former psychiatric institute Dr. Guislain in Gent.jpg",
+      "autor": "Sally V",
+      "licencia": "CC BY-SA 4.0",
+      "origen": "https://commons.wikimedia.org/wiki/File:Bathroom_in_former_psychiatric_institute_Dr._Guislain_in_Gent.jpg",
+      "categoria_commons": "Bathrooms"
+    },
+    {
+      "archivo": "076-panoramio-601-jpg.jpg",
+      "url": "/fotos/demo/076-panoramio-601-jpg.jpg",
+      "categoria": "pileta",
+      "titulo": "- panoramio (601).jpg",
+      "autor": "Marjanche",
+      "licencia": "CC BY 3.0",
+      "origen": "https://commons.wikimedia.org/wiki/File:-_panoramio_(601).jpg",
+      "categoria_commons": "Outdoor swimming pools"
+    },
+    {
+      "archivo": "077-panoramio-686-jpg.jpg",
+      "url": "/fotos/demo/077-panoramio-686-jpg.jpg",
+      "categoria": "pileta",
+      "titulo": "- panoramio (686).jpg",
+      "autor": "Delvaux Michel",
+      "licencia": "CC BY 3.0",
+      "origen": "https://commons.wikimedia.org/wiki/File:-_panoramio_(686).jpg",
+      "categoria_commons": "Outdoor swimming pools"
+    },
+    {
+      "archivo": "078-013-11a-2077237212-jpg.jpg",
+      "url": "/fotos/demo/078-013-11a-2077237212-jpg.jpg",
+      "categoria": "pileta",
+      "titulo": "013 11A (2077237212).jpg",
+      "autor": "Alan Light",
+      "licencia": "CC BY 2.0",
+      "origen": "https://commons.wikimedia.org/wiki/File:013_11A_(2077237212).jpg",
+      "categoria_commons": "Outdoor swimming pools"
+    },
+    {
+      "archivo": "079-20100926-petra339-jpg.jpg",
+      "url": "/fotos/demo/079-20100926-petra339-jpg.jpg",
+      "categoria": "pileta",
+      "titulo": "20100926 petra339.JPG",
+      "autor": "Jean Housen",
+      "licencia": "CC BY-SA 3.0",
+      "origen": "https://commons.wikimedia.org/wiki/File:20100926_petra339.JPG",
+      "categoria_commons": "Outdoor swimming pools"
+    },
+    {
+      "archivo": "080-2011-11-31-kubo-foto-dietrich-michael-weidma.jpg",
+      "url": "/fotos/demo/080-2011-11-31-kubo-foto-dietrich-michael-weidma.jpg",
+      "categoria": "pileta",
+      "titulo": "2011-11-31 Kubo (Foto Dietrich Michael Weidmann) 110.JPG",
+      "autor": "Dietrich Michael Weidmann",
+      "licencia": "CC BY-SA 3.0",
+      "origen": "https://commons.wikimedia.org/wiki/File:2011-11-31_Kubo_(Foto_Dietrich_Michael_Weidmann)_110.JPG",
+      "categoria_commons": "Outdoor swimming pools"
+    },
+    {
+      "archivo": "081-2-normal-jpg.jpg",
+      "url": "/fotos/demo/081-2-normal-jpg.jpg",
+      "categoria": "pileta",
+      "titulo": "2 NORMAL.jpg",
+      "autor": "Franco 65it",
+      "licencia": "CC BY-SA 4.0",
+      "origen": "https://commons.wikimedia.org/wiki/File:2_NORMAL.jpg",
+      "categoria_commons": "Outdoor swimming pools"
+    },
+    {
+      "archivo": "082-above-ground-pool-jpg.jpg",
+      "url": "/fotos/demo/082-above-ground-pool-jpg.jpg",
+      "categoria": "pileta",
+      "titulo": "Above ground pool.jpg",
+      "autor": "Jonathan Hogue",
+      "licencia": "Public domain",
+      "origen": "https://commons.wikimedia.org/wiki/File:Above_ground_pool.jpg",
+      "categoria_commons": "Outdoor swimming pools"
+    },
+    {
+      "archivo": "083-afra-hotel-oguz-p1090475-jpg.jpg",
+      "url": "/fotos/demo/083-afra-hotel-oguz-p1090475-jpg.jpg",
+      "categoria": "pileta",
+      "titulo": "Afra Hotel, Oguz (P1090475).jpg",
+      "autor": "Matti Blume",
+      "licencia": "CC BY-SA 4.0",
+      "origen": "https://commons.wikimedia.org/wiki/File:Afra_Hotel,_Oguz_(P1090475).jpg",
+      "categoria_commons": "Outdoor swimming pools"
+    },
+    {
+      "archivo": "084-aghlen1-jpg.jpg",
+      "url": "/fotos/demo/084-aghlen1-jpg.jpg",
+      "categoria": "pileta",
+      "titulo": "Aghlen1.jpg",
+      "autor": "Aghlen47",
+      "licencia": "CC BY-SA 4.0",
+      "origen": "https://commons.wikimedia.org/wiki/File:Aghlen1.jpg",
+      "categoria_commons": "Outdoor swimming pools"
+    },
+    {
+      "archivo": "085-aldrovandi-villa-borghese-swimming-pool-jpg.jpg",
+      "url": "/fotos/demo/085-aldrovandi-villa-borghese-swimming-pool-jpg.jpg",
+      "categoria": "pileta",
+      "titulo": "Aldrovandi Villa Borghese - swimming pool.jpg",
+      "autor": "Jjpcondor",
+      "licencia": "CC BY-SA 3.0",
+      "origen": "https://commons.wikimedia.org/wiki/File:Aldrovandi_Villa_Borghese_-_swimming_pool.jpg",
+      "categoria_commons": "Outdoor swimming pools"
+    },
+    {
+      "archivo": "086-argentina-barreal-andes-jpg.jpg",
+      "url": "/fotos/demo/086-argentina-barreal-andes-jpg.jpg",
+      "categoria": "entorno",
+      "titulo": "Argentina Barreal Andes.JPG",
+      "autor": "Laurian Verré / User: (WT-shared) Laurian at wts wikivoyage",
+      "licencia": "CC BY-SA 3.0",
+      "origen": "https://commons.wikimedia.org/wiki/File:Argentina_Barreal_Andes.JPG",
+      "categoria_commons": "Barreal"
+    },
+    {
+      "archivo": "087-barreal-san-juan-argentina-2-jpg.jpg",
+      "url": "/fotos/demo/087-barreal-san-juan-argentina-2-jpg.jpg",
+      "categoria": "entorno",
+      "titulo": "Barreal, San Juan, Argentina 2.jpg",
+      "autor": "miroab",
+      "licencia": "CC BY-SA 2.0",
+      "origen": "https://commons.wikimedia.org/wiki/File:Barreal,_San_Juan,_Argentina_2.jpg",
+      "categoria_commons": "Barreal"
+    },
+    {
+      "archivo": "088-barreal-san-juan-argentina-3-jpg.jpg",
+      "url": "/fotos/demo/088-barreal-san-juan-argentina-3-jpg.jpg",
+      "categoria": "entorno",
+      "titulo": "Barreal, San Juan, Argentina 3.jpg",
+      "autor": "miroab",
+      "licencia": "CC BY-SA 2.0",
+      "origen": "https://commons.wikimedia.org/wiki/File:Barreal,_San_Juan,_Argentina_3.jpg",
+      "categoria_commons": "Barreal"
+    },
+    {
+      "archivo": "089-barreal-prov-de-san-juan-jpg.jpg",
+      "url": "/fotos/demo/089-barreal-prov-de-san-juan-jpg.jpg",
+      "categoria": "entorno",
+      "titulo": "Barreal, prov. de San Juan.jpg",
+      "autor": "Enrique Guardia",
+      "licencia": "CC BY-SA 3.0",
+      "origen": "https://commons.wikimedia.org/wiki/File:Barreal,_prov._de_San_Juan.jpg",
+      "categoria_commons": "Barreal"
+    },
+    {
+      "archivo": "090-barreal-san-juan-jpg.jpg",
+      "url": "/fotos/demo/090-barreal-san-juan-jpg.jpg",
+      "categoria": "entorno",
+      "titulo": "Barreal - San Juan.jpg",
+      "autor": "miroab",
+      "licencia": "CC BY-SA 2.0",
+      "origen": "https://commons.wikimedia.org/wiki/File:Barreal_-_San_Juan.jpg",
+      "categoria_commons": "Barreal"
+    },
+    {
+      "archivo": "091-jard-n-de-los-poetas-san-juan-argentina-eagl.jpg",
+      "url": "/fotos/demo/091-jard-n-de-los-poetas-san-juan-argentina-eagl.jpg",
+      "categoria": "entorno",
+      "titulo": "Jardín de los Poetas San Juan Argentina (EagLau-2008).jpg",
+      "autor": "EagLau",
+      "licencia": "CC BY-SA 4.0",
+      "origen": "https://commons.wikimedia.org/wiki/File:Jard%C3%ADn_de_los_Poetas_San_Juan_Argentina_(EagLau-2008).jpg",
+      "categoria_commons": "Quebrada de Zonda"
+    },
+    {
+      "archivo": "092-qubrada-de-zonda-prov-de-san-juan-argentina.jpg",
+      "url": "/fotos/demo/092-qubrada-de-zonda-prov-de-san-juan-argentina.jpg",
+      "categoria": "entorno",
+      "titulo": "Qubrada de Zonda Prov.de San Juan Argentina (EagLau--2008).jpg",
+      "autor": "EagLau",
+      "licencia": "CC BY-SA 4.0",
+      "origen": "https://commons.wikimedia.org/wiki/File:Qubrada_de_Zonda_Prov.de_San_Juan_Argentina_(EagLau--2008).jpg",
+      "categoria_commons": "Quebrada de Zonda"
+    },
+    {
+      "archivo": "093-quebrada-de-zonda-san-juan-argentina-eaglau.jpg",
+      "url": "/fotos/demo/093-quebrada-de-zonda-san-juan-argentina-eaglau.jpg",
+      "categoria": "entorno",
+      "titulo": "Quebrada de Zonda, San Juan, Argentina. (EagLau-2008).jpg",
+      "autor": "EagLau",
+      "licencia": "CC BY-SA 4.0",
+      "origen": "https://commons.wikimedia.org/wiki/File:Quebrada_de_Zonda,_San_Juan,_Argentina._(EagLau-2008).jpg",
+      "categoria_commons": "Quebrada de Zonda"
+    },
+    {
+      "archivo": "094-quebrada-de-zonda-san-juan-argentina-jpg.jpg",
+      "url": "/fotos/demo/094-quebrada-de-zonda-san-juan-argentina-jpg.jpg",
+      "categoria": "entorno",
+      "titulo": "Quebrada de Zonda, San Juan, Argentina.jpg",
+      "autor": "EagLau",
+      "licencia": "CC BY-SA 4.0",
+      "origen": "https://commons.wikimedia.org/wiki/File:Quebrada_de_Zonda,_San_Juan,_Argentina.jpg",
+      "categoria_commons": "Quebrada de Zonda"
+    },
+    {
+      "archivo": "095-17-grados-jpg.jpg",
+      "url": "/fotos/demo/095-17-grados-jpg.jpg",
+      "categoria": "entorno",
+      "titulo": "17 grados.jpg",
+      "autor": "Escuela9001",
+      "licencia": "CC BY-SA 4.0",
+      "origen": "https://commons.wikimedia.org/wiki/File:17_grados.jpg",
+      "categoria_commons": "Vineyards in Argentina"
+    },
+    {
+      "archivo": "096-plante-malbec-en-el-patio-de-mi-casa-jpg.jpg",
+      "url": "/fotos/demo/096-plante-malbec-en-el-patio-de-mi-casa-jpg.jpg",
+      "categoria": "entorno",
+      "titulo": "PLANTE MALBEC EN EL PATIO DE MI CASA.jpg",
+      "autor": "PABLO GONZALEZ",
+      "licencia": "CC BY-SA 2.0",
+      "origen": "https://commons.wikimedia.org/wiki/File:PLANTE_MALBEC_EN_EL_PATIO_DE_MI_CASA.jpg",
+      "categoria_commons": "Vineyards in Argentina"
+    },
+    {
+      "archivo": "097-pergola-vineyard-argentina-jpg.jpg",
+      "url": "/fotos/demo/097-pergola-vineyard-argentina-jpg.jpg",
+      "categoria": "entorno",
+      "titulo": "Pergola Vineyard Argentina.jpg",
+      "autor": "Justin De La Ornellas",
+      "licencia": "CC BY 2.0",
+      "origen": "https://commons.wikimedia.org/wiki/File:Pergola_Vineyard_Argentina.jpg",
+      "categoria_commons": "Vineyards in Argentina"
+    },
+    {
+      "archivo": "098-tapiz-vineyard-jpg.jpg",
+      "url": "/fotos/demo/098-tapiz-vineyard-jpg.jpg",
+      "categoria": "entorno",
+      "titulo": "Tapiz Vineyard.jpg",
+      "autor": "Justin Otto",
+      "licencia": "CC BY 2.0",
+      "origen": "https://commons.wikimedia.org/wiki/File:Tapiz_Vineyard.jpg",
+      "categoria_commons": "Vineyards in Argentina"
+    },
+    {
+      "archivo": "099-villa-union-panoramio-1-jpg.jpg",
+      "url": "/fotos/demo/099-villa-union-panoramio-1-jpg.jpg",
+      "categoria": "entorno",
+      "titulo": "Villa Union - panoramio (1).jpg",
+      "autor": "Elvis Boaventura",
+      "licencia": "CC BY 3.0",
+      "origen": "https://commons.wikimedia.org/wiki/File:Villa_Union_-_panoramio_(1).jpg",
+      "categoria_commons": "Vineyards in Argentina"
+    }
+  ]
+}
