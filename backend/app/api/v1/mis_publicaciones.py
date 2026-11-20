@@ -761,11 +761,12 @@ def agregar_calendario(
     db: Session = Depends(get_db),
 ) -> AgendaOut:
     unidad = _mi_unidad(publicacion_id, unidad_id, prestador, db)
-    if not datos.url.lower().startswith(("http://", "https://")):
-        raise HTTPException(
-            status.HTTP_422_UNPROCESSABLE_ENTITY, "La dirección tiene que empezar con http"
-        )
-    from app.services import canales
+    from app.services import canales, red
+
+    try:
+        red.validar_forma(datos.url)
+    except red.DireccionNoPermitida as e:
+        raise HTTPException(status.HTTP_422_UNPROCESSABLE_ENTITY, str(e)) from e
 
     db.add(
         CalendarioExterno(

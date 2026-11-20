@@ -151,7 +151,9 @@ def test_un_portal_caido_no_frena_a_los_demas(cliente, db, oferta, anfitrion, mo
             return httpx.Response(503, request=pedido)
         return httpx.Response(200, content=ics((desde, hasta)), request=pedido)
 
-    monkeypatch.setattr("app.services.calendario.httpx.get", descarga)
+    monkeypatch.setattr(
+        "app.services.calendario.descargar", lambda url: descarga(url).raise_for_status().content
+    )
 
     r = cliente.post("/api/v1/mi-calendario/sincronizar", headers=anfitrion)
     assert r.status_code == 200
@@ -184,8 +186,8 @@ def test_la_direccion_vencida_se_explica_en_castellano(cliente, oferta, anfitrio
         "https://www.airbnb.com/calendar/ical/vieja.ics",
     )
     monkeypatch.setattr(
-        "app.services.calendario.httpx.get",
-        lambda url, **kw: httpx.Response(403, request=httpx.Request("GET", url)),
+        "app.services.calendario.descargar",
+        lambda url: httpx.Response(403, request=httpx.Request("GET", url)).raise_for_status(),
     )
     detalle = cliente.post("/api/v1/mi-calendario/sincronizar", headers=anfitrion).json()[
         "resultados"

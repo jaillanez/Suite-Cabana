@@ -47,6 +47,12 @@ class Cobro:
     moneda: str = "ARS"
     email_pagador: str | None = None
     cuenta_prestador: str | None = None
+    #: Si la pasarela retiene la comisión en el mismo pago. Con la credencial
+    #: propia del anfitrión no se puede: la comisión queda en el snapshot y se
+    #: liquida aparte.
+    retener_comision: bool = True
+    #: Adónde avisa la pasarela del resultado, si no lo toma de su configuración.
+    url_notificacion: str | None = None
     url_exito: str | None = None
     url_fallo: str | None = None
     url_pendiente: str | None = None

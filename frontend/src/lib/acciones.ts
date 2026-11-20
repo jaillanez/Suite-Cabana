@@ -5,6 +5,8 @@ import { redirect } from "next/navigation";
 import {
   ApiError,
   altaPrestador,
+  desvincularMercadoPago,
+  vincularMercadoPago,
   ingresar,
   ingresarConGoogle,
   pedirVerificacion,
@@ -89,6 +91,29 @@ export async function accionAltaPrestador(_previo: Estado, datos: FormData): Pro
   } catch (e) {
     return { error: mensaje(e, "No pudimos guardar tus datos de prestador.") };
   }
+  redirect("/cuenta");
+}
+
+export async function accionVincularMercadoPago(
+  _previo: Estado,
+  datos: FormData,
+): Promise<Estado> {
+  const token = await tokenActual();
+  if (!token) return { error: "Tu sesión venció. Ingresá de nuevo." };
+  const credencial = texto(datos, "access_token");
+  if (!credencial) return { error: "Pegá tu Access Token de Mercado Pago." };
+  try {
+    await vincularMercadoPago(token, credencial);
+  } catch (e) {
+    return { error: mensaje(e, "No pudimos vincular tu cuenta de Mercado Pago.") };
+  }
+  redirect("/cuenta");
+}
+
+export async function accionDesvincularMercadoPago(): Promise<void> {
+  const token = await tokenActual();
+  if (!token) redirect("/ingresar?volver=/cuenta");
+  await desvincularMercadoPago(token);
   redirect("/cuenta");
 }
 

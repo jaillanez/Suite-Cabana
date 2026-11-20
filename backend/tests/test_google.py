@@ -123,9 +123,9 @@ def test_rechaza_basura(cliente, firmar):
     assert r.status_code == 401
 
 
-def test_si_google_dice_que_el_correo_no_esta_verificado_no_lo_damos_por_verificado(
-    cliente, db, firmar
-):
-    cliente.post("/api/v1/auth/google", json={"credencial": firmar(email_verified=False)})
-    usuario = db.scalar(select(Usuario).where(Usuario.email == "jorge@gmail.com"))
-    assert usuario.email_verificado is False
+def test_si_google_dice_que_el_correo_no_esta_verificado_no_entra(cliente, db, firmar):
+    """Sin correo verificado no se crea la cuenta ni se vincula a una existente:
+    con el correo ajeno sin verificar se podría entrar a la cuenta de otro."""
+    r = cliente.post("/api/v1/auth/google", json={"credencial": firmar(email_verified=False)})
+    assert r.status_code == 401
+    assert db.scalar(select(Usuario).where(Usuario.email == "jorge@gmail.com")) is None

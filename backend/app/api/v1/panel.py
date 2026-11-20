@@ -329,6 +329,16 @@ def reservas_operador(
     )
 
 
+def _celda(valor: object) -> str:
+    """Texto que escribió un usuario, neutralizado para Excel.
+
+    Un nombre que empieza con `=`, `+`, `-` o `@` se toma como fórmula al abrir el
+    archivo; con un apóstrofo adelante queda como texto.
+    """
+    texto = str(valor)
+    return "'" + texto if texto[:1] in ("=", "+", "-", "@", "\t", "\r") else texto
+
+
 @router.get("/admin/reservas.csv", response_class=Response)
 def exportar_reservas(
     estado: Annotated[EstadoReserva | None, Query()] = None,
@@ -352,13 +362,14 @@ def exportar_reservas(
     for x in lineas:
         escritor.writerow(
             [
-                x.codigo, x.estado.value, x.creada_en, x.viajero, x.prestador, x.alojamiento,
-                x.localidad, x.fecha_inicio, x.fecha_fin,
+                _celda(x.codigo), x.estado.value, x.creada_en, _celda(x.viajero),
+                _celda(x.prestador), _celda(x.alojamiento), _celda(x.localidad),
+                x.fecha_inicio, x.fecha_fin,
                 f"{x.total:.2f}".replace(".", ","),
                 f"{x.comision:.2f}".replace(".", ","),
                 f"{x.iva:.2f}".replace(".", ","),
                 f"{x.al_prestador:.2f}".replace(".", ","),
-                x.pasarela or "", "si" if x.pagado else "no",
+                _celda(x.pasarela or ""), "si" if x.pagado else "no",
             ]
         )
     return Response(

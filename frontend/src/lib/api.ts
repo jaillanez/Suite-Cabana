@@ -236,6 +236,8 @@ export type PrestadorCuenta = {
   verificado: boolean;
   puede_publicar: boolean;
   cuenta_cobro_vinculada: boolean;
+  /** Nombre de la cuenta de Mercado Pago vinculada. La credencial no vuelve nunca. */
+  cuenta_cobro: string | null;
   porcentaje_sena: number | null;
 };
 
@@ -282,6 +284,16 @@ export const altaPrestador = (
   token: string,
   datos: { razon_social: string; cuit: string; condicion_iva: string; porcentaje_sena?: number },
 ) => api<Cuenta>("/auth/prestador", { method: "POST", token, body: JSON.stringify(datos) });
+
+export const vincularMercadoPago = (token: string, access_token: string) =>
+  api<PrestadorCuenta>("/auth/prestador/mercadopago", {
+    method: "PUT",
+    token,
+    body: JSON.stringify({ access_token }),
+  });
+
+export const desvincularMercadoPago = (token: string) =>
+  api<PrestadorCuenta>("/auth/prestador/mercadopago", { method: "DELETE", token });
 
 export const ingresarConGoogle = (credencial: string) =>
   api<Sesion>("/auth/google", { method: "POST", body: JSON.stringify({ credencial }) });

@@ -5,7 +5,9 @@ política que aceptó. El prestador ve sus reservas y, si publica "a solicitud",
 acepta o rechaza.
 
 Las notificaciones de las pasarelas entran por `/webhooks/{pasarela}` y se
-procesan **una sola vez**: se registran por (pasarela, id) antes de aplicarlas.
+procesan **una sola vez**: se registran por (pasarela, id del pago, estado)
+antes de aplicarlas. El estado entra en la clave porque un mismo pago avisa más
+de una vez —pendiente y después aprobado— y el segundo aviso no puede perderse.
 """
 
 from __future__ import annotations
@@ -37,7 +39,7 @@ from app.models import (
     Usuario,
 )
 from app.models.enums import EstadoReserva
-from app.services import pagos, reservas
+from app.services import cuenta_cobro, pagos, reservas
 from app.services.pagos.base import Cobro
 
 router = APIRouter(tags=["reservas"])
@@ -341,6 +343,25 @@ def pagar(
     item = reserva.items[0]
     comision = item.comision
     web = s.url_publica_web.rstrip("/")
+    prestador = item.unidad.publicacion.prestador
+
+    # Cobro directo: el pago se crea con la credencial del anfitrión y entra en
+    # su cuenta; Mercado Pago avisa a una URL que dice de quién es la cuenta,
+    # para poder consultar el pago con esa misma credencial.
+    credencial = cuenta_cobro.credencial(prestador)
+    retener_comision = True
+    url_notificacion = None
+    if pasarela.codigo == pagos.MercadoPago.codigo and s.mp_cobro_directo:
+        if not credencial:
+            raise HTTPException(
+                status.HTTP_409_CONFLICT,
+                "Este alojamiento todavía no puede cobrar con Mercado Pago: el anfitrión "
+                "no vinculó su cuenta.",
+            )
+        pasarela = pagos.MercadoPago(token=credencial)
+        retener_comision = False
+        api = s.url_publica_api.rstrip("/")
+        url_notificacion = f"{api}/api/v1/webhooks/mercadopago?prestador={prestador.id}"
 
     cobro = Cobro(
         codigo_reserva=reserva.codigo,
@@ -349,7 +370,9 @@ def pagar(
         comision_plataforma=comision.comision_total if comision else Decimal(0),
         moneda=reserva.moneda,
         email_pagador=usuario.email,
-        cuenta_prestador=item.unidad.publicacion.prestador.mp_access_token,
+        cuenta_prestador=credencial,
+        retener_comision=retener_comision,
+        url_notificacion=url_notificacion,
         url_exito=f"{web}/reservas/{reserva.codigo}",
         url_fallo=f"{web}/reservas/{reserva.codigo}",
         url_pendiente=f"{web}/reservas/{reserva.codigo}",
@@ -357,6 +380,8 @@ def pagar(
     )
     try:
         preferencia = pasarela.crear_preferencia(cobro)
+    except pagos.PasarelaNoDisponible as e:
+        raise HTTPException(status.HTTP_409_CONFLICT, str(e)) from e
     except pagos.ErrorDePasarela as e:
         raise HTTPException(status.HTTP_502_BAD_GATEWAY, str(e)) from e
 
@@ -462,15 +487,44 @@ def rechazar_solicitud(
 # --- Webhooks ---
 
 
+def _aviso_mercadopago(cuerpo: bytes, consulta: dict[str, str]) -> tuple[str, str]:
+    """(tipo, id) de un aviso de Mercado Pago, venga en el cuerpo o en la URL.
+
+    Manda los dos formatos: el de webhooks (`{"type": "payment", "data": {"id"}}`)
+    y el viejo IPN (`?topic=payment&id=...`).
+    """
+    try:
+        datos = json.loads(cuerpo or b"{}")
+    except json.JSONDecodeError:
+        datos = {}
+    if not isinstance(datos, dict):
+        datos = {}
+    tipo = (
+        datos.get("type") or datos.get("topic") or consulta.get("type")
+        or consulta.get("topic") or ""
+    )
+    id_pago = (
+        (datos.get("data") or {}).get("id") or consulta.get("data.id")
+        or consulta.get("id") or ""
+    )
+    return str(tipo), str(id_pago)
+
+
 @router.post("/webhooks/{codigo_pasarela}", status_code=status.HTTP_200_OK)
 async def webhook(
-    codigo_pasarela: str, peticion: Request, db: Session = Depends(get_db)
+    codigo_pasarela: str,
+    peticion: Request,
+    prestador: uuid.UUID | None = None,
+    db: Session = Depends(get_db),
 ) -> dict:
     """Notificación de una pasarela.
 
     Se registra antes de aplicarse: si la misma llega dos veces, la segunda no
     hace nada (docs/01 §5 R6). Siempre se responde 200 salvo que la firma sea
-    inválida: si no, la pasarela reintenta para siempre.
+    inválida o la pasarela no conteste: si no, reintenta para siempre.
+
+    Con `?prestador=` es un aviso de cobro directo: el pago se consulta con la
+    credencial de ese anfitrión, y tiene que ser de una reserva suya.
     """
     try:
         pasarela = pagos.obtener(codigo_pasarela)
@@ -479,17 +533,34 @@ async def webhook(
 
     cuerpo = await peticion.body()
     cabeceras = {k.lower(): v for k, v in peticion.headers.items()}
+    duenio: Prestador | None = None
 
     try:
-        notificacion = pasarela.leer_notificacion(cuerpo, cabeceras)
+        if prestador is not None and pasarela.codigo == pagos.MercadoPago.codigo:
+            duenio = db.get(Prestador, prestador)
+            credencial = cuenta_cobro.credencial(duenio) if duenio else None
+            if not credencial:
+                return {"estado": "sin cuenta de cobro"}
+            tipo, id_pago = _aviso_mercadopago(cuerpo, dict(peticion.query_params))
+            if tipo != "payment":
+                # Órdenes, contracargos y demás: el pago avisa por su lado.
+                return {"estado": "ignorada"}
+            notificacion = pagos.MercadoPago(token=credencial).leer_notificacion_sin_firma(
+                id_pago
+            )
+        else:
+            notificacion = pasarela.leer_notificacion(cuerpo, cabeceras)
     except pagos.NotificacionInvalida as e:
         raise HTTPException(status.HTTP_401_UNAUTHORIZED, str(e)) from e
     except pagos.PasarelaNoDisponible as e:
         raise HTTPException(status.HTTP_501_NOT_IMPLEMENTED, str(e)) from e
+    except pagos.ErrorDePasarela as e:
+        # Sin respuesta de la pasarela no sabemos el estado: que reintente.
+        raise HTTPException(status.HTTP_502_BAD_GATEWAY, str(e)) from e
 
     registro = NotificacionPago(
         pasarela=pasarela.codigo,
-        id_externo=notificacion.id_externo,
+        id_externo=f"{notificacion.id_externo}:{notificacion.estado.value}",
         topico="pago",
         payload=notificacion.datos or {},
     )
@@ -510,6 +581,10 @@ async def webhook(
         registro.error = f"No existe la reserva {notificacion.codigo_reserva}"
         db.commit()
         return {"estado": "reserva inexistente"}
+    if duenio is not None and reserva.items[0].unidad.publicacion.prestador_id != duenio.id:
+        registro.error = f"El pago no es de una reserva de {duenio.id}"
+        db.commit()
+        return {"estado": "reserva ajena"}
 
     reservas.registrar_pago(
         db,
@@ -565,7 +640,7 @@ def simular_pago(datos: PagoSimulado, db: Session = Depends(get_db)) -> dict:
 
     registro = NotificacionPago(
         pasarela=simulada.codigo,
-        id_externo=notificacion.id_externo,
+        id_externo=f"{notificacion.id_externo}:{notificacion.estado.value}",
         topico="pago",
         payload=notificacion.datos or {},
     )

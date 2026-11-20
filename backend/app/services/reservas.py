@@ -284,6 +284,10 @@ def crear(
     return reserva
 
 
+#: Pago aprobado por un monto menor al de la reserva: no la confirma.
+ESTADO_MONTO_DISTINTO = "monto_distinto"
+
+
 def registrar_pago(
     db: Session,
     reserva: Reserva,
@@ -330,6 +334,14 @@ def registrar_pago(
         pago.monto = monto
     if datos:
         pago.datos = datos
+
+    # El cobro se pide por el total (api/v1/reservas.py → pagar). Un pago
+    # aprobado por menos —uno armado a mano con el mismo código de reserva, o un
+    # error de la pasarela— no confirma: queda a la vista para revisarlo.
+    if estado is EstadoPago.APROBADO and monto is not None and monto < reserva.total:
+        pago.estado = ESTADO_MONTO_DISTINTO
+        db.flush()
+        return reserva
 
     if estado is EstadoPago.APROBADO:
         _confirmar(db, reserva)

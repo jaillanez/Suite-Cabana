@@ -24,7 +24,7 @@ from sqlalchemy.orm import Session
 
 from app.models import BloqueoFecha, CalendarioExterno, Unidad
 from app.models.enums import OrigenBloqueo
-from app.services import ical
+from app.services import ical, red
 
 TIEMPO_LIMITE = 20.0
 # Las cabeceras HTTP son ASCII: una tilde acá rompe cada sincronización.
@@ -170,6 +170,8 @@ def motivo(e: Exception) -> str:
     le venció —y tiene que sacarla de nuevo— o si el portal está caído y hay que
     esperar. Son dos acciones distintas.
     """
+    if isinstance(e, red.DireccionNoPermitida):
+        return f"{e}. Pegá la dirección que da la plataforma."
     if isinstance(e, httpx.HTTPStatusError):
         codigo = e.response.status_code
         if codigo in (401, 403):
@@ -190,6 +192,11 @@ def motivo(e: Exception) -> str:
     return "No pudimos traer el calendario. Probá de nuevo en un rato."
 
 
+def descargar(url: str) -> bytes:
+    """Trae el calendario. Solo de internet pública: la URL la pegó un usuario."""
+    return red.descargar_publica(url, agente=AGENTE, tiempo=TIEMPO_LIMITE)
+
+
 def sincronizar(
     db: Session, calendario: CalendarioExterno, contenido: bytes | None = None
 ) -> ResultadoSincronizacion:
@@ -199,14 +206,7 @@ def sincronizar(
     """
     if contenido is None:
         try:
-            respuesta = httpx.get(
-                calendario.url,
-                timeout=TIEMPO_LIMITE,
-                follow_redirects=True,
-                headers={"User-Agent": AGENTE},
-            )
-            respuesta.raise_for_status()
-            contenido = respuesta.content
+            contenido = descargar(calendario.url)
         except Exception as e:  # noqa: BLE001 - httpx levanta varias familias
             calendario.ultimo_error = motivo(e)
             db.flush()

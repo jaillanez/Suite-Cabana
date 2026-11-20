@@ -19,9 +19,11 @@ class Prestador(IdMixin, TiempoMixin, Base):
     verificado: Mapped[bool] = mapped_column(default=False)
     es_demo: Mapped[bool] = mapped_column(default=False)  # datos de ejemplo, nunca reales
 
-    # Mercado Pago (OAuth marketplace)
+    # Mercado Pago. `mp_access_token` va cifrado (app/services/cifrado.py): nunca
+    # se lee directo, sino con app/services/cuenta_cobro.py.
     mp_user_id: Mapped[str | None] = mapped_column(String(40))
-    mp_access_token: Mapped[str | None]  # cifrar antes de producción
+    mp_cuenta: Mapped[str | None] = mapped_column(String(200))  # cómo se la mostramos
+    mp_access_token: Mapped[str | None]
     mp_refresh_token: Mapped[str | None]
 
     # Seña configurable (porcentaje del total); nulo = pago total

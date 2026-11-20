@@ -2,7 +2,12 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 
-import { accionAltaPrestador, accionSalir } from "@/lib/acciones";
+import {
+  accionAltaPrestador,
+  accionDesvincularMercadoPago,
+  accionSalir,
+  accionVincularMercadoPago,
+} from "@/lib/acciones";
 import { cuentaActual } from "@/lib/sesion";
 import Encabezado from "@/componentes/Encabezado";
 import FormularioAuth from "@/componentes/FormularioAuth";
@@ -166,6 +171,53 @@ export default async function Cuenta() {
             </>
           )}
         </section>
+
+        {cuenta.prestador && (
+          <section id="cobros">
+            <h2>Cobros con Mercado Pago</h2>
+            {cuenta.prestador.cuenta_cobro ? (
+              <>
+                <p className={estilos.ok}>
+                  <Rayo />
+                  Cobrás en la cuenta <strong>{cuenta.prestador.cuenta_cobro}</strong>. Lo que
+                  te reserven entra directo ahí.
+                </p>
+                <form action={accionDesvincularMercadoPago}>
+                  <button type="submit" className={estilos.salir}>
+                    Desvincular cuenta
+                  </button>
+                </form>
+                <p className={estilos.nota}>
+                  Si desvinculás, tus alojamientos no se pueden reservar hasta que cargues
+                  otra.
+                </p>
+              </>
+            ) : (
+              <>
+                <p className={estilos.bajada}>
+                  Pegá el Access Token de producción de tu cuenta. Lo sacás en Mercado Pago
+                  Developers → Tus integraciones → Credenciales de producción. Lo probamos con
+                  Mercado Pago antes de guardarlo y queda cifrado: nadie lo vuelve a ver, ni
+                  vos.
+                </p>
+                <FormularioAuth
+                  accion={accionVincularMercadoPago}
+                  enviar="Vincular Mercado Pago"
+                  campos={[
+                    {
+                      nombre: "access_token",
+                      etiqueta: "Access Token",
+                      tipo: "password",
+                      autoComplete: "off",
+                      ayuda: "Empieza con APP_USR-",
+                      ancho: "completo",
+                    },
+                  ]}
+                />
+              </>
+            )}
+          </section>
+        )}
 
         {cuenta.es_operador && (
           <section>

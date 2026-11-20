@@ -187,9 +187,11 @@ def test_la_misma_notificacion_dos_veces_se_procesa_una(cliente, db, viajero, of
     assert segunda.json()["estado"] == "ya procesada"
 
     registros = db.scalars(
-        select(NotificacionPago).where(NotificacionPago.id_externo == pago["id_externo"])
+        select(NotificacionPago).where(
+            NotificacionPago.id_externo.startswith(f"{pago['id_externo']}:")
+        )
     ).all()
-    assert len(registros) == 1
+    assert [r.id_externo for r in registros] == [f"{pago['id_externo']}:aprobado"]
     ficha = cliente.get(f"/api/v1/reservas/{codigo}", headers=viajero).json()
     assert len(ficha["pagos"]) == 1
 

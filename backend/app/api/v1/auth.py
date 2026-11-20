@@ -35,7 +35,9 @@ from app.core.security import (
     verificar_password,
 )
 from app.models import Prestador, Usuario
-from app.services import google
+from app.services import cuenta_cobro, google
+from app.services.pagos import ErrorDePasarela
+from app.services.pagos.mercadopago import CredencialInvalida
 
 router = APIRouter(prefix="/auth", tags=["auth"])
 
@@ -72,6 +74,9 @@ class PrestadorOut(BaseModel):
     verificado: bool
     puede_publicar: bool
     cuenta_cobro_vinculada: bool
+    cuenta_cobro: str | None = Field(
+        default=None, description="Nombre de la cuenta de Mercado Pago vinculada"
+    )
     porcentaje_sena: int | None
 
 
@@ -116,6 +121,7 @@ def _prestador_out(p: Prestador | None) -> PrestadorOut | None:
         verificado=p.verificado,
         puede_publicar=p.puede_publicar,
         cuenta_cobro_vinculada=bool(p.mp_user_id),
+        cuenta_cobro=p.mp_cuenta,
         porcentaje_sena=p.porcentaje_sena,
     )
 
@@ -230,6 +236,16 @@ def ingreso_google(datos: CredencialGoogle, db: Session = Depends(get_db)) -> Se
             status.HTTP_401_UNAUTHORIZED, "No pudimos validar tu cuenta de Google"
         ) from e
 
+    # Sin correo verificado por Google no se crea ni se vincula nada: si no,
+    # cualquiera con una cuenta de Google que diga tener tu correo entraría a
+    # la tuya.
+    if not identidad.email_verificado:
+        raise HTTPException(
+            status.HTTP_401_UNAUTHORIZED,
+            "Tu cuenta de Google no tiene el correo verificado. Verificalo en Google "
+            "o ingresá con tu correo y contraseña.",
+        )
+
     existente = db.scalar(select(Usuario).where(Usuario.google_sub == identidad.sub)) or db.scalar(
         select(Usuario).where(Usuario.email == identidad.email)
     )
@@ -324,6 +340,44 @@ def alta_prestador(
 
 @router.get("/prestador", response_model=PrestadorOut)
 def mi_prestador(prestador: Prestador = Depends(prestador_actual)) -> PrestadorOut:
+    salida = _prestador_out(prestador)
+    assert salida is not None
+    return salida
+
+
+class CredencialMercadoPago(BaseModel):
+    access_token: Annotated[str, Field(min_length=20, max_length=300)] = Field(
+        description="Access Token de producción de la cuenta de Mercado Pago del anfitrión"
+    )
+
+
+@router.put("/prestador/mercadopago", response_model=PrestadorOut)
+def vincular_mercadopago(
+    datos: CredencialMercadoPago,
+    prestador: Prestador = Depends(prestador_actual),
+    db: Session = Depends(get_db),
+) -> PrestadorOut:
+    """El anfitrión carga su credencial: desde ahí, lo que se le reserva le entra
+    directo a su cuenta. Se prueba con Mercado Pago antes de guardarla, se guarda
+    cifrada y no se devuelve nunca."""
+    try:
+        cuenta_cobro.vincular(prestador, datos.access_token)
+    except CredencialInvalida as e:
+        raise HTTPException(status.HTTP_422_UNPROCESSABLE_ENTITY, str(e)) from e
+    except ErrorDePasarela as e:
+        raise HTTPException(status.HTTP_502_BAD_GATEWAY, str(e)) from e
+    db.commit()
+    salida = _prestador_out(prestador)
+    assert salida is not None
+    return salida
+
+
+@router.delete("/prestador/mercadopago", response_model=PrestadorOut)
+def desvincular_mercadopago(
+    prestador: Prestador = Depends(prestador_actual), db: Session = Depends(get_db)
+) -> PrestadorOut:
+    cuenta_cobro.desvincular(prestador)
+    db.commit()
     salida = _prestador_out(prestador)
     assert salida is not None
     return salida

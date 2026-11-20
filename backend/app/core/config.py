@@ -14,6 +14,9 @@ class Settings(BaseSettings):
     environment: str = "local"
     database_url: str = "postgresql+psycopg://suite:suite@localhost:5432/suite_cabana"
     secret_key: str = CLAVE_INSEGURA
+    # Cifra en la base las credenciales de cobro de los anfitriones. Separada de
+    # SECRET_KEY: rotar la de sesiones no tiene que dejar ilegibles las guardadas.
+    clave_cifrado: str = ""
     access_token_minutes: int = 60 * 24
     cors_origins: list[str] = ["http://localhost:3000", "http://localhost:3001"]
 
@@ -66,7 +69,13 @@ class Settings(BaseSettings):
     pasarela_predeterminada: str = "simulada"
     url_publica_web: str = "http://localhost:3000"
 
-    # Mercado Pago (modo marketplace): adaptador implementado.
+    # Mercado Pago: adaptador implementado. Dos formas de cobrar:
+    # - Cobro directo (`mp_cobro_directo`): cada anfitrión carga su propia
+    #   credencial y el pago entra en su cuenta. La comisión queda registrada en
+    #   el snapshot y se liquida aparte: con una credencial propia Mercado Pago
+    #   no deja retenerla en el mismo pago (eso requiere OAuth de marketplace).
+    # - Con `mp_access_token` de la plataforma: el cobro entra a la plataforma.
+    mp_cobro_directo: bool = False
     mp_access_token: str = ""
     mp_client_id: str = ""
     mp_client_secret: str = ""
@@ -101,6 +110,11 @@ class Settings(BaseSettings):
             raise ValueError(
                 f"SECRET_KEY necesita al menos {LARGO_MINIMO_CLAVE} bytes "
                 f"(tiene {len(self.secret_key.encode())})"
+            )
+        if len(self.clave_cifrado.encode()) < LARGO_MINIMO_CLAVE:
+            raise ValueError(
+                f"CLAVE_CIFRADO necesita al menos {LARGO_MINIMO_CLAVE} bytes: cifra las "
+                "credenciales de cobro de los anfitriones"
             )
         return self
 
