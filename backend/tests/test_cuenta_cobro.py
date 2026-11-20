@@ -282,3 +282,9 @@ def test_los_avisos_que_no_son_de_pagos_se_ignoran(
     r = _avisar(cliente, oferta, "123", tipo="merchant_order")
     assert r.status_code == 200
     assert r.json()["estado"] == "ignorada"
+
+
+def test_una_firma_con_caracteres_raros_se_rechaza_sin_romper(cliente, db, oferta, cobro_directo):
+    _vincular(oferta, db)
+    r = _avisar(cliente, oferta, "777", firma="ñandú")
+    assert r.status_code == 401

@@ -43,7 +43,13 @@ def firmar(texto: str) -> str:
 
 
 def firma_valida(texto: str, firma: str) -> bool:
-    return hmac.compare_digest(firmar(texto), firma or "")
+    # compare_digest con texto no ASCII levanta TypeError: se compara en bytes y
+    # una firma que no es ASCII directamente no es válida.
+    try:
+        recibida = (firma or "").encode("ascii")
+    except UnicodeEncodeError:
+        return False
+    return hmac.compare_digest(firmar(texto).encode("ascii"), recibida)
 
 
 def cifrar(texto: str) -> str:
