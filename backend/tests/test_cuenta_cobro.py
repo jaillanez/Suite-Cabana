@@ -177,7 +177,10 @@ def test_el_pago_se_crea_con_la_cuenta_del_anfitrion(
     cuerpo = json.loads(pedido.content)
     # Con credencial propia Mercado Pago no deja retener la comisión.
     assert "marketplace_fee" not in cuerpo
-    assert cuerpo["notification_url"].endswith(f"?prestador={oferta['prestador'].id}")
+    pid = str(oferta["prestador"].id)
+    assert cuerpo["notification_url"].endswith(
+        f"?prestador={pid}&firma={cifrado.firmar(pid)}"
+    )
     assert cuerpo["external_reference"] == codigo
 
 
@@ -195,11 +198,33 @@ def test_sin_cuenta_vinculada_no_se_puede_pagar_con_mercado_pago(
 # --- Avisos de pago ---
 
 
-def _avisar(cliente, oferta, id_pago, tipo="payment"):
+def _avisar(cliente, oferta, id_pago, tipo="payment", firma=None):
+    pid = str(oferta["prestador"].id)
+    firma = cifrado.firmar(pid) if firma is None else firma
     return cliente.post(
-        f"/api/v1/webhooks/mercadopago?prestador={oferta['prestador'].id}",
+        f"/api/v1/webhooks/mercadopago?prestador={pid}&firma={firma}",
         json={"type": tipo, "data": {"id": id_pago}},
     )
+
+
+def test_un_aviso_sin_la_firma_de_nuestra_url_se_rechaza(
+    cliente, db, oferta, cobro_directo, api_mp
+):
+    _vincular(oferta, db)
+    r = _avisar(cliente, oferta, "777", firma="inventada")
+    assert r.status_code == 401
+    # Y no se llegó a consultar a Mercado Pago.
+    assert not [p for p in api_mp.pedidos if p.url.path.startswith("/v1/payments/")]
+
+
+def test_sin_cobro_directo_la_credencial_del_anfitrion_no_se_usa(
+    cliente, db, viajero, oferta, api_mp  # noqa: F811
+):
+    _vincular(oferta, db)
+    codigo = reservar(cliente, viajero, oferta).json()["codigo"]
+    r = cliente.post(f"/api/v1/reservas/{codigo}/pagar", headers=viajero, json={})
+    assert r.json()["pasarela"] == "simulada"
+    assert not [p for p in api_mp.pedidos if p.url.path == "/checkout/preferences"]
 
 
 def test_pendiente_y_despues_aprobado_confirma_la_reserva(

@@ -39,7 +39,7 @@ from app.models import (
     Usuario,
 )
 from app.models.enums import EstadoReserva
-from app.services import cuenta_cobro, pagos, reservas
+from app.services import cifrado, cuenta_cobro, pagos, reservas
 from app.services.pagos.base import Cobro
 
 router = APIRouter(tags=["reservas"])
@@ -348,7 +348,9 @@ def pagar(
     # Cobro directo: el pago se crea con la credencial del anfitrión y entra en
     # su cuenta; Mercado Pago avisa a una URL que dice de quién es la cuenta,
     # para poder consultar el pago con esa misma credencial.
-    credencial = cuenta_cobro.credencial(prestador)
+    # Fuera de cobro directo la credencial del anfitrión no se usa: el pago se
+    # consultaría con la de la plataforma y la reserva no se confirmaría nunca.
+    credencial = cuenta_cobro.credencial(prestador) if s.mp_cobro_directo else None
     retener_comision = True
     url_notificacion = None
     if pasarela.codigo == pagos.MercadoPago.codigo and s.mp_cobro_directo:
@@ -361,7 +363,11 @@ def pagar(
         pasarela = pagos.MercadoPago(token=credencial)
         retener_comision = False
         api = s.url_publica_api.rstrip("/")
-        url_notificacion = f"{api}/api/v1/webhooks/mercadopago?prestador={prestador.id}"
+        # Firmada: solo Mercado Pago (que la recibió de nosotros) la conoce.
+        url_notificacion = (
+            f"{api}/api/v1/webhooks/mercadopago?prestador={prestador.id}"
+            f"&firma={cifrado.firmar(str(prestador.id))}"
+        )
 
     cobro = Cobro(
         codigo_reserva=reserva.codigo,
@@ -515,6 +521,7 @@ async def webhook(
     codigo_pasarela: str,
     peticion: Request,
     prestador: uuid.UUID | None = None,
+    firma: str = "",
     db: Session = Depends(get_db),
 ) -> dict:
     """Notificación de una pasarela.
@@ -523,8 +530,9 @@ async def webhook(
     hace nada (docs/01 §5 R6). Siempre se responde 200 salvo que la firma sea
     inválida o la pasarela no conteste: si no, reintenta para siempre.
 
-    Con `?prestador=` es un aviso de cobro directo: el pago se consulta con la
-    credencial de ese anfitrión, y tiene que ser de una reserva suya.
+    Con `?prestador=` es un aviso de cobro directo: la URL va firmada (la armamos
+    nosotros al crear el pago), el pago se consulta con la credencial de ese
+    anfitrión, y tiene que ser de una reserva suya.
     """
     try:
         pasarela = pagos.obtener(codigo_pasarela)
@@ -537,6 +545,8 @@ async def webhook(
 
     try:
         if prestador is not None and pasarela.codigo == pagos.MercadoPago.codigo:
+            if not cifrado.firma_valida(str(prestador), firma):
+                raise pagos.NotificacionInvalida("La dirección del aviso no es nuestra")
             duenio = db.get(Prestador, prestador)
             credencial = cuenta_cobro.credencial(duenio) if duenio else None
             if not credencial:

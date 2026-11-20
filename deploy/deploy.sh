@@ -25,13 +25,18 @@ fi
 # perderla obliga a que todos las vuelvan a cargar.
 umask 077
 touch .env && chmod 600 .env
+# Solo si falta o está vacía. El valor se escribe con printf, que es interno de
+# bash: un secreto pasado como argumento a otro programa se ve en `ps`.
 fijar() {
-  if ! grep -q "^$1=" .env; then echo "$1=" >> .env; fi
-  if grep -q "^$1=$" .env; then sed -i "s|^$1=$|$1=$2|" .env; fi
+  local clave=$1 valor=$2
+  grep -q "^$clave=." .env && return 0
+  sed -i "/^$clave=$/d" .env
+  printf '%s=%s\n' "$clave" "$valor" >> .env
 }
+secreto() { openssl rand -base64 48 | tr -d '\n=+/'; }
 fijar POSTGRES_PASSWORD "$(openssl rand -hex 24)"
-fijar SECRET_KEY "$(openssl rand -base64 48 | tr -d '\n=+/')"
-fijar CLAVE_CIFRADO "$(openssl rand -base64 48 | tr -d '\n=+/')"
+fijar SECRET_KEY "$(secreto)"
+fijar CLAVE_CIFRADO "$(secreto)"
 fijar DOMINIO alojateaqui.com.ar
 # Dirección que anda sin DNS propio, para probar mientras el dominio no apunte.
 fijar ALTERNATIVO alojateaqui.173-212-195-122.sslip.io

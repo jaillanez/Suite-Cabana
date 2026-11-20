@@ -12,6 +12,7 @@ from __future__ import annotations
 
 import base64
 import hashlib
+import hmac
 
 from cryptography.fernet import Fernet, InvalidToken
 
@@ -22,13 +23,27 @@ class SecretoIlegible(Exception):
     """El valor guardado no se puede descifrar con la clave actual."""
 
 
-def _fernet() -> Fernet:
+def _material() -> str:
     s = get_settings()
-    material = s.clave_cifrado or f"local:{s.secret_key}"
+    return s.clave_cifrado or f"local:{s.secret_key}"
+
+
+def _fernet() -> Fernet:
     # Fernet pide 32 bytes en base64; se derivan de la clave para aceptar
     # cualquier texto suficientemente largo.
-    clave = base64.urlsafe_b64encode(hashlib.sha256(material.encode()).digest())
+    clave = base64.urlsafe_b64encode(hashlib.sha256(_material().encode()).digest())
     return Fernet(clave)
+
+
+def firmar(texto: str) -> str:
+    """Firma corta de un valor que viaja en una URL nuestra (p. ej. el aviso de
+    pago). Usa una clave derivada aparte: firmar no es cifrar."""
+    clave = hashlib.sha256(f"firma:{_material()}".encode()).digest()
+    return hmac.new(clave, texto.encode(), hashlib.sha256).hexdigest()[:32]
+
+
+def firma_valida(texto: str, firma: str) -> bool:
+    return hmac.compare_digest(firmar(texto), firma or "")
 
 
 def cifrar(texto: str) -> str:
