@@ -262,6 +262,18 @@ POLITICAS = [
             {"dias_antes": 14, "porcentaje_reintegro": 50},
         ],
     ),
+    (
+        "eventos",
+        "Eventos",
+        # Decidido con Dirección (docs/04 §2): nunca el 100 %, el 10 % de lo
+        # pagado queda siempre una vez confirmada y señada la fecha.
+        "Hasta 30 días antes se devuelve el 90 % de lo pagado; hasta 15 días antes, "
+        "el 50 %; después, nada.",
+        [
+            {"dias_antes": 30, "porcentaje_reintegro": 90},
+            {"dias_antes": 15, "porcentaje_reintegro": 50},
+        ],
+    ),
 ]
 
 PRESTADORES = [

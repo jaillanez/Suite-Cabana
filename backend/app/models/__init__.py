@@ -12,13 +12,16 @@ from app.models.notificacion import Favorito, Notificacion
 from app.models.politica import PoliticaCancelacion
 from app.models.prestador import Prestador
 from app.models.publicacion import (
+    Adicional,
     BloqueoFecha,
     BloqueoHorario,
     CalendarioExterno,
     Foto,
+    FranjaHoraria,
     Publicacion,
     ReservaExterna,
     Tarifa,
+    TarifaHoraria,
     Unidad,
     publicacion_comodidad,
 )
@@ -27,6 +30,9 @@ from app.models.ubicacion import Localidad, Provincia, Zona
 from app.models.usuario import Usuario
 
 __all__ = [
+    "Adicional",
+    "FranjaHoraria",
+    "TarifaHoraria",
     "Base",
     "BloqueoFecha",
     "BloqueoHorario",

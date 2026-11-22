@@ -107,6 +107,9 @@ class ItemOut(BaseModel):
     desglose: dict
     comision: ComisionOut | None
     fotos: list[FotoOut]
+    # Eventos (docs/04): el horario exacto. En alojamiento, nulos.
+    inicio_en: datetime | None = None
+    fin_en: datetime | None = None
     # Solo con la reserva confirmada: antes es la casa de un desconocido.
     direccion: str | None = None
     lat: float | None = None
@@ -131,6 +134,9 @@ class ReservaOut(BaseModel):
     estado: EstadoReserva
     total: Dinero
     monto_sena: Dinero | None
+    saldo_con_anfitrion: Dinero | None = Field(
+        default=None, description="Con seña: lo que queda por pagarle al anfitrión"
+    )
     moneda: str
     vence_pago_en: datetime | None
     vence_aprobacion_en: datetime | None
@@ -164,6 +170,8 @@ def _item_out(item: ItemReserva, con_direccion: bool = False) -> ItemOut:
         direccion = p.direccion
         lat, lon = _coordenadas(sesion, p.id)
     return ItemOut(
+        inicio_en=item.inicio_en,
+        fin_en=item.fin_en,
         direccion=direccion,
         lat=lat,
         lon=lon,
@@ -210,6 +218,9 @@ def _reserva_out(reserva: Reserva) -> ReservaOut:
         estado=reserva.estado,
         total=reserva.total,
         monto_sena=reserva.monto_sena,
+        saldo_con_anfitrion=(
+            reserva.total - reserva.monto_sena if reserva.monto_sena else None
+        ),
         moneda=reserva.moneda,
         vence_pago_en=reserva.vence_pago_en,
         vence_aprobacion_en=reserva.vence_aprobacion_en,
@@ -386,11 +397,20 @@ def pagar(
             f"&firma={cifrado.firmar(str(prestador.id))}"
         )
 
+    # Se cobra la seña si la hay; el saldo se arregla con el anfitrión. La
+    # comisión es sobre el total (docs/04 §2) y queda en el snapshot.
+    a_cobrar = reservas.monto_a_cobrar(reserva)
+    es_sena = a_cobrar < reserva.total
     cobro = Cobro(
         codigo_reserva=reserva.codigo,
-        descripcion=f"{item.unidad.publicacion.titulo} · {item.unidad.nombre}",
-        total=reserva.total,
-        comision_plataforma=comision.comision_total if comision else Decimal(0),
+        descripcion=(
+            ("Seña · " if es_sena else "")
+            + f"{item.unidad.publicacion.titulo} · {item.unidad.nombre}"
+        ),
+        total=a_cobrar,
+        comision_plataforma=min(
+            comision.comision_total if comision else Decimal(0), a_cobrar
+        ),
         moneda=reserva.moneda,
         email_pagador=usuario.email,
         cuenta_prestador=credencial,
@@ -414,12 +434,17 @@ def pagar(
     db.add(
         Pago(
             reserva_id=reserva.id,
-            tipo=TipoPago.TOTAL,
+            tipo=TipoPago.SENA if es_sena else TipoPago.TOTAL,
             pasarela=pasarela.codigo,
             id_preferencia=preferencia.id_externo,
             estado="pendiente",
-            monto=reserva.total,
-            monto_prestador=item.subtotal - (comision.descuento_prestador if comision else 0),
+            monto=a_cobrar,
+            # Con seña entra todo al anfitrión: es un adelanto de su parte.
+            monto_prestador=(
+                a_cobrar
+                if es_sena
+                else item.subtotal - (comision.descuento_prestador if comision else 0)
+            ),
             monto_comision=comision.comision_neta if comision else Decimal(0),
             iva_comision=comision.iva if comision else Decimal(0),
         )
@@ -430,7 +455,7 @@ def pagar(
         pasarela=pasarela.codigo,
         url_pago=preferencia.url_pago,
         id_externo=preferencia.id_externo,
-        total=reserva.total,
+        total=a_cobrar,
     )
 
 

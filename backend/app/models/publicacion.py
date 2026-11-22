@@ -70,6 +70,9 @@ class Publicacion(IdMixin, TiempoMixin, Base):
     hora_ingreso: Mapped[time | None]
     hora_salida: Mapped[time | None]
     confirmacion_inmediata: Mapped[bool] = mapped_column(default=True)
+    # Seña de esta publicación (porcentaje del total). Nula: la del prestador; si
+    # tampoco tiene, se cobra el total. Los salones suelen trabajar con seña.
+    porcentaje_sena: Mapped[int | None] = mapped_column(SmallInteger)
     politica_cancelacion_id: Mapped[uuid.UUID | None] = mapped_column(
         ForeignKey("politica_cancelacion.id")
     )
@@ -112,6 +115,8 @@ class Unidad(IdMixin, TiempoMixin, Base):
     capacidad_base: Mapped[int | None] = mapped_column(SmallInteger)  # sobre esta, persona extra
     # Salones: `capacidad` es el máximo de pie (cóctel); esta, con todos sentados.
     capacidad_sentados: Mapped[int | None] = mapped_column(SmallInteger)
+    # Salones: minutos que quedan bloqueados después de cada evento (limpieza).
+    preparacion_minutos: Mapped[int] = mapped_column(SmallInteger, default=0)
     activa: Mapped[bool] = mapped_column(default=True)
 
     cargo_limpieza: Mapped[Dinero] = mapped_column(default=Decimal(0))
@@ -124,6 +129,9 @@ class Unidad(IdMixin, TiempoMixin, Base):
 
     publicacion: Mapped[Publicacion] = relationship(back_populates="unidades")
     tarifas: Mapped[list["Tarifa"]] = relationship(back_populates="unidad")
+    franjas: Mapped[list["FranjaHoraria"]] = relationship(back_populates="unidad")
+    tarifa_horaria: Mapped["TarifaHoraria | None"] = relationship(back_populates="unidad")
+    adicionales: Mapped[list["Adicional"]] = relationship(back_populates="unidad")
     calendarios_externos: Mapped[list["CalendarioExterno"]] = relationship()
 
 
@@ -296,3 +304,62 @@ class BloqueoHorario(IdMixin, TiempoMixin, Base):
     vence_en: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     item_reserva_id: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("item_reserva.id"))
     nota: Mapped[str | None] = mapped_column(String(200))
+
+
+class FranjaHoraria(IdMixin, Base):
+    """Un turno fijo de un salón, con su precio: "Noche, de 21 a 5 h".
+
+    Si `hora_fin` es menor o igual que `hora_inicio`, termina al día siguiente.
+    `precios_dia_semana` ({"5": 450000}, lunes = 0) sobrescribe el precio ese día.
+    """
+
+    __tablename__ = "franja_horaria"
+
+    unidad_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("unidad.id"), index=True)
+    nombre: Mapped[str] = mapped_column(String(80))
+    hora_inicio: Mapped[time]
+    hora_fin: Mapped[time]
+    precio: Mapped[Dinero]
+    precios_dia_semana: Mapped[dict | None] = mapped_column(JSONB)
+    activa: Mapped[bool] = mapped_column(default=True)
+
+    unidad: Mapped[Unidad] = relationship(back_populates="franjas")
+
+
+class TarifaHoraria(IdMixin, Base):
+    """Alquiler por horas de un salón: precio, mínimo y horario de atención.
+
+    Si `hora_cierre` es menor o igual que `hora_apertura`, cierra al día siguiente
+    (atiende de 10 a 2 h). El recargo nocturno se suma a cada hora que empieza
+    desde `recargo_nocturno_desde` hasta el cierre.
+    """
+
+    __tablename__ = "tarifa_horaria"
+
+    unidad_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("unidad.id"), unique=True)
+    precio_hora: Mapped[Dinero]
+    precios_dia_semana: Mapped[dict | None] = mapped_column(JSONB)
+    horas_minimas: Mapped[int] = mapped_column(SmallInteger, default=1)
+    hora_apertura: Mapped[time]
+    hora_cierre: Mapped[time]
+    recargo_nocturno_desde: Mapped[time | None]
+    recargo_nocturno_porcentaje: Mapped[Porcentaje] = mapped_column(default=Decimal(0))
+    activa: Mapped[bool] = mapped_column(default=True)
+
+    unidad: Mapped[Unidad] = relationship(back_populates="tarifa_horaria")
+
+
+class Adicional(IdMixin, Base):
+    """Algo que se suma al alquiler con su precio: vajilla, sonido, mozos."""
+
+    __tablename__ = "adicional"
+
+    unidad_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("unidad.id"), index=True)
+    nombre: Mapped[str] = mapped_column(String(80))
+    descripcion: Mapped[str | None] = mapped_column(String(200))
+    precio: Mapped[Dinero]
+    #: True: se multiplica por la cantidad de invitados. False: una vez por evento.
+    por_persona: Mapped[bool] = mapped_column(default=False)
+    activo: Mapped[bool] = mapped_column(default=True)
+
+    unidad: Mapped[Unidad] = relationship(back_populates="adicionales")

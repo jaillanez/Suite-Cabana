@@ -36,7 +36,9 @@ from sqlalchemy.orm import Session, selectinload
 from app.core.config import get_settings
 from app.models import (
     BloqueoFecha,
+    BloqueoHorario,
     ComisionAplicada,
+    FranjaHoraria,
     ItemReserva,
     Localidad,
     Pago,
@@ -54,7 +56,8 @@ from app.models.enums import (
     OrigenBloqueo,
     TipoPago,
 )
-from app.services import busqueda, comisiones, notificaciones, precios
+from app.services import busqueda, comisiones, horarios, notificaciones, precios
+from app.services import precios_eventos as pe
 from app.services.pagos.base import EstadoPago
 
 ALFABETO_CODIGO = string.ascii_uppercase.replace("O", "").replace("I", "") + "23456789"
@@ -132,10 +135,24 @@ def cotizar(
     except precios.NoDisponible as e:
         raise NoSePuedeReservar(str(e)) from e
 
+    comision = _comision(db, publicacion, precio.subtotal, fecha_inicio, hoy)
+    return Cotizacion(
+        unidad=unidad,
+        precio=precio,
+        comision=comision,
+        total_viajero=_r(precio.subtotal + comision.cargo_viajero),
+        noches=precio.cantidad_noches,
+    )
+
+
+def _comision(
+    db: Session, publicacion: Publicacion, monto: Decimal, fecha_servicio: date, hoy: date
+) -> comisiones.ResultadoComision:
+    """La comisión que corresponde, con el motor de reglas (docs/00 §7)."""
     reglas = [comisiones.regla_desde_modelo(m) for m in db.scalars(select(ReglaComision))]
     ctx = comisiones.ContextoComision(
-        monto=precio.subtotal,
-        fecha_servicio=fecha_inicio,
+        monto=monto,
+        fecha_servicio=fecha_servicio,
         fecha_creacion=hoy,
         tipo_servicio_id=publicacion.tipo_servicio_id,
         subtipo_servicio_id=publicacion.subtipo_servicio_id,
@@ -152,20 +169,12 @@ def cotizar(
         categoria_prestador=publicacion.prestador.categoria,
     )
     try:
-        comision = comisiones.resolver(reglas, ctx, get_settings().iva_comision)
+        return comisiones.resolver(reglas, ctx, get_settings().iva_comision)
     except comisiones.SinReglaAplicable as e:
         # Sin regla por defecto no se reserva: la comisión no se improvisa.
         raise NoSePuedeReservar(
             "No podemos calcular la comisión. Avisale al equipo antes de seguir."
         ) from e
-
-    return Cotizacion(
-        unidad=unidad,
-        precio=precio,
-        comision=comision,
-        total_viajero=_r(precio.subtotal + comision.cargo_viajero),
-        noches=precio.cantidad_noches,
-    )
 
 
 def _libre(db: Session, unidad_id: uuid.UUID, desde: date, hasta: date) -> bool:
@@ -216,21 +225,9 @@ def crear(
         usuario_id=usuario.id,
         estado=EstadoReserva.PENDIENTE_PAGO,
         total=cotizacion.total_viajero,
-        monto_sena=(
-            _r(cotizacion.total_viajero * Decimal(publicacion.prestador.porcentaje_sena) / 100)
-            if publicacion.prestador.porcentaje_sena
-            else None
-        ),
+        monto_sena=_sena(publicacion, cotizacion.total_viajero),
         vence_pago_en=datetime.now(UTC) + timedelta(minutes=s.minutos_retencion_pago),
-        politica_cancelacion=(
-            {
-                "codigo": politica.codigo,
-                "nombre": politica.nombre,
-                "tramos": politica.tramos,
-            }
-            if politica
-            else None
-        ),
+        politica_cancelacion=_politica_snapshot(politica),
     )
     db.add(reserva)
     db.flush()
@@ -250,20 +247,7 @@ def crear(
     db.add(item)
     db.flush()
 
-    # Snapshot de la comisión: cambiar la regla después no toca esta reserva.
-    db.add(
-        ComisionAplicada(
-            item_reserva_id=item.id,
-            regla_id=cotizacion.comision.regla.id,
-            regla_snapshot=cotizacion.comision.regla.a_dict(),
-            base=cotizacion.comision.base,
-            comision_neta=cotizacion.comision.comision_neta,
-            iva=cotizacion.comision.iva,
-            comision_total=cotizacion.comision.comision_total,
-            cargo_viajero=cotizacion.comision.cargo_viajero,
-            descuento_prestador=cotizacion.comision.descuento_prestador,
-        )
-    )
+    _guardar_comision(db, item, cotizacion.comision)
 
     db.add(
         BloqueoFecha(
@@ -283,6 +267,235 @@ def crear(
         db.rollback()
         raise FechasTomadas(
             "Alguien reservó esas fechas mientras completabas. Probá con otras."
+        ) from e
+
+    _avisar_al_viajero(db, reserva, "reserva_creada")
+    return reserva
+
+
+def _sena(publicacion: Publicacion, total: Decimal) -> Decimal | None:
+    """La seña de la publicación o, si no tiene, la del prestador. None: total."""
+    porcentaje = publicacion.porcentaje_sena
+    if porcentaje is None:
+        porcentaje = publicacion.prestador.porcentaje_sena
+    if not porcentaje or porcentaje >= 100:
+        return None
+    return _r(total * Decimal(porcentaje) / 100)
+
+
+def monto_a_cobrar(reserva: Reserva) -> Decimal:
+    """Lo que se le cobra online al viajero: la seña si hay, si no el total."""
+    return reserva.monto_sena if reserva.monto_sena else reserva.total
+
+
+def pagado(reserva: Reserva) -> Decimal:
+    return _r(sum((p.monto for p in reserva.pagos if p.estado == "aprobado"), Decimal(0)))
+
+
+def _politica_snapshot(politica) -> dict | None:
+    if politica is None:
+        return None
+    return {"codigo": politica.codigo, "nombre": politica.nombre, "tramos": politica.tramos}
+
+
+def _guardar_comision(db: Session, item: ItemReserva, comision) -> None:
+    """Snapshot de la comisión: cambiar la regla después no toca esta reserva."""
+    db.add(
+        ComisionAplicada(
+            item_reserva_id=item.id,
+            regla_id=comision.regla.id,
+            regla_snapshot=comision.regla.a_dict(),
+            base=comision.base,
+            comision_neta=comision.comision_neta,
+            iva=comision.iva,
+            comision_total=comision.comision_total,
+            cargo_viajero=comision.cargo_viajero,
+            descuento_prestador=comision.descuento_prestador,
+        )
+    )
+
+
+# --- Eventos: lo que se reserva por horario (docs/04) ---
+
+
+@dataclass(frozen=True)
+class CotizacionEvento:
+    unidad: Unidad
+    precio: pe.PrecioEvento
+    comision: comisiones.ResultadoComision
+    total_viajero: Decimal
+    sena: Decimal | None
+
+
+def salon_plano(unidad: Unidad) -> pe.Salon:
+    return pe.Salon(
+        capacidad=unidad.capacidad,
+        capacidad_base=unidad.capacidad_base,
+        cargo_persona_extra=unidad.cargo_persona_extra,
+        preparacion_minutos=unidad.preparacion_minutos or 0,
+    )
+
+
+def franja_plana(f: FranjaHoraria) -> pe.Franja:
+    return pe.Franja(
+        id=str(f.id), nombre=f.nombre, hora_inicio=f.hora_inicio, hora_fin=f.hora_fin,
+        precio=f.precio, precios_dia_semana=f.precios_dia_semana,
+    )
+
+
+def tarifa_horas(unidad: Unidad) -> pe.TarifaHoras | None:
+    t = unidad.tarifa_horaria
+    if t is None or not t.activa:
+        return None
+    return pe.TarifaHoras(
+        precio_hora=t.precio_hora,
+        hora_apertura=t.hora_apertura,
+        hora_cierre=t.hora_cierre,
+        horas_minimas=t.horas_minimas,
+        precios_dia_semana=t.precios_dia_semana,
+        recargo_nocturno_desde=t.recargo_nocturno_desde,
+        recargo_nocturno_porcentaje=t.recargo_nocturno_porcentaje,
+    )
+
+
+def cotizar_evento(
+    db: Session,
+    unidad: Unidad,
+    dia: date,
+    invitados: int,
+    franja_id: uuid.UUID | None = None,
+    hora_inicio=None,
+    horas: int | None = None,
+    adicionales: list[uuid.UUID] | tuple = (),
+    hoy: date | None = None,
+    ahora: datetime | None = None,
+) -> CotizacionEvento:
+    """Precio, comisión y seña de un evento, sin tocar nada."""
+    hoy = hoy or date.today()
+    ahora = ahora or datetime.now(UTC)
+    publicacion = unidad.publicacion
+    if publicacion.estado is not EstadoPublicacion.APROBADA or not unidad.activa:
+        raise NoSePuedeReservar("Ese salón no está disponible")
+    if publicacion.tipo_servicio.modo_reserva is not ModoReserva.HORAS:
+        raise NoSePuedeReservar("Esto no se reserva por horario")
+
+    elegidos = set(adicionales)
+    disponibles = {a.id: a for a in unidad.adicionales if a.activo}
+    if elegidos - disponibles.keys():
+        raise NoSePuedeReservar("Alguno de los adicionales elegidos no existe")
+    extras = [
+        pe.Adicional(id=str(a.id), nombre=a.nombre, precio=a.precio, por_persona=a.por_persona)
+        for a in disponibles.values()
+        if a.id in elegidos
+    ]
+
+    try:
+        if franja_id is not None:
+            franja = next(
+                (f for f in unidad.franjas if f.id == franja_id and f.activa), None
+            )
+            if franja is None:
+                raise NoSePuedeReservar("Ese turno no existe")
+            precio = pe.por_franja(
+                salon_plano(unidad), franja_plana(franja), dia, invitados, extras
+            )
+        elif hora_inicio is not None and horas is not None:
+            tarifa = tarifa_horas(unidad)
+            if tarifa is None:
+                raise NoSePuedeReservar("Este salón no se alquila por horas")
+            precio = pe.por_horas(
+                salon_plano(unidad), tarifa, dia, hora_inicio, horas, invitados, extras
+            )
+        else:
+            raise NoSePuedeReservar(
+                "Elegí un turno, o un horario de inicio y la cantidad de horas"
+            )
+    except pe.EventoNoDisponible as e:
+        raise NoSePuedeReservar(str(e)) from e
+
+    if precio.inicio <= ahora:
+        raise NoSePuedeReservar("Ese horario ya pasó")
+
+    comision = _comision(db, publicacion, precio.subtotal, dia, hoy)
+    total = _r(precio.subtotal + comision.cargo_viajero)
+    return CotizacionEvento(
+        unidad=unidad,
+        precio=precio,
+        comision=comision,
+        total_viajero=total,
+        sena=_sena(publicacion, total),
+    )
+
+
+def crear_evento(
+    db: Session,
+    usuario: Usuario,
+    unidad: Unidad,
+    dia: date,
+    invitados: int,
+    franja_id: uuid.UUID | None = None,
+    hora_inicio=None,
+    horas: int | None = None,
+    adicionales: list[uuid.UUID] | tuple = (),
+    hoy: date | None = None,
+) -> Reserva:
+    """Crea la reserva del evento y retiene el horario mientras el viajero paga.
+
+    Igual que con las noches, el choque lo decide la base (`horarios.bloquear`):
+    se retiene el evento más el tiempo de preparación posterior.
+    """
+    if not usuario.email_verificado:
+        raise NoSePuedeReservar("Verificá tu correo antes de reservar")
+    cot = cotizar_evento(
+        db, unidad, dia, invitados, franja_id, hora_inicio, horas, adicionales, hoy
+    )
+    inicio, fin_bloqueo = pe.rango_ocupado(cot.precio, salon_plano(unidad))
+    if not horarios.libre(db, unidad.id, inicio, fin_bloqueo):
+        raise FechasTomadas("Ese horario ya no está disponible")
+
+    s = get_settings()
+    publicacion = unidad.publicacion
+    reserva = Reserva(
+        codigo=generar_codigo(db),
+        usuario_id=usuario.id,
+        estado=EstadoReserva.PENDIENTE_PAGO,
+        total=cot.total_viajero,
+        monto_sena=cot.sena,
+        vence_pago_en=datetime.now(UTC) + timedelta(minutes=s.minutos_retencion_pago),
+        politica_cancelacion=_politica_snapshot(publicacion.politica_cancelacion),
+    )
+    db.add(reserva)
+    db.flush()
+
+    item = ItemReserva(
+        reserva_id=reserva.id,
+        unidad_id=unidad.id,
+        prestador_id=publicacion.prestador_id,
+        fecha_inicio=dia,
+        fecha_fin=cot.precio.fin.astimezone(pe.ZONA).date(),
+        inicio_en=cot.precio.inicio,
+        fin_en=cot.precio.fin,
+        adultos=invitados,
+        menores=0,
+        mascotas=0,
+        desglose=cot.precio.desglose(),
+        subtotal=cot.precio.subtotal,
+    )
+    db.add(item)
+    db.flush()
+    _guardar_comision(db, item, cot.comision)
+
+    try:
+        horarios.bloquear(
+            db, unidad, inicio, fin_bloqueo, OrigenBloqueo.RETENCION,
+            vence_en=reserva.vence_pago_en,
+            nota=f"Retención de la reserva {reserva.codigo}",
+            item_reserva_id=item.id,
+        )
+    except horarios.HorarioOcupado as e:
+        db.rollback()
+        raise FechasTomadas(
+            "Alguien reservó ese horario mientras completabas. Probá con otro."
         ) from e
 
     _avisar_al_viajero(db, reserva, "reserva_creada")
@@ -340,10 +553,10 @@ def registrar_pago(
     if datos:
         pago.datos = datos
 
-    # El cobro se pide por el total (api/v1/reservas.py → pagar). Un pago
-    # aprobado por menos —uno armado a mano con el mismo código de reserva, o un
-    # error de la pasarela— no confirma: queda a la vista para revisarlo.
-    if estado is EstadoPago.APROBADO and monto is not None and monto < reserva.total:
+    # El cobro se pide por la seña o el total (`monto_a_cobrar`). Un pago aprobado
+    # por menos —uno armado a mano con el mismo código de reserva, o un error de
+    # la pasarela— no confirma: queda a la vista para revisarlo.
+    if estado is EstadoPago.APROBADO and monto is not None and monto < monto_a_cobrar(reserva):
         pago.estado = ESTADO_MONTO_DISTINTO
         db.flush()
         return reserva
@@ -377,9 +590,10 @@ def _confirmar(db: Session, reserva: Reserva) -> None:
             hours=s.horas_aprobacion_prestador
         )
 
-    for bloqueo in db.scalars(
-        select(BloqueoFecha).where(BloqueoFecha.item_reserva_id == item.id)
-    ):
+    for bloqueo in [
+        *db.scalars(select(BloqueoFecha).where(BloqueoFecha.item_reserva_id == item.id)),
+        *db.scalars(select(BloqueoHorario).where(BloqueoHorario.item_reserva_id == item.id)),
+    ]:
         bloqueo.origen = OrigenBloqueo.RESERVA
         bloqueo.vence_en = None
         bloqueo.activo = True
@@ -414,9 +628,10 @@ def _liberar(db: Session, reserva: Reserva, motivo: str) -> None:
     _avisar_al_viajero(db, reserva, "reserva_cancelada", {"motivo": motivo})
     _avisar_al_prestador(db, reserva, "reserva_cancelada_prestador", {"motivo": motivo})
     for item in reserva.items:
-        for bloqueo in db.scalars(
-            select(BloqueoFecha).where(BloqueoFecha.item_reserva_id == item.id)
-        ):
+        for bloqueo in [
+            *db.scalars(select(BloqueoFecha).where(BloqueoFecha.item_reserva_id == item.id)),
+            *db.scalars(select(BloqueoHorario).where(BloqueoHorario.item_reserva_id == item.id)),
+        ]:
             db.delete(bloqueo)
 
 
@@ -447,9 +662,12 @@ def calcular_reintegro(reserva: Reserva, hoy: date | None = None) -> Reintegro:
 
     mejor = max(elegibles, key=lambda t: int(t.get("porcentaje_reintegro", 0)))
     porcentaje = int(mejor.get("porcentaje_reintegro", 0))
+    # Sobre lo que entró, no sobre el total: con seña no se devuelve plata que el
+    # viajero nunca pagó. Si todavía no pagó, sobre lo que tendría que pagar.
+    base = pagado(reserva) or monto_a_cobrar(reserva)
     return Reintegro(
         porcentaje=porcentaje,
-        monto=_r(reserva.total * Decimal(porcentaje) / 100),
+        monto=_r(base * Decimal(porcentaje) / 100),
         motivo=f"Cancelás con {faltan} días de anticipación",
     )
 
@@ -520,15 +738,24 @@ def _datos_para_aviso(reserva: Reserva) -> dict:
     comision = item.comision
     neto = item.subtotal - (comision.descuento_prestador if comision else Decimal(0))
     personas = item.adultos + item.menores
+    if item.inicio_en and item.fin_en:
+        # Un evento: "del 15/03/2027 21:00 al 16/03/2027 05:00 h", no dos fechas.
+        desde = item.inicio_en.astimezone(pe.ZONA).strftime("%d/%m/%Y %H:%M")
+        hasta = item.fin_en.astimezone(pe.ZONA).strftime("%d/%m/%Y %H:%M h")
+        quienes = f"{personas} invitado" + ("s" if personas != 1 else "")
+    else:
+        desde = item.fecha_inicio.strftime("%d/%m/%Y")
+        hasta = item.fecha_fin.strftime("%d/%m/%Y")
+        quienes = f"{personas} persona" + ("s" if personas != 1 else "")
     return {
         "codigo": reserva.codigo,
         "alojamiento": publicacion.titulo,
         "unidad": item.unidad.nombre,
-        "desde": item.fecha_inicio.strftime("%d/%m/%Y"),
-        "hasta": item.fecha_fin.strftime("%d/%m/%Y"),
+        "desde": desde,
+        "hasta": hasta,
         "total": f"$ {reserva.total:,.2f}".replace(",", "."),
         "neto": f"$ {neto:,.2f}".replace(",", "."),
-        "personas": f"{personas} persona" + ("s" if personas != 1 else ""),
+        "personas": quienes,
         "enlace": f"{web}/reservas/{reserva.codigo}",
     }
 

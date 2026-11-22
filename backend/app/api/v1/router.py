@@ -11,6 +11,7 @@ from app.api.v1 import (
     panel,
     publicaciones,
     reservas,
+    salones,
     salud,
 )
 
@@ -25,4 +26,5 @@ api_router.include_router(ical.router)
 api_router.include_router(agenda.router)
 api_router.include_router(correo.router)
 api_router.include_router(reservas.router)
+api_router.include_router(salones.router)
 api_router.include_router(panel.router)

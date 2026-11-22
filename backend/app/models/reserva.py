@@ -55,6 +55,10 @@ class ItemReserva(IdMixin, Base):
     prestador_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("prestador.id"), index=True)
     fecha_inicio: Mapped[date]
     fecha_fin: Mapped[date]
+    # Solo para lo que se reserva por horario (salones): el rango exacto del
+    # evento. `fecha_inicio` es el día del evento, aunque termine pasada la medianoche.
+    inicio_en: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    fin_en: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     adultos: Mapped[int] = mapped_column(SmallInteger, default=1)
     menores: Mapped[int] = mapped_column(SmallInteger, default=0)
     mascotas: Mapped[int] = mapped_column(SmallInteger, default=0)

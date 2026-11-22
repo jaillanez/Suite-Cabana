@@ -23,13 +23,14 @@ de precios, disponibilidad y búsqueda asume noches de alojamiento.
 | Cómo se alquila | Por **franjas fijas** que define el propietario y/o **por horas**, en el mismo salón |
 | Disponibilidad | Por **rango de hora** (no por día). Una jornada es una franja larga |
 | Pago | **Seña online**; el porcentaje lo elige el propietario y el saldo se arregla con él |
-| Comisión | La **misma regla** que las cabañas (la regla por defecto ya aplica a cualquier tipo) |
+| Comisión | La **misma regla** que las cabañas, calculada **sobre el total** del evento |
+| Cancelación | Política "Eventos": hasta 30 días antes se devuelve el **90 %**, hasta 15 días el **50 %**, después nada. Nunca el 100 %: el 10 % queda siempre |
+| Reintegro | Sobre **lo pagado** (la seña), no sobre el total: no se devuelve plata que no entró |
 | Confirmación | **A solicitud** por defecto: el propietario aprueba antes de confirmar |
 | Salón + cabañas | **Incluido**: una sola reserva con varios ítems, del mismo propietario |
 
-Supuesto a confirmar: la comisión se calcula **sobre el total** del evento, no solo
-sobre la seña. Con cobro directo no se retiene en el pago: queda en el snapshot y
-se factura aparte, como las cabañas.
+Con cobro directo la comisión no se retiene en el pago: queda en el snapshot y se
+factura aparte, como las cabañas.
 
 ## 3. Fuera de alcance
 
@@ -105,7 +106,9 @@ viajero suma unidades del **mismo propietario**: una reserva, varios ítems
 
 ## 6. Etapas
 
-Cada etapa se puede publicar por separado.
+Cada etapa se puede publicar por separado. Hechas: **1** (noviembre 2026) y **2**
+(noviembre 2026, solo API: el viajero y el propietario la usan desde la web a
+partir de las etapas 3 y 4).
 
 | Etapa | Contenido |
 |---|---|
@@ -121,6 +124,4 @@ Cada etapa se puede publicar por separado.
 
 | Pregunta | Responsable | Bloqueante |
 |---|---|---|
-| ¿Comisión sobre el total o sobre la seña? (supuesto: total) | Dirección | Etapa 2 |
-| Plazos de las políticas de cancelación para eventos | Dirección | Etapa 2 |
 | Datos reales del salón de Los Búhos (capacidad, precios, horarios) | Propietario | Etapa 7 |

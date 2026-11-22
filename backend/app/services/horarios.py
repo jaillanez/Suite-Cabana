@@ -14,7 +14,6 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from datetime import UTC, datetime, timedelta
-from zoneinfo import ZoneInfo
 
 from sqlalchemy import and_, func, or_, select, update
 from sqlalchemy.dialects.postgresql import Range
@@ -23,9 +22,8 @@ from sqlalchemy.orm import Session
 
 from app.models import BloqueoHorario, Unidad
 from app.models.enums import ModoReserva, OrigenBloqueo
+from app.services.precios_eventos import ZONA  # noqa: F401  (hora de reloj argentina)
 
-#: La hora "de reloj" de los salones es la de Argentina, sin horario de verano.
-ZONA = ZoneInfo("America/Argentina/Buenos_Aires")
 #: Ningún bloqueo de un salón dura más que esto: cortaría errores de carga (un
 #: fin con el año mal escrito tomaría el salón por meses).
 DURACION_MAXIMA = timedelta(hours=48)
@@ -116,6 +114,7 @@ def bloquear(
     vence_en: datetime | None = None,
     nota: str | None = None,
     ahora: datetime | None = None,
+    item_reserva_id=None,
 ) -> BloqueoHorario:
     """Toma el rango, o levanta `HorarioOcupado` si otro ya lo tiene.
 
@@ -146,6 +145,7 @@ def bloquear(
         activo=True,
         vence_en=vence_en,
         nota=nota,
+        item_reserva_id=item_reserva_id,
     )
     # Un savepoint: si la base rechaza el rango, la transacción del que llama sigue viva.
     try:

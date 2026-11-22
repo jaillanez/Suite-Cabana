@@ -628,6 +628,9 @@ export type ItemReserva = {
   desglose: Record<string, unknown>;
   comision: ComisionReserva | null;
   fotos: { url: string; descripcion: string | null }[];
+  /** Eventos (salones): el horario exacto. En alojamiento, null. */
+  inicio_en?: string | null;
+  fin_en?: string | null;
   /** Solo con la reserva confirmada. */
   direccion: string | null;
   lat: number | null;
@@ -639,6 +642,8 @@ export type Reserva = {
   estado: EstadoReserva;
   total: string;
   monto_sena: string | null;
+  /** Con seña: lo que queda por pagarle al anfitrión. */
+  saldo_con_anfitrion?: string | null;
   moneda: string;
   vence_pago_en: string | null;
   vence_aprobacion_en: string | null;
