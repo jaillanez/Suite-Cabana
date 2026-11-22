@@ -333,24 +333,25 @@ como P1 y P2 en `docs/01 §5` y quedan fuera de la Fase 1.
 
 Pendientes conocidos dentro de lo ya construido:
 
-- **Envío de correos**: la verificación genera el enlace pero no lo manda; el envío es parte
-  del Bloque 6. En entorno local la API devuelve el enlace para poder probar el circuito.
 - **Verificación por teléfono**: falta decidir el proveedor de WhatsApp (`docs/01 §9`).
+- **WhatsApp**: los avisos se guardan en el buzón marcados como descartados, con el motivo.
+  El día que haya proveedor se pueden reenviar, en vez de haberse perdido.
+- **Comisión retenida en el pago**: con cobro directo (credencial propia del anfitrión)
+  Mercado Pago no deja retenerla; se factura aparte. Retenerla requiere OAuth de
+  marketplace (`docs/00 §8`).
+- **Sincronización automática de calendarios**: hoy es a pedido, con un botón. Puede
+  sumarse a `app/tareas.py`, que ya corre cada minuto.
 - **Fotos**: se guardan en disco (`backend/media/`, servido por el backend y reenviado por
   Next). `docs/00 §9` prevé almacenamiento de objetos con CDN; cambia `app/services/fotos.py`
   y nada más, porque en la base se guarda la ruta relativa.
-- **Vinculación con Mercado Pago**: el prestador no puede hacerla todavía; entra con el
-  Bloque 6. Mientras tanto se habilita a mano en la base (`prestador.mp_user_id`).
-- **Sincronización automática de calendarios**: hoy es a pedido, con un botón. La tarea
-  periódica entra con la cola de trabajos (`docs/00 §9`).
-- **Liberación de reservas vencidas**: la función existe (`reservas.liberar_vencidas`) pero
-  todavía no la corre nadie periódicamente. Mientras tanto la búsqueda ya ignora las
-  retenciones vencidas, así que ninguna fecha queda tomada de más.
-- **Envío de notificaciones**: se encolan y se pueden mandar, pero todavía no las manda
-  nadie periódicamente (`notificaciones.enviar_pendientes`). Sin SMTP configurado y en
-  local, los correos se escriben en el log.
-- **WhatsApp**: los avisos se guardan en el buzón marcados como descartados, con el motivo.
-  El día que haya proveedor se pueden reenviar, en vez de haberse perdido.
+- **Copias de seguridad** de la base de producción: sin configurar.
+
+Ya resueltos: envío de correos (verificación por SMTP), vinculación de Mercado Pago por
+el anfitrión, liberación de reservas vencidas y envío de notificaciones
+(`app/tareas.py`).
+
+Próxima mejora planificada: salones de eventos y paquete salón + cabañas
+([`docs/04-salones-de-eventos.md`](docs/04-salones-de-eventos.md)).
 
 ## Producción (alojateaqui.com.ar)
 
