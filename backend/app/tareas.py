@@ -17,7 +17,7 @@ import logging
 import time
 
 from app.core.database import SessionLocal
-from app.services import notificaciones, reservas
+from app.services import horarios, notificaciones, reservas
 
 INTERVALO = 60
 registro = logging.getLogger("tareas")
@@ -27,6 +27,7 @@ def una_pasada() -> dict[str, int]:
     resultado: dict[str, int] = {}
     with SessionLocal() as db:
         resultado["liberadas"] = reservas.liberar_vencidas(db)
+        resultado["horas_liberadas"] = horarios.soltar_vencidos(db)
         db.commit()
     with SessionLocal() as db:
         resultado.update(notificaciones.enviar_pendientes(db))

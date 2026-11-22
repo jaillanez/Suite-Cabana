@@ -64,6 +64,9 @@ if [ ! -f .catalogo-cargado ]; then
   docker compose exec -T api python -m app.semilla --solo-catalogo
   date -Iseconds > .catalogo-cargado
 fi
+# El catálogo sí, en cada despliegue: es idempotente, no toca la comisión, y así
+# llegan los tipos y comodidades nuevos (p. ej. salones de eventos, docs/04).
+docker compose exec -T api python -m app.semilla catalogo
 
 # --- Caddy de entrada: el bloque se agrega una sola vez ---
 edge_container() {

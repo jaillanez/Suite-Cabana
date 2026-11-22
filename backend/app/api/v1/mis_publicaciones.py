@@ -32,6 +32,7 @@ from app.models import (
     Tarifa,
     TipoServicio,
     Unidad,
+    comodidad_tipo_servicio,
 )
 from app.models.enums import EstadoPublicacion
 from app.services import calendario as agenda
@@ -318,6 +319,15 @@ def _salida(db: Session, p: Publicacion) -> PublicacionOut:
 # --- Publicación ---
 
 
+def _exigir_subtipo_del_tipo(db: Session, subtipo_id, tipo_id) -> None:
+    """El subtipo tiene que ser del tipo de la publicación: una cabaña no es "quincho"."""
+    if subtipo_id is None:
+        return
+    subtipo = db.get(SubtipoServicio, subtipo_id)
+    if subtipo is None or subtipo.tipo_id != tipo_id:
+        raise HTTPException(status.HTTP_422_UNPROCESSABLE_ENTITY, "Ese tipo no existe")
+
+
 @router.post("", response_model=PublicacionOut, status_code=status.HTTP_201_CREATED)
 def crear(
     datos: NuevaPublicacion,
@@ -328,6 +338,7 @@ def crear(
     if localidad is None:
         raise HTTPException(status.HTTP_422_UNPROCESSABLE_ENTITY, "Esa localidad no existe")
     tipo = db.scalar(select(TipoServicio).where(TipoServicio.codigo == "alojamiento"))
+    _exigir_subtipo_del_tipo(db, datos.subtipo_servicio_id, tipo.id)
 
     publicacion = Publicacion(
         prestador_id=prestador.id,
@@ -390,12 +401,21 @@ def editar(
         p.ubicacion = f"SRID=4326;POINT({lon} {lat})"
 
     if (codigos := datos.pop("comodidades", None)) is not None:
-        p.comodidades = list(db.scalars(select(Comodidad).where(Comodidad.codigo.in_(codigos))))
+        # Solo las que aplican a este tipo de servicio: "pista de baile" no se le
+        # pone a una cabaña aunque alguien la mande.
+        p.comodidades = list(
+            db.scalars(
+                select(Comodidad)
+                .join(comodidad_tipo_servicio)
+                .where(
+                    Comodidad.codigo.in_(codigos),
+                    comodidad_tipo_servicio.c.tipo_servicio_id == p.tipo_servicio_id,
+                )
+            )
+        )
 
-    if (subtipo := datos.get("subtipo_servicio_id")) is not None and not db.get(
-        SubtipoServicio, subtipo
-    ):
-        raise HTTPException(status.HTTP_422_UNPROCESSABLE_ENTITY, "Ese tipo no existe")
+    if (subtipo := datos.get("subtipo_servicio_id")) is not None:
+        _exigir_subtipo_del_tipo(db, subtipo, p.tipo_servicio_id)
 
     for campo, valor in datos.items():
         setattr(p, campo, valor.strip() if isinstance(valor, str) else valor)

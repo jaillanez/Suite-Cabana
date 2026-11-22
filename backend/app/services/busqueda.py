@@ -36,7 +36,7 @@ from app.models import (
     publicacion_comodidad,
 )
 from app.models.enums import EstadoPublicacion
-from app.services import comisiones, precios
+from app.services import comisiones, precios, tipos
 
 LIMITE_CANDIDATAS = 600
 POR_PAGINA_MAX = 48
@@ -215,6 +215,7 @@ def _consulta_candidatas(f: Filtros, destino: Destino) -> Select:
         .where(
             Unidad.activa.is_(True),
             Publicacion.estado == EstadoPublicacion.APROBADA,
+            tipos.por_noches(),
             Unidad.capacidad >= f.personas,
             _sin_bloqueos(f.fecha_inicio, f.fecha_fin),
         )

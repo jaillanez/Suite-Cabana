@@ -27,6 +27,11 @@ def main() -> int:
     ap.add_argument("--solo-catalogo", action="store_true", help="No cargar oferta de ejemplo")
     ap.add_argument("--limpiar", action="store_true", help="Borrar la oferta de ejemplo y salir")
 
+    sub.add_parser(
+        "catalogo",
+        help="Solo el catálogo real (idempotente; no toca la comisión ni la oferta)",
+    )
+
     com = sub.add_parser("comision", help="Configurar la regla de comisión por defecto")
     com.add_argument("--porcentaje", type=Decimal, default=Decimal(10))
     com.add_argument(
@@ -46,6 +51,12 @@ def main() -> int:
     args = ap.parse_args()
 
     with SessionLocal() as db:
+        if args.comando == "catalogo":
+            cargar_catalogo(db)
+            db.commit()
+            print("Catálogo al día:", resumen(db))
+            return 0
+
         if args.comando == "comision":
             regla = configurar_comision(
                 db,

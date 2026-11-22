@@ -14,7 +14,13 @@ from sqlalchemy import (
     UniqueConstraint,
     text,
 )
-from sqlalchemy.dialects.postgresql import DATERANGE, JSONB, ExcludeConstraint, Range
+from sqlalchemy.dialects.postgresql import (
+    DATERANGE,
+    JSONB,
+    TSTZRANGE,
+    ExcludeConstraint,
+    Range,
+)
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.models.base import Base, Dinero, IdMixin, Porcentaje, TiempoMixin, pg_enum
@@ -75,6 +81,7 @@ class Publicacion(IdMixin, TiempoMixin, Base):
     localidad: Mapped["Localidad"] = relationship()  # noqa: F821
     zona: Mapped["Zona | None"] = relationship()  # noqa: F821
     subtipo: Mapped["SubtipoServicio | None"] = relationship()  # noqa: F821
+    tipo_servicio: Mapped["TipoServicio"] = relationship()  # noqa: F821
     politica_cancelacion: Mapped["PoliticaCancelacion | None"] = relationship()  # noqa: F821
     unidades: Mapped[list["Unidad"]] = relationship(back_populates="publicacion")
     fotos: Mapped[list["Foto"]] = relationship(order_by="Foto.orden")
@@ -103,6 +110,8 @@ class Unidad(IdMixin, TiempoMixin, Base):
     nombre: Mapped[str] = mapped_column(String(120))
     capacidad: Mapped[int] = mapped_column(SmallInteger)
     capacidad_base: Mapped[int | None] = mapped_column(SmallInteger)  # sobre esta, persona extra
+    # Salones: `capacidad` es el máximo de pie (cóctel); esta, con todos sentados.
+    capacidad_sentados: Mapped[int | None] = mapped_column(SmallInteger)
     activa: Mapped[bool] = mapped_column(default=True)
 
     cargo_limpieza: Mapped[Dinero] = mapped_column(default=Decimal(0))
@@ -252,3 +261,38 @@ class BloqueoFecha(IdMixin, TiempoMixin, Base):
     nota: Mapped[str | None] = mapped_column(String(200))
 
     reserva_externa: Mapped[ReservaExterna | None] = relationship(back_populates="bloqueos")
+
+
+class BloqueoHorario(IdMixin, TiempoMixin, Base):
+    """Horas no disponibles de una unidad que se alquila por horario (salones).
+
+    Es `BloqueoFecha` con hora: rango [inicio, fin) con zona horaria, que puede
+    cruzar la medianoche (un evento de 21 a 5 h). La misma restricción de
+    exclusión garantiza que dos rangos activos de la misma unidad no se pisen;
+    como el rango es semiabierto, uno que termina a las 18 y otro que empieza a
+    las 18 conviven.
+    """
+
+    __tablename__ = "bloqueo_horario"
+    __table_args__ = (
+        ExcludeConstraint(
+            ("unidad_id", "="),
+            ("rango", "&&"),
+            name="ex_bloqueo_horario_sin_superposicion",
+            using="gist",
+            where=text("activo"),
+        ),
+        Index(
+            "ix_bloqueo_horario_vence", "vence_en", postgresql_where=text("vence_en IS NOT NULL")
+        ),
+    )
+
+    unidad_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("unidad.id"), index=True)
+    rango: Mapped[Range[datetime]] = mapped_column(TSTZRANGE)
+    origen: Mapped[OrigenBloqueo] = mapped_column(
+        pg_enum(OrigenBloqueo, "origen_bloqueo", crear=False)
+    )
+    activo: Mapped[bool] = mapped_column(default=True)
+    vence_en: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    item_reserva_id: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("item_reserva.id"))
+    nota: Mapped[str | None] = mapped_column(String(200))

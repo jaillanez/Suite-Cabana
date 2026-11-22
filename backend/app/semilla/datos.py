@@ -125,32 +125,57 @@ TIPOS_SERVICIO = [
     ("excursion", "Excursión", "turno_cupo"),
     ("gastronomia", "Gastronomía", "horario"),
     ("traslado", "Traslado", "tramo"),
+    # docs/04: por franja fija o por horas, con disponibilidad por rango de hora.
+    ("salon_eventos", "Salón de eventos", "horas"),
 ]
 
+# (tipo de servicio, código, nombre)
 SUBTIPOS = [
-    ("cabana", "Cabaña"),
-    ("casa", "Casa"),
-    ("departamento", "Departamento"),
-    ("hosteria", "Hostería"),
-    ("hotel", "Hotel"),
-    ("bungalow", "Bungalow"),
+    ("alojamiento", "cabana", "Cabaña"),
+    ("alojamiento", "casa", "Casa"),
+    ("alojamiento", "departamento", "Departamento"),
+    ("alojamiento", "hosteria", "Hostería"),
+    ("alojamiento", "hotel", "Hotel"),
+    ("alojamiento", "bungalow", "Bungalow"),
+    ("salon_eventos", "salon_eventos", "Salón"),
+    ("salon_eventos", "quincho_eventos", "Quincho"),
+    ("salon_eventos", "aire_libre", "Espacio al aire libre"),
 ]
 
+A = ("alojamiento",)
+S = ("salon_eventos",)
+AS = ("alojamiento", "salon_eventos")
+
+# (código, nombre, ícono, tipos de servicio a los que aplica)
 COMODIDADES = [
-    ("wifi", "WiFi", "wifi"),
-    ("pileta", "Pileta", "pileta"),
-    ("mascotas", "Acepta mascotas", "mascota"),
-    ("cochera", "Cochera", "auto"),
-    ("parrilla", "Parrilla", "parrilla"),
-    ("aire", "Aire acondicionado", "aire"),
-    ("calefaccion", "Calefacción", "calefaccion"),
-    ("desayuno", "Desayuno incluido", "desayuno"),
-    ("lavarropas", "Lavarropas", "lavarropas"),
-    ("tv", "TV por cable", "tv"),
-    ("ropa_blanca", "Ropa blanca incluida", "cama"),
-    ("accesible", "Accesible en silla de ruedas", "accesible"),
-    ("salon", "Salón de eventos", "salon"),
-    ("quincho", "Quincho", "quincho"),
+    ("wifi", "WiFi", "wifi", AS),
+    ("pileta", "Pileta", "pileta", AS),
+    ("mascotas", "Acepta mascotas", "mascota", A),
+    ("cochera", "Cochera", "auto", A),
+    ("parrilla", "Parrilla", "parrilla", AS),
+    ("aire", "Aire acondicionado", "aire", AS),
+    ("calefaccion", "Calefacción", "calefaccion", AS),
+    ("desayuno", "Desayuno incluido", "desayuno", A),
+    ("lavarropas", "Lavarropas", "lavarropas", A),
+    ("tv", "TV por cable", "tv", A),
+    ("ropa_blanca", "Ropa blanca incluida", "cama", A),
+    ("accesible", "Accesible en silla de ruedas", "accesible", AS),
+    # En una cabaña dicen "el complejo tiene salón / quincho"; el salón en sí se
+    # publica aparte, como su propio tipo de servicio.
+    ("salon", "Salón de eventos", "salon", A),
+    ("quincho", "Quincho", "quincho", A),
+    # Propias de salones.
+    ("estacionamiento", "Estacionamiento", "auto", S),
+    ("sonido", "Equipo de sonido", "sonido", S),
+    ("pista", "Pista de baile", "pista", S),
+    ("mesas_sillas", "Mesas y sillas", "mesa", S),
+    ("cocina", "Cocina equipada", "cocina", S),
+    ("vajilla", "Vajilla", "vajilla", S),
+    ("escenario", "Escenario", "escenario", S),
+    ("proyector", "Proyector y pantalla", "proyector", S),
+    ("grupo_electrogeno", "Grupo electrógeno", "energia", S),
+    ("juegos_infantiles", "Juegos infantiles", "juegos", S),
+    ("banos_accesibles", "Baños accesibles", "accesible", S),
 ]
 
 # Publicación destacada: un lugar REAL, cargado aparte de la oferta generada.

@@ -50,6 +50,7 @@ from app.models.enums import (
     CanalNotificacion,
     EstadoPublicacion,
     EstadoReserva,
+    ModoReserva,
     OrigenBloqueo,
     TipoPago,
 )
@@ -113,6 +114,10 @@ def cotizar(
         raise NoSePuedeReservar("Ese alojamiento no está disponible")
     if not unidad.activa:
         raise NoSePuedeReservar("Esa unidad no está disponible")
+    if publicacion.tipo_servicio.modo_reserva is not ModoReserva.NOCHES:
+        # Un salón se reserva por horario (docs/04): cotizarlo por noches daría
+        # un precio que no es el suyo.
+        raise NoSePuedeReservar("Esto no se reserva por noches")
 
     try:
         precio = precios.calcular(

@@ -6,6 +6,9 @@ class ModoReserva(StrEnum):
     TURNO_CUPO = "turno_cupo"  # excursiones (Fase 2)
     HORARIO = "horario"  # gastronomía (Fase 2)
     TRAMO = "tramo"  # traslados (Fase 2)
+    #: Rango de fecha y hora: salones de eventos, por franja fija o por horas
+    #: (docs/04). La disponibilidad va en `bloqueo_horario`, no en días.
+    HORAS = "horas"
 
 
 class EstadoPublicacion(StrEnum):

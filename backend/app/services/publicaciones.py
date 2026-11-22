@@ -32,7 +32,7 @@ from app.models import (
     Unidad,
 )
 from app.models.enums import EstadoPublicacion
-from app.services import busqueda, comisiones, precios
+from app.services import busqueda, comisiones, precios, tipos
 
 
 class NoEncontrada(Exception):
@@ -110,7 +110,11 @@ def obtener(
     hoy = hoy or date.today()
     publicacion = db.scalar(
         select(Publicacion)
-        .where(Publicacion.slug == slug, Publicacion.estado == EstadoPublicacion.APROBADA)
+        .where(
+            Publicacion.slug == slug,
+            Publicacion.estado == EstadoPublicacion.APROBADA,
+            tipos.por_noches(),
+        )
         .options(
             selectinload(Publicacion.fotos),
             selectinload(Publicacion.comodidades),
@@ -222,6 +226,7 @@ def listar_por_destino(
     base = select(Publicacion).where(
         Publicacion.localidad_id == localidad.id,
         Publicacion.estado == EstadoPublicacion.APROBADA,
+        tipos.por_noches(),
     )
     total = db.scalar(select(func.count()).select_from(base.subquery())) or 0
     paginas = max(1, math.ceil(total / por_pagina))
@@ -311,7 +316,9 @@ def explorar(
     Con `lat`/`lon` ordena por cercanía. Sin eso, primero lo que tiene foto: una
     ficha sin foto arriba de todo es la peor primera impresión posible.
     """
-    base = select(Publicacion).where(Publicacion.estado == EstadoPublicacion.APROBADA)
+    base = select(Publicacion).where(
+        Publicacion.estado == EstadoPublicacion.APROBADA, tipos.por_noches()
+    )
     if localidad_slug:
         base = base.join(Localidad, Publicacion.localidad_id == Localidad.id).where(
             Localidad.slug == localidad_slug
@@ -405,6 +412,7 @@ def destinos_con_oferta(db: Session) -> list[tuple[Localidad, Provincia, int]]:
         .where(
             Publicacion.localidad_id == Localidad.id,
             Publicacion.estado == EstadoPublicacion.APROBADA,
+            tipos.por_noches(),
         )
         .scalar_subquery()
     )

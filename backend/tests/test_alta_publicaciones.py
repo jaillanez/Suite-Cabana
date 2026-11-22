@@ -48,7 +48,7 @@ def catalogo(db):
     db.flush()
     subtipo = SubtipoServicio(tipo_id=tipo.id, codigo="cabana", nombre="Cabaña")
     politica = PoliticaCancelacion(codigo="moderada", nombre="Moderada", tramos=[])
-    wifi = Comodidad(codigo="wifi", nombre="WiFi")
+    wifi = Comodidad(codigo="wifi", nombre="WiFi", tipos=[tipo])
     db.add_all([subtipo, politica, wifi])
     db.flush()
     return {"localidad": localidad, "subtipo": subtipo, "politica": politica}

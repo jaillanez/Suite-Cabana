@@ -18,9 +18,17 @@ from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
 from app.core.database import get_db
-from app.models import Comodidad, Localidad, Provincia, Publicacion, SubtipoServicio
+from app.models import (
+    Comodidad,
+    Localidad,
+    Provincia,
+    Publicacion,
+    SubtipoServicio,
+    TipoServicio,
+    comodidad_tipo_servicio,
+)
 from app.models.enums import EstadoPublicacion
-from app.services import busqueda, precios
+from app.services import busqueda, precios, tipos
 from app.services import publicaciones as fichas
 from app.services.privacidad import aproximar, distancia_publica, radio_publico
 
@@ -137,6 +145,7 @@ def destinos(
         .where(
             Publicacion.localidad_id == Localidad.id,
             Publicacion.estado == EstadoPublicacion.APROBADA,
+            tipos.por_noches(),
         )
         .scalar_subquery()
     )
@@ -264,16 +273,39 @@ class FiltrosDisponibles(BaseModel):
     ordenes: list[dict[str, str]]
 
 
+def _subtipos_de(db: Session, tipo: str):
+    return db.scalars(
+        select(SubtipoServicio)
+        .join(TipoServicio, SubtipoServicio.tipo_id == TipoServicio.id)
+        .where(TipoServicio.codigo == tipo)
+        .order_by(SubtipoServicio.nombre)
+    )
+
+
+def _comodidades_de(db: Session, tipo: str):
+    return db.scalars(
+        select(Comodidad)
+        .join(comodidad_tipo_servicio)
+        .join(TipoServicio, comodidad_tipo_servicio.c.tipo_servicio_id == TipoServicio.id)
+        .where(TipoServicio.codigo == tipo)
+        .order_by(Comodidad.nombre)
+    )
+
+
+TipoCatalogo = Annotated[
+    str, Query(pattern="^[a-z_]{2,40}$", description="Código del tipo de servicio")
+]
+
+
 @router.get("/publicaciones/filtros", response_model=FiltrosDisponibles)
-def filtros(db: Session = Depends(get_db)) -> FiltrosDisponibles:
+def filtros(
+    tipo: TipoCatalogo = "alojamiento", db: Session = Depends(get_db)
+) -> FiltrosDisponibles:
     return FiltrosDisponibles(
-        subtipos=[
-            {"codigo": s.codigo, "nombre": s.nombre}
-            for s in db.scalars(select(SubtipoServicio).order_by(SubtipoServicio.nombre))
-        ],
+        subtipos=[{"codigo": s.codigo, "nombre": s.nombre} for s in _subtipos_de(db, tipo)],
         comodidades=[
             {"codigo": c.codigo, "nombre": c.nombre, "icono": c.icono}
-            for c in db.scalars(select(Comodidad).order_by(Comodidad.nombre))
+            for c in _comodidades_de(db, tipo)
         ],
         ordenes=[
             {"codigo": busqueda.Orden.RELEVANCIA.value, "nombre": "Relevancia"},
@@ -568,7 +600,9 @@ class CatalogoAlta(BaseModel):
 
 
 @router.get("/catalogos/alta", response_model=CatalogoAlta)
-def catalogo_alta(db: Session = Depends(get_db)) -> CatalogoAlta:
+def catalogo_alta(
+    tipo: TipoCatalogo = "alojamiento", db: Session = Depends(get_db)
+) -> CatalogoAlta:
     from app.models import PoliticaCancelacion
 
     localidades = db.execute(
@@ -582,7 +616,7 @@ def catalogo_alta(db: Session = Depends(get_db)) -> CatalogoAlta:
         ],
         subtipos=[
             {"id": str(x.id), "codigo": x.codigo, "nombre": x.nombre}
-            for x in db.scalars(select(SubtipoServicio).order_by(SubtipoServicio.nombre))
+            for x in _subtipos_de(db, tipo)
         ],
         politicas=[
             {"id": str(x.id), "codigo": x.codigo, "nombre": x.nombre}
@@ -594,6 +628,6 @@ def catalogo_alta(db: Session = Depends(get_db)) -> CatalogoAlta:
         ],
         comodidades=[
             {"codigo": c.codigo, "nombre": c.nombre, "icono": c.icono}
-            for c in db.scalars(select(Comodidad).order_by(Comodidad.nombre))
+            for c in _comodidades_de(db, tipo)
         ],
     )

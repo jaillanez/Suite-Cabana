@@ -122,18 +122,21 @@ def cargar_catalogo(db: Session) -> None:
     db.flush()
 
     subtipos = {s.codigo for s in db.scalars(select(SubtipoServicio))}
-    for codigo, nombre in datos.SUBTIPOS:
+    for tipo, codigo, nombre in datos.SUBTIPOS:
         if codigo not in subtipos:
-            db.add(
-                SubtipoServicio(
-                    tipo_id=tipos["alojamiento"].id, codigo=codigo, nombre=nombre
-                )
-            )
+            db.add(SubtipoServicio(tipo_id=tipos[tipo].id, codigo=codigo, nombre=nombre))
 
-    comodidades = {c.codigo for c in db.scalars(select(Comodidad))}
-    for codigo, nombre, icono in datos.COMODIDADES:
-        if codigo not in comodidades:
-            db.add(Comodidad(codigo=codigo, nombre=nombre, icono=icono))
+    # Las comodidades se agregan y se completan sus tipos; nunca se les quita uno
+    # (alguien pudo haberlo asignado a mano).
+    comodidades = {c.codigo: c for c in db.scalars(select(Comodidad))}
+    for codigo, nombre, icono, de_tipos in datos.COMODIDADES:
+        comodidad = comodidades.get(codigo)
+        if comodidad is None:
+            comodidad = Comodidad(codigo=codigo, nombre=nombre, icono=icono)
+            db.add(comodidad)
+        for tipo in de_tipos:
+            if tipos[tipo] not in comodidad.tipos:
+                comodidad.tipos.append(tipos[tipo])
 
     politicas = {p.codigo for p in db.scalars(select(PoliticaCancelacion))}
     for codigo, nombre, descripcion, tramos in datos.POLITICAS:

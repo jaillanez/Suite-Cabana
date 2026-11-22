@@ -34,6 +34,14 @@ class TiempoMixin:
     )
 
 
-def pg_enum(enum_cls: type[StrEnum], nombre: str) -> Enum:
-    """Enum de PostgreSQL que guarda los valores ('pendiente_pago'), no los nombres."""
-    return Enum(enum_cls, name=nombre, values_callable=lambda e: [m.value for m in e])
+def pg_enum(enum_cls: type[StrEnum], nombre: str, crear: bool = True) -> Enum:
+    """Enum de PostgreSQL que guarda los valores ('pendiente_pago'), no los nombres.
+
+    `crear=False` cuando otra tabla ya define el mismo tipo: se reutiliza.
+    """
+    return Enum(
+        enum_cls,
+        name=nombre,
+        values_callable=lambda e: [m.value for m in e],
+        create_type=crear,
+    )

@@ -1,6 +1,6 @@
 import uuid
 
-from sqlalchemy import ForeignKey, String
+from sqlalchemy import Column, ForeignKey, String, Table
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.models.base import Base, IdMixin, pg_enum
@@ -32,6 +32,18 @@ class SubtipoServicio(IdMixin, Base):
     tipo: Mapped[TipoServicio] = relationship(back_populates="subtipos")
 
 
+#: A qué tipos de servicio aplica cada comodidad. "Pista de baile" no tiene
+#: sentido en una cabaña ni "Ropa blanca" en un salón; WiFi y parrilla, en los dos.
+comodidad_tipo_servicio = Table(
+    "comodidad_tipo_servicio",
+    Base.metadata,
+    Column("comodidad_id", ForeignKey("comodidad.id", ondelete="CASCADE"), primary_key=True),
+    Column(
+        "tipo_servicio_id", ForeignKey("tipo_servicio.id", ondelete="CASCADE"), primary_key=True
+    ),
+)
+
+
 class Comodidad(IdMixin, Base):
     """Pileta, WiFi, mascotas, cochera, etc."""
 
@@ -40,3 +52,5 @@ class Comodidad(IdMixin, Base):
     codigo: Mapped[str] = mapped_column(String(40), unique=True)
     nombre: Mapped[str] = mapped_column(String(80))
     icono: Mapped[str | None] = mapped_column(String(40))
+
+    tipos: Mapped[list[TipoServicio]] = relationship(secondary=comodidad_tipo_servicio)

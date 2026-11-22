@@ -120,8 +120,8 @@ def oferta(db: Session) -> dict:
     db.add(tipo)
     db.flush()
     subtipo = SubtipoServicio(tipo_id=tipo.id, codigo="cabana", nombre="Cabaña")
-    wifi = Comodidad(codigo="wifi", nombre="WiFi")
-    pileta = Comodidad(codigo="pileta", nombre="Pileta")
+    wifi = Comodidad(codigo="wifi", nombre="WiFi", tipos=[tipo])
+    pileta = Comodidad(codigo="pileta", nombre="Pileta", tipos=[tipo])
     db.add_all([subtipo, wifi, pileta])
 
     usuario = Usuario(email="p@demo.test", nombre="P", apellido="Demo", es_prestador=True)
@@ -212,4 +212,6 @@ def oferta(db: Session) -> dict:
         "u_cara": u_cara,
         "u_chica": u_chica,
         "prestador": prestador,
+        "tipo": tipo,
+        "wifi": wifi,
     }
