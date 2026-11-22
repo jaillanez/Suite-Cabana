@@ -504,6 +504,8 @@ def crear_evento(
 
 #: Pago aprobado por un monto menor al de la reserva: no la confirma.
 ESTADO_MONTO_DISTINTO = "monto_distinto"
+#: Pago aprobado que llegó tarde, con el lugar ya liberado: hay que devolverlo.
+ESTADO_SIN_LUGAR = "aprobado_sin_lugar"
 
 
 def registrar_pago(
@@ -562,7 +564,16 @@ def registrar_pago(
         return reserva
 
     if estado is EstadoPago.APROBADO:
-        _confirmar(db, reserva)
+        # Un pago que llega cuando la reserva ya se canceló —venció el plazo y la
+        # tarea soltó las fechas— no la revive: otro pudo haber tomado ese lugar.
+        # Falla cerrado: el pago queda marcado para devolverlo.
+        if reserva.estado is EstadoReserva.CANCELADA or not _confirmar(db, reserva):
+            pago.estado = ESTADO_SIN_LUGAR
+            if reserva.estado is not EstadoReserva.CANCELADA:
+                _liberar(
+                    db, reserva,
+                    "El pago llegó cuando el lugar ya estaba tomado: corresponde devolverlo",
+                )
     elif estado in (EstadoPago.RECHAZADO, EstadoPago.CANCELADO):
         _liberar(db, reserva, "El pago no se completó")
     elif estado is EstadoPago.DEVUELTO:
@@ -572,12 +583,55 @@ def registrar_pago(
     return reserva
 
 
-def _confirmar(db: Session, reserva: Reserva) -> None:
-    """Pago aprobado: la retención pasa a ser una reserva firme."""
+def _afirmar_bloqueos(db: Session, reserva: Reserva, item: ItemReserva) -> bool:
+    """Pasa la retención a reserva firme. False si el lugar ya no está.
+
+    Una retención vencida pudo haberse desactivado y otro tomado ese lugar: al
+    reactivarla, la restricción de exclusión lo rechaza. Se prueba en un
+    savepoint para no arrastrar la transacción del aviso de pago.
+    """
+    # Releídos de la base: una copia en memoria puede decir "activo" de un bloqueo
+    # que otra operación ya desactivó, y entonces reactivarlo no mandaría nada a
+    # la base y la restricción de exclusión nunca tendría la chance de rechazarlo.
+    releer = {"populate_existing": True}
+    bloqueos = [
+        *db.scalars(
+            select(BloqueoFecha)
+            .where(BloqueoFecha.item_reserva_id == item.id)
+            .execution_options(**releer)
+        ),
+        *db.scalars(
+            select(BloqueoHorario)
+            .where(BloqueoHorario.item_reserva_id == item.id)
+            .execution_options(**releer)
+        ),
+    ]
+    if not bloqueos:
+        return False
+    try:
+        with db.begin_nested():
+            for bloqueo in bloqueos:
+                bloqueo.origen = OrigenBloqueo.RESERVA
+                bloqueo.vence_en = None
+                bloqueo.activo = True
+                bloqueo.nota = f"Reserva {reserva.codigo}"
+            db.flush()
+    except IntegrityError:
+        return False
+    return True
+
+
+def _confirmar(db: Session, reserva: Reserva) -> bool:
+    """Pago aprobado: la retención pasa a ser una reserva firme.
+
+    Devuelve False, sin tocar el estado, si el lugar ya no está disponible.
+    """
     if reserva.estado in (EstadoReserva.CONFIRMADA, EstadoReserva.COMPLETADA):
-        return  # idempotente
+        return True  # idempotente
 
     item = reserva.items[0]
+    if not _afirmar_bloqueos(db, reserva, item):
+        return False
     inmediata = item.unidad.publicacion.confirmacion_inmediata
     s = get_settings()
 
@@ -589,15 +643,6 @@ def _confirmar(db: Session, reserva: Reserva) -> None:
         reserva.vence_aprobacion_en = datetime.now(UTC) + timedelta(
             hours=s.horas_aprobacion_prestador
         )
-
-    for bloqueo in [
-        *db.scalars(select(BloqueoFecha).where(BloqueoFecha.item_reserva_id == item.id)),
-        *db.scalars(select(BloqueoHorario).where(BloqueoHorario.item_reserva_id == item.id)),
-    ]:
-        bloqueo.origen = OrigenBloqueo.RESERVA
-        bloqueo.vence_en = None
-        bloqueo.activo = True
-        bloqueo.nota = f"Reserva {reserva.codigo}"
 
     _avisar_al_viajero(
         db,
@@ -616,6 +661,7 @@ def _confirmar(db: Session, reserva: Reserva) -> None:
             )
         },
     )
+    return True
 
 
 def _liberar(db: Session, reserva: Reserva, motivo: str) -> None:

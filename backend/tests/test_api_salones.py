@@ -244,3 +244,55 @@ def test_el_aviso_habla_de_horario_e_invitados(cliente, db, viajero, evento):  #
     ).all()[-1]
     assert reserva["codigo"] in aviso.asunto
     assert "21:00" in aviso.cuerpo and "05:00 h" in aviso.cuerpo
+
+
+# --- Pago que llega tarde ---
+
+
+def test_un_pago_tardio_no_revive_una_reserva_cancelada(cliente, db, viajero, oferta):  # noqa: F811
+    """Cabañas: venció el plazo, la tarea canceló y soltó las fechas; después llega
+    el pago aprobado. No se confirma: otro pudo haber tomado esas noches."""
+    from tests.test_api_reservas import reservar as reservar_noches
+
+    reserva = reservar_noches(cliente, viajero, oferta).json()
+    pago = cliente.post(
+        f"/api/v1/reservas/{reserva['codigo']}/pagar", headers=viajero, json={}
+    ).json()
+    modelo = reservas.traer(db, reserva["codigo"])
+    reservas.cancelar(db, modelo, "No se completó el pago en el plazo")
+    db.commit()
+
+    r = notificar(cliente, pago["id_externo"], reserva["codigo"], total=reserva["total"])
+    assert r.json()["resultado"] == "cancelada"
+    db.expire_all()
+    modelo = reservas.traer(db, reserva["codigo"])
+    assert modelo.pagos[0].estado == reservas.ESTADO_SIN_LUGAR
+
+
+def test_un_pago_tardio_con_el_horario_ya_tomado_no_rompe_nada(
+    cliente, db, viajero, evento  # noqa: F811
+):
+    """Salones: la retención venció, otro tomó el turno, y llega el pago del primero.
+    Ni doble reserva ni error 500: el pago queda para devolver."""
+    from datetime import UTC, datetime
+
+    from app.models import BloqueoHorario
+
+    primera = _reservar(cliente, viajero, evento, franja_id=str(evento["noche"].id)).json()
+    pago = cliente.post(
+        f"/api/v1/reservas/{primera['codigo']}/pagar", headers=viajero, json={}
+    ).json()
+    # Se le vence el plazo...
+    for b in db.scalars(select(BloqueoHorario)):
+        b.vence_en = datetime.now(UTC) - timedelta(minutes=1)
+    db.commit()
+    # ...y otro toma el mismo turno (el bloqueo vencido se suelta solo).
+    segunda = _reservar(cliente, viajero, evento, franja_id=str(evento["noche"].id))
+    assert segunda.status_code == 201, segunda.text
+
+    r = notificar(cliente, pago["id_externo"], primera["codigo"], total=primera["monto_sena"])
+    assert r.status_code == 200
+    assert r.json()["resultado"] == "cancelada"
+    db.expire_all()
+    assert reservas.traer(db, primera["codigo"]).pagos[0].estado == reservas.ESTADO_SIN_LUGAR
+    assert reservas.traer(db, segunda.json()["codigo"]).estado.value == "pendiente_pago"
