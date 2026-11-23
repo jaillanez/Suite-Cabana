@@ -355,6 +355,10 @@ def _coordenadas(db: Session, publicaciones: set[UUID]) -> dict[UUID, tuple[floa
     return {pid: (lat, lon) for pid, lat, lon in filas}
 
 
+#: Público: lo usan también los salones (api/v1/salones.py).
+coordenadas = _coordenadas
+
+
 def _clave_orden(orden: Orden):
     match orden:
         case Orden.PRECIO_ASC:

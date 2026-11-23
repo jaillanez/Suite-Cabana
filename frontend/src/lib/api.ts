@@ -183,6 +183,8 @@ export type Ficha = {
   comodidades: Comodidad[];
   unidades: UnidadFicha[];
   noches: number | null;
+  /** Salones del mismo anfitrión (docs/04): "también tiene salón". */
+  salones_del_anfitrion?: { titulo: string; slug: string }[];
   moneda: string;
 };
 
@@ -1071,3 +1073,171 @@ export type PaginaExplorar = {
 
 export const explorar = (params?: URLSearchParams) =>
   api<PaginaExplorar>(`/publicaciones/explorar${params?.size ? `?${params}` : ""}`);
+
+
+/* --- Salones de eventos para el viajero (docs/04, etapa 4) --- */
+
+export type PrecioDesde = { monto: string; detalle: string };
+
+export type SalonResultado = {
+  slug: string;
+  titulo: string;
+  subtipo: string | null;
+  localidad: string;
+  provincia: string;
+  lat: number | null;
+  lon: number | null;
+  fotos: { url: string; descripcion: string | null }[];
+  comodidades: string[];
+  capacidad_maxima: number;
+  sentados_maximo: number | null;
+  precio_desde: PrecioDesde | null;
+  confirmacion_inmediata: boolean;
+  disponible: boolean | null;
+  es_demo: boolean;
+};
+
+export type BusquedaSalones = {
+  total: number;
+  pagina: number;
+  paginas: number;
+  resultados: SalonResultado[];
+};
+
+export type DestinoSalon = { nombre: string; slug: string; provincia: string; salones: number };
+
+export type AdicionalSalon = {
+  id: string;
+  nombre: string;
+  descripcion: string | null;
+  precio: string;
+  por_persona: boolean;
+};
+
+export type EspacioSalon = {
+  id: string;
+  nombre: string;
+  capacidad: number;
+  capacidad_sentados: number | null;
+  capacidad_base: number | null;
+  cargo_persona_extra: string;
+  preparacion_minutos: number;
+  franjas: {
+    id: string;
+    nombre: string;
+    hora_inicio: string;
+    hora_fin: string;
+    precio: string;
+    termina_al_dia_siguiente: boolean;
+  }[];
+  por_horas: {
+    precio_hora: string;
+    horas_minimas: number;
+    hora_apertura: string;
+    hora_cierre: string;
+  } | null;
+  adicionales: AdicionalSalon[];
+};
+
+export type FichaSalon = {
+  publicacion_id: string;
+  slug: string;
+  titulo: string;
+  descripcion: string;
+  reglas: string | null;
+  subtipo: string | null;
+  localidad: string;
+  localidad_slug: string;
+  provincia: string;
+  zona: string | null;
+  lat: number | null;
+  lon: number | null;
+  confirmacion_inmediata: boolean;
+  porcentaje_sena: number | null;
+  es_demo: boolean;
+  prestador: { razon_social: string; verificado: boolean; publica_desde: number };
+  politica_cancelacion: {
+    codigo: string;
+    nombre: string;
+    descripcion: string | null;
+    tramos: { dias_antes: number; porcentaje_reintegro: number }[];
+  } | null;
+  fotos: { url: string; descripcion: string | null }[];
+  comodidades: { codigo: string; nombre: string }[];
+  espacios: EspacioSalon[];
+  alojamientos_del_anfitrion: { titulo: string; slug: string }[];
+  moneda: string;
+};
+
+export type DisponibilidadSalon = {
+  unidad_id: string;
+  dia: string;
+  capacidad: number;
+  capacidad_sentados: number | null;
+  preparacion_minutos: number;
+  franjas: {
+    id: string;
+    nombre: string;
+    inicio: string;
+    fin: string;
+    precio: string;
+    libre: boolean;
+  }[];
+  por_horas: {
+    precio_hora: string;
+    horas_minimas: number;
+    apertura: string;
+    cierre: string;
+    recargo_nocturno_desde: string | null;
+    recargo_nocturno_porcentaje: string;
+  } | null;
+  ocupado: { inicio: string; fin: string }[];
+  adicionales: AdicionalSalon[];
+};
+
+export type PedidoEvento = {
+  unidad_id: string;
+  dia: string;
+  invitados: number;
+  franja_id?: string | null;
+  hora_inicio?: string | null;
+  horas?: number | null;
+  adicionales?: string[];
+};
+
+export type CotizacionEvento = {
+  inicio: string;
+  fin: string;
+  invitados: number;
+  alquiler: string;
+  lineas: { concepto: string; monto: string }[];
+  subtotal: string;
+  cargo_servicio: string;
+  total: string;
+  sena: string | null;
+  a_pagar_ahora: string;
+  saldo_con_anfitrion: string | null;
+};
+
+export const buscarSalones = (params: URLSearchParams) =>
+  api<BusquedaSalones>(`/salones/buscar?${params}`);
+
+export const destinosSalones = () => api<DestinoSalon[]>("/salones/destinos");
+
+export const fichaSalon = (slug: string) =>
+  api<FichaSalon>(`/salones/ficha/${encodeURIComponent(slug)}`);
+
+export const disponibilidadSalon = (unidadId: string, dia: string) =>
+  api<DisponibilidadSalon>(`/salones/unidades/${unidadId}/disponibilidad?dia=${dia}`);
+
+export const cotizarEvento = (pedido: PedidoEvento) =>
+  api<CotizacionEvento>("/salones/cotizacion", {
+    method: "POST",
+    body: JSON.stringify(pedido),
+  });
+
+export const reservarEvento = (
+  token: string,
+  pedido: PedidoEvento & { acepta_terminos: boolean },
+) =>
+  api<Reserva>("/salones/reservas", { method: "POST", token, body: JSON.stringify(pedido) });

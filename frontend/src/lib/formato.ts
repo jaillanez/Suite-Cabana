@@ -65,3 +65,26 @@ export const legible = (slug: string) =>
     .split("-")
     .map((p) => p.charAt(0).toUpperCase() + p.slice(1))
     .join(" ");
+
+/* Horarios de eventos: siempre en hora argentina, aunque quien mira esté en
+   otra zona. Un salón de San Juan abre a las 21 de San Juan. */
+const HORA_AR = new Intl.DateTimeFormat("es-AR", {
+  hour: "2-digit",
+  minute: "2-digit",
+  hour12: false,
+  timeZone: "America/Argentina/Buenos_Aires",
+});
+const DIA_AR = new Intl.DateTimeFormat("es-AR", {
+  weekday: "long",
+  day: "numeric",
+  month: "long",
+  timeZone: "America/Argentina/Buenos_Aires",
+});
+
+export const horaAR = (iso: string) => HORA_AR.format(new Date(iso));
+export const diaAR = (iso: string) => DIA_AR.format(new Date(iso));
+
+/** "sábado 15 de marzo, de 21:00 a 05:00 h" */
+export function horarioEvento(inicio: string, fin: string): string {
+  return `${diaAR(inicio)}, de ${horaAR(inicio)} a ${horaAR(fin)} h`;
+}

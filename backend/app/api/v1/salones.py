@@ -18,14 +18,23 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session, selectinload
 
 from app.api.deps import con_email_verificado
-from app.api.v1.publicaciones import Dinero
+from app.api.v1.publicaciones import (
+    ComodidadOut,
+    Dinero,
+    EnlaceOut,
+    FotoOut,
+    PoliticaOut,
+    PrestadorOut,
+)
 from app.api.v1.reservas import ReservaOut, _reserva_out
 from app.core.config import get_settings
 from app.core.database import get_db
 from app.models import Localidad, Publicacion, Unidad, Usuario
 from app.models.enums import EstadoPublicacion, ModoReserva
-from app.services import horarios, reservas
+from app.services import busqueda, horarios, reservas
 from app.services import precios_eventos as pe
+from app.services import salones as svc
+from app.services.privacidad import aproximar
 
 router = APIRouter(prefix="/salones", tags=["salones"])
 
@@ -111,6 +120,97 @@ class CotizacionEventoOut(BaseModel):
     saldo_con_anfitrion: Dinero | None
 
 
+class PrecioDesdeOut(BaseModel):
+    monto: Dinero
+    detalle: str
+
+
+class SalonResultadoOut(BaseModel):
+    slug: str
+    titulo: str
+    subtipo: str | None
+    localidad: str
+    provincia: str
+    lat: float | None = Field(description="Aproximada (~1 km)")
+    lon: float | None
+    fotos: list[FotoOut]
+    comodidades: list[str]
+    capacidad_maxima: int
+    sentados_maximo: int | None
+    precio_desde: PrecioDesdeOut | None
+    confirmacion_inmediata: bool
+    disponible: bool | None = Field(description="null si no se pidió día")
+    es_demo: bool
+
+
+class BusquedaSalonesOut(BaseModel):
+    total: int
+    pagina: int
+    paginas: int
+    resultados: list[SalonResultadoOut]
+
+
+class DestinoSalonOut(BaseModel):
+    nombre: str
+    slug: str
+    provincia: str
+    salones: int
+
+
+class FranjaFichaOut(BaseModel):
+    id: uuid.UUID
+    nombre: str
+    hora_inicio: str
+    hora_fin: str
+    precio: Dinero
+    termina_al_dia_siguiente: bool
+
+
+class PorHorasFichaOut(BaseModel):
+    precio_hora: Dinero
+    horas_minimas: int
+    hora_apertura: str
+    hora_cierre: str
+
+
+class EspacioOut(BaseModel):
+    id: uuid.UUID
+    nombre: str
+    capacidad: int
+    capacidad_sentados: int | None
+    capacidad_base: int | None
+    cargo_persona_extra: Dinero
+    preparacion_minutos: int
+    franjas: list[FranjaFichaOut]
+    por_horas: PorHorasFichaOut | None
+    adicionales: list[AdicionalOut]
+
+
+class SalonFichaOut(BaseModel):
+    publicacion_id: uuid.UUID
+    slug: str
+    titulo: str
+    descripcion: str
+    reglas: str | None
+    subtipo: str | None
+    localidad: str
+    localidad_slug: str
+    provincia: str
+    zona: str | None
+    lat: float | None = Field(description="Aproximada (~1 km): la exacta, con la reserva")
+    lon: float | None
+    confirmacion_inmediata: bool
+    porcentaje_sena: int | None
+    es_demo: bool
+    prestador: PrestadorOut
+    politica_cancelacion: PoliticaOut | None
+    fotos: list[FotoOut]
+    comodidades: list[ComodidadOut]
+    espacios: list[EspacioOut]
+    alojamientos_del_anfitrion: list[EnlaceOut]
+    moneda: str = "ARS"
+
+
 # --- Helpers ---
 
 
@@ -154,6 +254,164 @@ def _cotizar(db: Session, datos: PedidoEvento) -> reservas.CotizacionEvento:
 
 
 # --- Endpoints ---
+
+
+@router.get("/buscar", response_model=BusquedaSalonesOut)
+def buscar(
+    localidad: Annotated[str | None, Query(max_length=80)] = None,
+    provincia: Annotated[str | None, Query(max_length=80)] = None,
+    dia: date | None = None,
+    invitados: Annotated[int, Query(ge=1, le=5000)] = 1,
+    subtipo: Annotated[list[str] | None, Query()] = None,
+    comodidad: Annotated[list[str] | None, Query()] = None,
+    pagina: Annotated[int, Query(ge=1)] = 1,
+    por_pagina: Annotated[int, Query(ge=1, le=svc.POR_PAGINA_MAX)] = 24,
+    db: Session = Depends(get_db),
+) -> BusquedaSalonesOut:
+    """Salones por destino e invitados. Con día, solo los que tienen lugar ese día."""
+    if dia is not None and dia < date.today():
+        raise HTTPException(status.HTTP_422_UNPROCESSABLE_ENTITY, "Ese día ya pasó")
+    p = svc.buscar(
+        db, localidad=localidad, provincia=provincia, dia=dia, invitados=invitados,
+        subtipos=tuple(subtipo or ()), comodidades=tuple(comodidad or ()),
+        pagina=pagina, por_pagina=por_pagina,
+    )
+    puntos = busqueda.coordenadas(db, {r.publicacion.id for r in p.resultados})
+    return BusquedaSalonesOut(
+        total=p.total,
+        pagina=p.pagina,
+        paginas=p.paginas,
+        resultados=[
+            SalonResultadoOut(
+                slug=r.publicacion.slug,
+                titulo=r.publicacion.titulo,
+                subtipo=r.publicacion.subtipo.nombre if r.publicacion.subtipo else None,
+                localidad=r.publicacion.localidad.nombre,
+                provincia=r.publicacion.localidad.provincia.nombre,
+                lat=aproximar(puntos.get(r.publicacion.id, (None, None))[0]),
+                lon=aproximar(puntos.get(r.publicacion.id, (None, None))[1]),
+                fotos=[
+                    FotoOut(url=f.url, descripcion=f.descripcion)
+                    for f in sorted(r.publicacion.fotos, key=lambda x: x.orden)[:4]
+                ],
+                comodidades=sorted(c.codigo for c in r.publicacion.comodidades),
+                capacidad_maxima=r.capacidad_maxima,
+                sentados_maximo=r.sentados_maximo,
+                precio_desde=(
+                    PrecioDesdeOut(monto=r.precio_desde.monto, detalle=r.precio_desde.detalle)
+                    if r.precio_desde
+                    else None
+                ),
+                confirmacion_inmediata=r.publicacion.confirmacion_inmediata,
+                disponible=r.disponible,
+                es_demo=r.publicacion.es_demo,
+            )
+            for r in p.resultados
+        ],
+    )
+
+
+@router.get("/destinos", response_model=list[DestinoSalonOut])
+def destinos(db: Session = Depends(get_db)) -> list[DestinoSalonOut]:
+    return [
+        DestinoSalonOut(nombre=loc.nombre, slug=loc.slug, provincia=prov.nombre, salones=n)
+        for loc, prov, n in svc.destinos(db)
+    ]
+
+
+@router.get("/ficha/{slug}", response_model=SalonFichaOut)
+def ficha(slug: str, db: Session = Depends(get_db)) -> SalonFichaOut:
+    """Todo sobre un salón. Qué está libre un día lo dice `disponibilidad`."""
+    try:
+        p = svc.obtener(db, slug)
+    except svc.NoEncontrado as e:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "No encontramos ese salón") from e
+    lat, lon = busqueda.coordenadas(db, {p.id}).get(p.id, (None, None))
+    politica = p.politica_cancelacion
+
+    def hora(t: time) -> str:
+        return t.strftime("%H:%M")
+
+    return SalonFichaOut(
+        publicacion_id=p.id,
+        slug=p.slug,
+        titulo=p.titulo,
+        descripcion=p.descripcion,
+        reglas=p.reglas_casa,
+        subtipo=p.subtipo.nombre if p.subtipo else None,
+        localidad=p.localidad.nombre,
+        localidad_slug=p.localidad.slug,
+        provincia=p.localidad.provincia.nombre,
+        zona=p.zona.nombre if p.zona else None,
+        lat=aproximar(lat),
+        lon=aproximar(lon),
+        confirmacion_inmediata=p.confirmacion_inmediata,
+        porcentaje_sena=(
+            p.porcentaje_sena if p.porcentaje_sena is not None else p.prestador.porcentaje_sena
+        ) or None,
+        es_demo=p.es_demo,
+        prestador=PrestadorOut(
+            razon_social=p.prestador.razon_social,
+            verificado=p.prestador.verificado,
+            publica_desde=p.prestador.fecha_alta.year,
+        ),
+        politica_cancelacion=(
+            PoliticaOut(
+                codigo=politica.codigo, nombre=politica.nombre,
+                descripcion=politica.descripcion, tramos=politica.tramos,
+            )
+            if politica
+            else None
+        ),
+        fotos=[
+            FotoOut(url=f.url, descripcion=f.descripcion)
+            for f in sorted(p.fotos, key=lambda x: x.orden)
+        ],
+        comodidades=[ComodidadOut(codigo=c.codigo, nombre=c.nombre) for c in p.comodidades],
+        espacios=[
+            EspacioOut(
+                id=u.id,
+                nombre=u.nombre,
+                capacidad=u.capacidad,
+                capacidad_sentados=u.capacidad_sentados,
+                capacidad_base=u.capacidad_base,
+                cargo_persona_extra=u.cargo_persona_extra,
+                preparacion_minutos=u.preparacion_minutos or 0,
+                franjas=[
+                    FranjaFichaOut(
+                        id=f.id, nombre=f.nombre, hora_inicio=hora(f.hora_inicio),
+                        hora_fin=hora(f.hora_fin), precio=f.precio,
+                        termina_al_dia_siguiente=f.hora_fin <= f.hora_inicio,
+                    )
+                    for f in sorted(u.franjas, key=lambda x: x.hora_inicio)
+                    if f.activa
+                ],
+                por_horas=(
+                    PorHorasFichaOut(
+                        precio_hora=u.tarifa_horaria.precio_hora,
+                        horas_minimas=u.tarifa_horaria.horas_minimas,
+                        hora_apertura=hora(u.tarifa_horaria.hora_apertura),
+                        hora_cierre=hora(u.tarifa_horaria.hora_cierre),
+                    )
+                    if reservas.tarifa_horas(u)
+                    else None
+                ),
+                adicionales=[
+                    AdicionalOut(
+                        id=a.id, nombre=a.nombre, descripcion=a.descripcion, precio=a.precio,
+                        por_persona=a.por_persona,
+                    )
+                    for a in u.adicionales
+                    if a.activo
+                ],
+            )
+            for u in svc.espacios(p)
+        ],
+        alojamientos_del_anfitrion=[
+            EnlaceOut(titulo=x.titulo, slug=x.slug)
+            for x in svc.del_mismo_anfitrion(db, p.prestador_id, ModoReserva.NOCHES)
+        ],
+    )
 
 
 @router.get("/unidades/{unidad_id}/disponibilidad", response_model=DisponibilidadOut)

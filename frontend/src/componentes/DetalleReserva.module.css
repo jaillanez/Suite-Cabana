@@ -103,6 +103,13 @@
   letter-spacing: -0.02em;
 }
 
+.totalDe {
+  font-size: 0.9375rem;
+  font-weight: 500;
+  letter-spacing: 0;
+  color: var(--texto-2);
+}
+
 .desglose {
   display: grid;
   gap: 0.3125rem;

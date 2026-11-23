@@ -48,3 +48,15 @@
     display: none;
   }
 }
+
+/* Con "Salones" no entran cuatro enlaces en un celular: en el más chico se
+   guarda el de publicar, que sigue en el pie de página. Quien entra desde el
+   teléfono casi siempre viene a buscar, no a publicar. */
+@media (max-width: 460px) {
+  .interna nav {
+    gap: 0.25rem;
+  }
+  .publicar {
+    display: none;
+  }
+}

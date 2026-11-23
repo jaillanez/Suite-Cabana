@@ -3,9 +3,19 @@
 import { useState, useTransition } from "react";
 import Link from "next/link";
 
-import { accionCancelar, accionPagar, accionSimularPago } from "@/lib/acciones-reservas";
+import {
+  accionCancelar,
+  accionPagar,
+  accionSimularPago,
+} from "@/lib/acciones-reservas";
 import type { PasarelaDisponible, Reserva } from "@/lib/api";
-import { pesos, pesosExactos, plural, rangoFechas } from "@/lib/formato";
+import {
+  horarioEvento,
+  pesos,
+  pesosExactos,
+  plural,
+  rangoFechas,
+} from "@/lib/formato";
 import Estado, { TEXTOS_RESERVA } from "./EstadoReserva";
 import { Alerta, Rayo } from "./Iconos";
 import estilos from "./DetalleReserva.module.css";
@@ -24,13 +34,20 @@ export default function DetalleReserva({
   const [pendiente, empezar] = useTransition();
 
   const item = reserva.items[0];
+  // Un salón (docs/04): horario e invitados en vez de noches y huéspedes.
+  const evento = Boolean(item?.inicio_en && item?.fin_en);
+  const lineasEvento = (
+    item?.desglose as { lineas?: { concepto: string; monto: string }[] }
+  )?.lineas;
   const comision = item?.comision;
   const desglose = item?.desglose as Record<string, string> | undefined;
   const hayCargo = comision ? Number(comision.cargo_viajero) > 0 : false;
   const disponibles = pasarelas.filter((p) => p.disponible);
-  const puedeCancelar = ["pendiente_pago", "pendiente_aprobacion", "confirmada"].includes(
-    reserva.estado,
-  );
+  const puedeCancelar = [
+    "pendiente_pago",
+    "pendiente_aprobacion",
+    "confirmada",
+  ].includes(reserva.estado);
 
   function pagar(pasarela: string) {
     empezar(async () => {
@@ -97,23 +114,42 @@ export default function DetalleReserva({
       )}
 
       <section className={estilos.bloque}>
-        <h2>La estadía</h2>
+        <h2>{evento ? "El evento" : "La estadía"}</h2>
         <dl className={estilos.datos}>
-          <div>
-            <dt>Fechas</dt>
-            <dd>
-              {item && rangoFechas(item.fecha_inicio, item.fecha_fin)} ·{" "}
-              {item && plural(item.noches, "noche", "noches")}
-            </dd>
-          </div>
-          <div>
-            <dt>Personas</dt>
-            <dd>
-              {item && plural(item.adultos, "adulto", "adultos")}
-              {item && item.menores > 0 && `, ${plural(item.menores, "menor", "menores")}`}
-              {item && item.mascotas > 0 && `, ${plural(item.mascotas, "mascota", "mascotas")}`}
-            </dd>
-          </div>
+          {evento && item?.inicio_en && item.fin_en ? (
+            <>
+              <div>
+                <dt>Cuándo</dt>
+                <dd>{horarioEvento(item.inicio_en, item.fin_en)}</dd>
+              </div>
+              <div>
+                <dt>Invitados</dt>
+                <dd>{plural(item.adultos, "persona", "personas")}</dd>
+              </div>
+            </>
+          ) : (
+            <>
+              <div>
+                <dt>Fechas</dt>
+                <dd>
+                  {item && rangoFechas(item.fecha_inicio, item.fecha_fin)} ·{" "}
+                  {item && plural(item.noches, "noche", "noches")}
+                </dd>
+              </div>
+              <div>
+                <dt>Personas</dt>
+                <dd>
+                  {item && plural(item.adultos, "adulto", "adultos")}
+                  {item &&
+                    item.menores > 0 &&
+                    `, ${plural(item.menores, "menor", "menores")}`}
+                  {item &&
+                    item.mascotas > 0 &&
+                    `, ${plural(item.mascotas, "mascota", "mascotas")}`}
+                </dd>
+              </div>
+            </>
+          )}
           {item && (item.direccion || item.lat !== null) && (
             <div>
               <dt>Dirección</dt>
@@ -139,8 +175,45 @@ export default function DetalleReserva({
 
       <section className={estilos.bloque}>
         <h2>Lo que pagás</h2>
-        <p className={`${estilos.total} cifra`}>{pesos(reserva.total)}</p>
-        {desglose && (
+        {/* Con seña, lo grande es lo que se paga online: mostrar el total ahí
+            hace creer que se cobra todo. El total queda como referencia. */}
+        {reserva.monto_sena ? (
+          <p className={`${estilos.total} cifra`}>
+            {pesos(reserva.monto_sena)}{" "}
+            <span className={estilos.totalDe}>
+              de seña, sobre {pesos(reserva.total)}
+            </span>
+          </p>
+        ) : (
+          <p className={`${estilos.total} cifra`}>{pesos(reserva.total)}</p>
+        )}
+        {desglose && evento && (
+          <dl className={estilos.desglose}>
+            <div>
+              <dt>Alquiler</dt>
+              <dd className="cifra">{pesosExactos(desglose.alquiler)}</dd>
+            </div>
+            {(lineasEvento ?? []).map((l) => (
+              <div key={l.concepto}>
+                <dt>{l.concepto}</dt>
+                <dd className="cifra">{pesosExactos(l.monto)}</dd>
+              </div>
+            ))}
+            {hayCargo && comision && (
+              <div>
+                <dt>Cargo de servicio</dt>
+                <dd className="cifra">
+                  {pesosExactos(comision.cargo_viajero)}
+                </dd>
+              </div>
+            )}
+            <div className={estilos.totalFila}>
+              <dt>Total del evento</dt>
+              <dd className="cifra">{pesosExactos(reserva.total)}</dd>
+            </div>
+          </dl>
+        )}
+        {desglose && !evento && (
           <dl className={estilos.desglose}>
             <div>
               <dt>Alojamiento</dt>
@@ -161,7 +234,9 @@ export default function DetalleReserva({
             {Number(desglose.personas_extra) > 0 && (
               <div>
                 <dt>Personas adicionales</dt>
-                <dd className="cifra">{pesosExactos(desglose.personas_extra)}</dd>
+                <dd className="cifra">
+                  {pesosExactos(desglose.personas_extra)}
+                </dd>
               </div>
             )}
             {Number(desglose.mascotas) > 0 && (
@@ -173,7 +248,9 @@ export default function DetalleReserva({
             {hayCargo && comision && (
               <div>
                 <dt>Cargo de servicio</dt>
-                <dd className="cifra">{pesosExactos(comision.cargo_viajero)}</dd>
+                <dd className="cifra">
+                  {pesosExactos(comision.cargo_viajero)}
+                </dd>
               </div>
             )}
             <div className={estilos.totalFila}>
@@ -184,7 +261,20 @@ export default function DetalleReserva({
         )}
         {reserva.monto_sena && (
           <p className={estilos.nota}>
-            El prestador acepta seña: <span className="cifra">{pesos(reserva.monto_sena)}</span>.
+            Se paga online la seña de{" "}
+            <strong className="cifra">
+              {pesosExactos(reserva.monto_sena)}
+            </strong>
+            {reserva.saldo_con_anfitrion && (
+              <>
+                ; el resto,{" "}
+                <span className="cifra">
+                  {pesos(reserva.saldo_con_anfitrion)}
+                </span>
+                , se arregla con el anfitrión
+              </>
+            )}
+            .
           </p>
         )}
       </section>
@@ -194,14 +284,14 @@ export default function DetalleReserva({
           <h2>Pagar</h2>
           {disponibles.length === 0 ? (
             <p className={estilos.sinPasarelas}>
-              No hay ninguna forma de pago habilitada todavía. El equipo tiene que cargar las
-              credenciales de al menos una billetera.
+              No hay ninguna forma de pago habilitada todavía. El equipo tiene
+              que cargar las credenciales de al menos una billetera.
             </p>
           ) : pagoSimulado ? (
             <div className={estilos.simulado}>
               <p>
-                <strong>Pago simulado.</strong> No hay dinero real: elegí qué habría contestado
-                la billetera.
+                <strong>Pago simulado.</strong> No hay dinero real: elegí qué
+                habría contestado la billetera.
               </p>
               <div className={estilos.botones}>
                 <button
@@ -227,7 +317,11 @@ export default function DetalleReserva({
               <ul className={estilos.pasarelas}>
                 {disponibles.map((p) => (
                   <li key={p.codigo}>
-                    <button type="button" disabled={pendiente} onClick={() => pagar(p.codigo)}>
+                    <button
+                      type="button"
+                      disabled={pendiente}
+                      onClick={() => pagar(p.codigo)}
+                    >
                       <strong>{p.nombre}</strong>
                       {p.reparte_automaticamente && (
                         <span className={estilos.reparte}>
@@ -261,7 +355,9 @@ export default function DetalleReserva({
 
       {reserva.politica_cancelacion && (
         <section className={estilos.bloque}>
-          <h2>Cancelación {reserva.politica_cancelacion.nombre.toLowerCase()}</h2>
+          <h2>
+            Cancelación {reserva.politica_cancelacion.nombre.toLowerCase()}
+          </h2>
           <ul className={estilos.tramos}>
             {reserva.politica_cancelacion.tramos.map((t) => (
               <li key={t.dias_antes}>
@@ -276,9 +372,12 @@ export default function DetalleReserva({
           </ul>
           {reserva.reintegro_si_cancela && (
             <p className={estilos.nota}>
-              Si cancelás ahora: <strong>{reserva.reintegro_si_cancela.porcentaje}%</strong> (
-              <span className="cifra">{pesos(reserva.reintegro_si_cancela.monto)}</span>).{" "}
-              {reserva.reintegro_si_cancela.motivo}.
+              Si cancelás ahora:{" "}
+              <strong>{reserva.reintegro_si_cancela.porcentaje}%</strong> (
+              <span className="cifra">
+                {pesos(reserva.reintegro_si_cancela.monto)}
+              </span>
+              ). {reserva.reintegro_si_cancela.motivo}.
             </p>
           )}
         </section>

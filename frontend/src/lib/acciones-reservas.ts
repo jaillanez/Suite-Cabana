@@ -10,7 +10,9 @@ import {
   crearReserva,
   pedirPago,
   rechazarReserva,
+  reservarEvento,
   simularPago,
+  type PedidoEvento,
   type Reserva,
 } from "./api";
 import { tokenActual } from "./sesion";
@@ -68,6 +70,27 @@ export async function accionReservar(_previo: unknown, datos: FormData) {
       acepta_terminos: true,
     });
   } catch (e) {
+    return problema(e, "No pudimos crear la reserva.");
+  }
+  revalidatePath("/reservas");
+  redirect(`/reservas/${reserva.codigo}`);
+}
+
+/** Reserva de un salón (docs/04). Sin sesión, avisa: el panel manda a ingresar y
+    vuelve a la ficha, en vez de perder lo que el viajero ya eligió. */
+export async function accionReservarEvento(
+  pedido: PedidoEvento,
+): Promise<{ error: string; ingresar?: boolean } | never> {
+  const token = await tokenActual();
+  if (!token) return { error: "Ingresá para reservar.", ingresar: true };
+
+  let reserva: Reserva;
+  try {
+    reserva = await reservarEvento(token, { ...pedido, acepta_terminos: true });
+  } catch (e) {
+    if (e instanceof ApiError && e.status === 401) {
+      return { error: "Tu sesión venció. Ingresá de nuevo.", ingresar: true };
+    }
     return problema(e, "No pudimos crear la reserva.");
   }
   revalidatePath("/reservas");

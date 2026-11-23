@@ -1,6 +1,6 @@
 import type { MetadataRoute } from "next";
 
-import { destino, destinos } from "@/lib/api";
+import { buscarSalones, destino, destinos } from "@/lib/api";
 
 const SITIO = process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000";
 
@@ -27,8 +27,23 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     ),
   );
 
+  // Los salones (docs/04): la búsqueda sin día es estable, se puede indexar.
+  const salones = await buscarSalones(new URLSearchParams({ por_pagina: "48" }))
+    .then((r) => r.resultados.map((s) => s.slug))
+    .catch(() => [] as string[]);
+
   return [
     ...fijas,
+    {
+      url: `${SITIO}/salones`,
+      changeFrequency: "daily" as const,
+      priority: 0.8,
+    },
+    ...salones.map((slug) => ({
+      url: `${SITIO}/salon/${slug}`,
+      changeFrequency: "weekly" as const,
+      priority: 0.7,
+    })),
     ...paginasDestino,
     ...fichas.flat().map((slug) => ({
       url: `${SITIO}/alojamiento/${slug}`,

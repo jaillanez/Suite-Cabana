@@ -95,35 +95,41 @@ class NuevaUnidad(BaseModel):
     activa: bool = True
 
 
+DiaSemana = Literal["0", "1", "2", "3", "4", "5", "6"]
+#: Un precio cargado por el prestador. El mismo límite para el precio base y para
+#: el de cada día: un "1e30" o un "inf" guardado rompería cada cotización.
+Precio = Annotated[
+    Decimal, Field(gt=0, max_digits=12, decimal_places=2, allow_inf_nan=False)
+]
+PreciosPorDia = dict[DiaSemana, Precio]
+
+
 class NuevaTarifa(BaseModel):
     nombre: Annotated[str, Field(min_length=1, max_length=80)]
-    precio_noche: Annotated[Decimal, Field(gt=0)]
+    precio_noche: Precio
     fecha_desde: date | None = None
     fecha_hasta: date | None = None
-    precios_dia_semana: dict[str, str] | None = None
+    precios_dia_semana: PreciosPorDia | None = None
     estadia_minima: Annotated[int, Field(default=1, ge=1, le=90)] = 1
     estadia_maxima: Annotated[int | None, Field(default=None, ge=1, le=365)] = None
     anticipacion_minima_dias: Annotated[int, Field(default=0, ge=0, le=90)] = 0
     prioridad: int = 0
 
 
-DiaSemana = Literal["0", "1", "2", "3", "4", "5", "6"]
-
-
 class NuevaFranja(BaseModel):
     nombre: Annotated[str, Field(min_length=1, max_length=80)]
     hora_inicio: time
     hora_fin: time = Field(description="Si es menor o igual que el inicio, termina al otro día")
-    precio: Annotated[Decimal, Field(gt=0, max_digits=12, decimal_places=2)]
-    precios_dia_semana: dict[DiaSemana, Annotated[Decimal, Field(gt=0)]] | None = None
+    precio: Precio
+    precios_dia_semana: PreciosPorDia | None = None
 
 
 class NuevaTarifaHoraria(BaseModel):
-    precio_hora: Annotated[Decimal, Field(gt=0, max_digits=12, decimal_places=2)]
+    precio_hora: Precio
     horas_minimas: Annotated[int, Field(ge=1, le=24)] = 1
     hora_apertura: time
     hora_cierre: time = Field(description="Si es menor o igual que la apertura, al otro día")
-    precios_dia_semana: dict[DiaSemana, Annotated[Decimal, Field(gt=0)]] | None = None
+    precios_dia_semana: PreciosPorDia | None = None
     recargo_nocturno_desde: time | None = None
     recargo_nocturno_porcentaje: Annotated[Decimal, Field(ge=0, le=100)] = Decimal(0)
 
@@ -131,7 +137,7 @@ class NuevaTarifaHoraria(BaseModel):
 class NuevoAdicional(BaseModel):
     nombre: Annotated[str, Field(min_length=1, max_length=80)]
     descripcion: Annotated[str | None, Field(default=None, max_length=200)] = None
-    precio: Annotated[Decimal, Field(gt=0, max_digits=12, decimal_places=2)]
+    precio: Precio
     por_persona: bool = False
 
 
@@ -752,7 +758,9 @@ def crear_tarifa(
             status.HTTP_409_CONFLICT,
             "Ya hay una tarifa de temporada que se pisa con esas fechas",
         )
-    db.add(Tarifa(unidad_id=unidad.id, **datos.model_dump()))
+    campos = datos.model_dump()
+    campos["precios_dia_semana"] = _por_dia_in(datos.precios_dia_semana)
+    db.add(Tarifa(unidad_id=unidad.id, **campos))
     db.commit()
     return _respuesta(db, publicacion_id, prestador)
 

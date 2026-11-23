@@ -27,9 +27,10 @@ from app.models import (
     TipoServicio,
     comodidad_tipo_servicio,
 )
-from app.models.enums import EstadoPublicacion
+from app.models.enums import EstadoPublicacion, ModoReserva
 from app.services import busqueda, precios, tipos
 from app.services import publicaciones as fichas
+from app.services import salones as salones_svc
 from app.services.privacidad import aproximar, distancia_publica, radio_publico
 
 router = APIRouter(tags=["publicaciones"])
@@ -355,6 +356,11 @@ class UnidadFichaOut(BaseModel):
     precio: PrecioOut | None
 
 
+class EnlaceOut(BaseModel):
+    titulo: str
+    slug: str
+
+
 class FichaOut(BaseModel):
     publicacion_id: UUID
     slug: str
@@ -380,6 +386,9 @@ class FichaOut(BaseModel):
     unidades: list[UnidadFichaOut]
     noches: int | None
     moneda: str = "ARS"
+    salones_del_anfitrion: list[EnlaceOut] = Field(
+        default_factory=list, description="Salones del mismo anfitrión (docs/04 §5 S10)"
+    )
 
 
 class ResumenDestinoOut(BaseModel):
@@ -587,6 +596,10 @@ def ficha(
         comodidades=[ComodidadOut(codigo=c.codigo, nombre=c.nombre) for c in p.comodidades],
         unidades=[_unidad_ficha_out(u) for u in f.unidades],
         noches=f.noches,
+        salones_del_anfitrion=[
+            EnlaceOut(titulo=x.titulo, slug=x.slug)
+            for x in salones_svc.del_mismo_anfitrion(db, p.prestador_id, ModoReserva.HORAS)
+        ],
     )
 
 

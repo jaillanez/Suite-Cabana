@@ -272,3 +272,37 @@ def test_un_espacio_con_horas_tomadas_se_desactiva_no_se_borra(
     db.expire_all()
     assert db.get(Unidad, uid).activa is False
     assert db.scalar(select(BloqueoHorario).where(BloqueoHorario.unidad_id == uid)) is not None
+
+
+@pytest.mark.parametrize("valor", ["1e30", "inf", "NaN", "0", "-5", "12.345"])
+def test_precios_por_dia_tienen_el_mismo_limite_que_el_base(
+    cliente, prestador, catalogo_salon, valor  # noqa: F811
+):
+    """Un valor fuera de rango guardado rompería cada cotización de ese salón."""
+    p = _crear_salon(cliente, prestador, catalogo_salon)
+    uid = _espacio(cliente, prestador, p["id"]).json()["unidades"][0]["id"]
+    r = cliente.post(
+        _url(p["id"], uid, "/franjas"), headers=prestador,
+        json={"nombre": "Noche", "hora_inicio": "21:00", "hora_fin": "05:00",
+              "precio": "1000", "precios_dia_semana": {"5": valor}},
+    )
+    assert r.status_code == 422, r.text
+
+
+def test_la_tarifa_por_noche_tampoco_acepta_cualquier_cosa(
+    cliente, prestador, catalogo_salon  # noqa: F811
+):
+    from tests.test_alta_publicaciones import _crear
+
+    cabana = _crear(cliente, prestador, catalogo_salon)
+    uid = cliente.post(
+        f"/api/v1/mis-publicaciones/{cabana}/unidades", headers=prestador,
+        json={"nombre": "Cabaña", "capacidad": 4},
+    ).json()["unidades"][0]["id"]
+    url = _url(cabana, uid, "/tarifas")
+    r = cliente.post(url, headers=prestador, json={
+        "nombre": "Base", "precio_noche": "1000", "precios_dia_semana": {"5": "abc"}})
+    assert r.status_code == 422
+    r = cliente.post(url, headers=prestador, json={
+        "nombre": "Base", "precio_noche": "1000", "precios_dia_semana": {"5": "1500"}})
+    assert r.status_code == 201, r.text

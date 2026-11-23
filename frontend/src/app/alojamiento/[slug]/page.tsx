@@ -12,7 +12,10 @@ import MapaPunto from "@/componentes/MapaPunto";
 import PanelReserva from "@/componentes/PanelReserva";
 import estilos from "./ficha.module.css";
 
-type Params = { params: Promise<{ slug: string }>; searchParams: Promise<Record<string, string | undefined>> };
+type Params = {
+  params: Promise<{ slug: string }>;
+  searchParams: Promise<Record<string, string | undefined>>;
+};
 
 function consulta(sp: Record<string, string | undefined>): URLSearchParams {
   const p = new URLSearchParams();
@@ -54,7 +57,9 @@ export default async function Ficha({ params, searchParams }: Params) {
     throw e;
   }
 
-  const ubicacion = [f.zona, f.localidad, f.provincia].filter(Boolean).join(" · ");
+  const ubicacion = [f.zona, f.localidad, f.provincia]
+    .filter(Boolean)
+    .join(" · ");
 
   return (
     <>
@@ -90,7 +95,9 @@ export default async function Ficha({ params, searchParams }: Params) {
         {f.es_demo && (
           <AvisoDemo
             variante={
-              f.fotos.some((foto) => foto.url.startsWith("/media/")) ? "provisorio" : "ejemplo"
+              f.fotos.some((foto) => foto.url.startsWith("/media/"))
+                ? "provisorio"
+                : "ejemplo"
             }
           />
         )}
@@ -105,8 +112,12 @@ export default async function Ficha({ params, searchParams }: Params) {
               </h2>
               <p className={estilos.prestador}>
                 Lo recibe <strong>{f.prestador.razon_social}</strong>
-                {f.prestador.verificado && <span className={estilos.verificado}>Verificado</span>}
-                <span className={estilos.desde}>Publica desde {f.prestador.publica_desde}</span>
+                {f.prestador.verificado && (
+                  <span className={estilos.verificado}>Verificado</span>
+                )}
+                <span className={estilos.desde}>
+                  Publica desde {f.prestador.publica_desde}
+                </span>
               </p>
               <p className={estilos.descripcion}>{f.descripcion}</p>
             </section>
@@ -119,7 +130,9 @@ export default async function Ficha({ params, searchParams }: Params) {
                     const Icono = ICONOS_COMODIDAD[c.codigo];
                     return (
                       <li key={c.codigo}>
-                        {Icono ? <Icono className={estilos.iconoChico} /> : null}
+                        {Icono ? (
+                          <Icono className={estilos.iconoChico} />
+                        ) : null}
                         {c.nombre}
                       </li>
                     );
@@ -140,13 +153,17 @@ export default async function Ficha({ params, searchParams }: Params) {
                         {u.capacidad_base && u.capacidad_base < u.capacidad
                           ? ` · ${u.capacidad_base} sin cargo extra`
                           : ""}
-                        {u.estadia_minima > 1 && ` · mínimo ${u.estadia_minima} noches`}
+                        {u.estadia_minima > 1 &&
+                          ` · mínimo ${u.estadia_minima} noches`}
                       </p>
-                      {(Number(u.cargo_limpieza) > 0 || Number(u.descuento_semanal) > 0) && (
+                      {(Number(u.cargo_limpieza) > 0 ||
+                        Number(u.descuento_semanal) > 0) && (
                         <p className={estilos.unidadDetalle}>
                           {Number(u.cargo_limpieza) > 0 &&
                             `Limpieza ${pesos(u.cargo_limpieza)}`}
-                          {Number(u.cargo_limpieza) > 0 && Number(u.descuento_semanal) > 0 && " · "}
+                          {Number(u.cargo_limpieza) > 0 &&
+                            Number(u.descuento_semanal) > 0 &&
+                            " · "}
                           {Number(u.descuento_semanal) > 0 &&
                             `${Number(u.descuento_semanal)}% menos desde 7 noches`}
                         </p>
@@ -173,7 +190,9 @@ export default async function Ficha({ params, searchParams }: Params) {
                     {f.hora_salida && `Salida hasta las ${f.hora_salida}`}
                   </p>
                 )}
-                {f.reglas_casa && <p className={estilos.descripcion}>{f.reglas_casa}</p>}
+                {f.reglas_casa && (
+                  <p className={estilos.descripcion}>{f.reglas_casa}</p>
+                )}
               </section>
             )}
 
@@ -195,8 +214,26 @@ export default async function Ficha({ params, searchParams }: Params) {
                   ))}
                 </ul>
                 {f.politica_cancelacion.descripcion && (
-                  <p className={estilos.nota}>{f.politica_cancelacion.descripcion}</p>
+                  <p className={estilos.nota}>
+                    {f.politica_cancelacion.descripcion}
+                  </p>
                 )}
+              </section>
+            )}
+
+            {f.salones_del_anfitrion && f.salones_del_anfitrion.length > 0 && (
+              <section>
+                <h2 className={estilos.subtitulo}>También tiene salón</h2>
+                <p className={estilos.descripcion}>
+                  El mismo anfitrión alquila espacio para eventos:{" "}
+                  {f.salones_del_anfitrion.map((s, i) => (
+                    <span key={s.slug}>
+                      {i > 0 && ", "}
+                      <Link href={`/salon/${s.slug}`}>{s.titulo}</Link>
+                    </span>
+                  ))}
+                  .
+                </p>
               </section>
             )}
 
