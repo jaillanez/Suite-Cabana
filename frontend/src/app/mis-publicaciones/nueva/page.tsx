@@ -7,14 +7,25 @@ import Encabezado from "@/componentes/Encabezado";
 import FormularioNueva from "@/componentes/FormularioNueva";
 import estilos from "../mis.module.css";
 
-export const metadata: Metadata = { title: "Nueva publicación", robots: { index: false } };
+export const metadata: Metadata = {
+  title: "Nueva publicación",
+  robots: { index: false },
+};
 
-export default async function Nueva() {
+export default async function Nueva({
+  searchParams,
+}: {
+  searchParams: Promise<{ tipo?: string }>;
+}) {
   const cuenta = await cuentaActual();
   if (!cuenta) redirect("/ingresar?volver=/mis-publicaciones/nueva");
   if (!cuenta.prestador) redirect("/cuenta");
 
-  const catalogo = await catalogoAlta();
+  const { tipo } = await searchParams;
+  const [alojamiento, salon] = await Promise.all([
+    catalogoAlta("alojamiento"),
+    catalogoAlta("salon_eventos"),
+  ]);
 
   return (
     <>
@@ -22,10 +33,15 @@ export default async function Nueva() {
       <main className={estilos.pagina}>
         <h1>Nueva publicación</h1>
         <p className={estilos.subtitulo}>
-          Empezá con el nombre y dónde queda. El resto lo completás después, y se guarda como
-          borrador hasta que la mandes a revisión.
+          Empezá con el nombre y dónde queda. El resto lo completás después, y
+          se guarda como borrador hasta que la mandes a revisión.
         </p>
-        <FormularioNueva catalogo={catalogo} />
+        <FormularioNueva
+          catalogos={{ alojamiento, salon_eventos: salon }}
+          tipoInicial={
+            tipo === "salon_eventos" ? "salon_eventos" : "alojamiento"
+          }
+        />
       </main>
     </>
   );

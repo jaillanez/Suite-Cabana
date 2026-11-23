@@ -11,7 +11,7 @@ from __future__ import annotations
 import uuid
 from datetime import date, datetime, time
 from decimal import Decimal
-from typing import Annotated
+from typing import Annotated, Literal
 
 from fastapi import APIRouter, Depends, File, HTTPException, Query, UploadFile, status
 from pydantic import BaseModel, Field
@@ -22,19 +22,24 @@ from app.api.deps import prestador_actual
 from app.api.v1.publicaciones import Dinero
 from app.core.database import get_db
 from app.models import (
+    Adicional,
+    BloqueoHorario,
     CalendarioExterno,
     Comodidad,
     Foto,
+    FranjaHoraria,
     Localidad,
+    PoliticaCancelacion,
     Prestador,
     Publicacion,
     SubtipoServicio,
     Tarifa,
+    TarifaHoraria,
     TipoServicio,
     Unidad,
     comodidad_tipo_servicio,
 )
-from app.models.enums import EstadoPublicacion
+from app.models.enums import EstadoPublicacion, ModoReserva
 from app.services import calendario as agenda
 from app.services import edicion
 from app.services import fotos as almacen
@@ -49,6 +54,7 @@ class NuevaPublicacion(BaseModel):
     titulo: Annotated[str, Field(min_length=3, max_length=150)]
     localidad_id: uuid.UUID
     subtipo_servicio_id: uuid.UUID | None = None
+    tipo: Literal["alojamiento", "salon_eventos"] = "alojamiento"
 
 
 class CambioPublicacion(BaseModel):
@@ -66,12 +72,21 @@ class CambioPublicacion(BaseModel):
     confirmacion_inmediata: bool | None = None
     politica_cancelacion_id: uuid.UUID | None = None
     comodidades: list[str] | None = Field(default=None, description="Códigos de comodidad")
+    porcentaje_sena: Annotated[
+        int | None, Field(default=None, ge=0, le=100, description="0: sin seña, se cobra todo")
+    ] = None
+
+
+#: Una unidad de alojamiento no pasa de esto; un salón sí (docs/04 §5 S3).
+CAPACIDAD_MAXIMA_ALOJAMIENTO = 30
 
 
 class NuevaUnidad(BaseModel):
     nombre: Annotated[str, Field(min_length=1, max_length=120)]
-    capacidad: Annotated[int, Field(ge=1, le=30)]
-    capacidad_base: Annotated[int | None, Field(default=None, ge=1, le=30)] = None
+    capacidad: Annotated[int, Field(ge=1, le=5000)]
+    capacidad_base: Annotated[int | None, Field(default=None, ge=1, le=5000)] = None
+    capacidad_sentados: Annotated[int | None, Field(default=None, ge=1, le=5000)] = None
+    preparacion_minutos: Annotated[int, Field(default=0, ge=0, le=720)] = 0
     cargo_limpieza: Decimal = Decimal(0)
     cargo_persona_extra: Decimal = Decimal(0)
     cargo_mascota: Decimal = Decimal(0)
@@ -90,6 +105,61 @@ class NuevaTarifa(BaseModel):
     estadia_maxima: Annotated[int | None, Field(default=None, ge=1, le=365)] = None
     anticipacion_minima_dias: Annotated[int, Field(default=0, ge=0, le=90)] = 0
     prioridad: int = 0
+
+
+DiaSemana = Literal["0", "1", "2", "3", "4", "5", "6"]
+
+
+class NuevaFranja(BaseModel):
+    nombre: Annotated[str, Field(min_length=1, max_length=80)]
+    hora_inicio: time
+    hora_fin: time = Field(description="Si es menor o igual que el inicio, termina al otro día")
+    precio: Annotated[Decimal, Field(gt=0, max_digits=12, decimal_places=2)]
+    precios_dia_semana: dict[DiaSemana, Annotated[Decimal, Field(gt=0)]] | None = None
+
+
+class NuevaTarifaHoraria(BaseModel):
+    precio_hora: Annotated[Decimal, Field(gt=0, max_digits=12, decimal_places=2)]
+    horas_minimas: Annotated[int, Field(ge=1, le=24)] = 1
+    hora_apertura: time
+    hora_cierre: time = Field(description="Si es menor o igual que la apertura, al otro día")
+    precios_dia_semana: dict[DiaSemana, Annotated[Decimal, Field(gt=0)]] | None = None
+    recargo_nocturno_desde: time | None = None
+    recargo_nocturno_porcentaje: Annotated[Decimal, Field(ge=0, le=100)] = Decimal(0)
+
+
+class NuevoAdicional(BaseModel):
+    nombre: Annotated[str, Field(min_length=1, max_length=80)]
+    descripcion: Annotated[str | None, Field(default=None, max_length=200)] = None
+    precio: Annotated[Decimal, Field(gt=0, max_digits=12, decimal_places=2)]
+    por_persona: bool = False
+
+
+class FranjaOut(BaseModel):
+    id: uuid.UUID
+    nombre: str
+    hora_inicio: time
+    hora_fin: time
+    precio: Dinero
+    precios_dia_semana: dict[str, str] | None
+
+
+class TarifaHorariaOut(BaseModel):
+    precio_hora: Dinero
+    horas_minimas: int
+    hora_apertura: time
+    hora_cierre: time
+    precios_dia_semana: dict[str, str] | None
+    recargo_nocturno_desde: time | None
+    recargo_nocturno_porcentaje: Decimal
+
+
+class AdicionalOut(BaseModel):
+    id: uuid.UUID
+    nombre: str
+    descripcion: str | None
+    precio: Dinero
+    por_persona: bool
 
 
 class TarifaOut(BaseModel):
@@ -116,6 +186,12 @@ class UnidadOut(BaseModel):
     descuento_mensual: Dinero
     activa: bool
     tarifas: list[TarifaOut]
+    # Salones (docs/04)
+    capacidad_sentados: int | None = None
+    preparacion_minutos: int = 0
+    franjas: list[FranjaOut] = Field(default_factory=list)
+    tarifa_horaria: TarifaHorariaOut | None = None
+    adicionales: list[AdicionalOut] = Field(default_factory=list)
 
 
 class FotoOut(BaseModel):
@@ -127,6 +203,9 @@ class FotoOut(BaseModel):
 
 class PublicacionOut(BaseModel):
     id: uuid.UUID
+    tipo: str = Field(description="Código del tipo de servicio: alojamiento, salon_eventos")
+    modo_reserva: ModoReserva
+    porcentaje_sena: int | None
     slug: str
     titulo: str
     descripcion: str
@@ -219,6 +298,10 @@ def _mia(
             selectinload(Publicacion.fotos),
             selectinload(Publicacion.comodidades),
             selectinload(Publicacion.unidades).selectinload(Unidad.tarifas),
+            selectinload(Publicacion.unidades).selectinload(Unidad.franjas),
+            selectinload(Publicacion.unidades).selectinload(Unidad.tarifa_horaria),
+            selectinload(Publicacion.unidades).selectinload(Unidad.adicionales),
+            selectinload(Publicacion.tipo_servicio),
             selectinload(Publicacion.localidad).selectinload(Localidad.provincia),
         )
     )
@@ -260,6 +343,9 @@ def _salida(db: Session, p: Publicacion) -> PublicacionOut:
     lat, lon = _coordenadas(db, p.id)
     return PublicacionOut(
         id=p.id,
+        tipo=p.tipo_servicio.codigo,
+        modo_reserva=p.tipo_servicio.modo_reserva,
+        porcentaje_sena=p.porcentaje_sena,
         slug=p.slug,
         titulo=p.titulo,
         descripcion=p.descripcion,
@@ -309,6 +395,38 @@ def _salida(db: Session, p: Publicacion) -> PublicacionOut:
                     )
                     for t in sorted(u.tarifas, key=lambda x: (x.prioridad, x.nombre))
                 ],
+                capacidad_sentados=u.capacidad_sentados,
+                preparacion_minutos=u.preparacion_minutos or 0,
+                franjas=[
+                    FranjaOut(
+                        id=f.id, nombre=f.nombre, hora_inicio=f.hora_inicio,
+                        hora_fin=f.hora_fin, precio=f.precio,
+                        precios_dia_semana=_por_dia_out(f.precios_dia_semana),
+                    )
+                    for f in sorted(u.franjas, key=lambda x: x.hora_inicio)
+                    if f.activa
+                ],
+                tarifa_horaria=(
+                    TarifaHorariaOut(
+                        precio_hora=u.tarifa_horaria.precio_hora,
+                        horas_minimas=u.tarifa_horaria.horas_minimas,
+                        hora_apertura=u.tarifa_horaria.hora_apertura,
+                        hora_cierre=u.tarifa_horaria.hora_cierre,
+                        precios_dia_semana=_por_dia_out(u.tarifa_horaria.precios_dia_semana),
+                        recargo_nocturno_desde=u.tarifa_horaria.recargo_nocturno_desde,
+                        recargo_nocturno_porcentaje=u.tarifa_horaria.recargo_nocturno_porcentaje,
+                    )
+                    if u.tarifa_horaria and u.tarifa_horaria.activa
+                    else None
+                ),
+                adicionales=[
+                    AdicionalOut(
+                        id=a.id, nombre=a.nombre, descripcion=a.descripcion, precio=a.precio,
+                        por_persona=a.por_persona,
+                    )
+                    for a in sorted(u.adicionales, key=lambda x: x.nombre)
+                    if a.activo
+                ],
             )
             for u in sorted(p.unidades, key=lambda x: (x.capacidad, x.nombre))
         ],
@@ -317,6 +435,50 @@ def _salida(db: Session, p: Publicacion) -> PublicacionOut:
 
 
 # --- Publicación ---
+
+
+def _por_dia_out(precios: dict | None) -> dict[str, str] | None:
+    return {k: str(v) for k, v in precios.items()} if precios else None
+
+
+def _por_dia_in(precios: dict | None) -> dict[str, str] | None:
+    """Precios por día como texto en el JSON: un float perdería centavos."""
+    return {k: str(v) for k, v in precios.items()} if precios else None
+
+
+def _de_salon(p: Publicacion) -> None:
+    if p.tipo_servicio.modo_reserva is not ModoReserva.HORAS:
+        raise HTTPException(
+            status.HTTP_409_CONFLICT, "Esto es para salones: un alojamiento se cobra por noche"
+        )
+
+
+def _unidad_de(db: Session, p: Publicacion, unidad_id: uuid.UUID) -> Unidad:
+    unidad = db.scalar(select(Unidad).where(Unidad.id == unidad_id, Unidad.publicacion_id == p.id))
+    if unidad is None:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "No encontramos esa unidad")
+    return unidad
+
+
+def _validar_unidad(p: Publicacion, datos: NuevaUnidad) -> None:
+    if (
+        p.tipo_servicio.modo_reserva is not ModoReserva.HORAS
+        and datos.capacidad > CAPACIDAD_MAXIMA_ALOJAMIENTO
+    ):
+        raise HTTPException(
+            status.HTTP_422_UNPROCESSABLE_ENTITY,
+            f"Una unidad de alojamiento admite hasta {CAPACIDAD_MAXIMA_ALOJAMIENTO} personas",
+        )
+    if datos.capacidad_base and datos.capacidad_base > datos.capacidad:
+        raise HTTPException(
+            status.HTTP_422_UNPROCESSABLE_ENTITY,
+            "La capacidad sin cargo no puede superar la capacidad total",
+        )
+    if datos.capacidad_sentados and datos.capacidad_sentados > datos.capacidad:
+        raise HTTPException(
+            status.HTTP_422_UNPROCESSABLE_ENTITY,
+            "Sentados no pueden ser más que la capacidad total",
+        )
 
 
 def _exigir_subtipo_del_tipo(db: Session, subtipo_id, tipo_id) -> None:
@@ -337,8 +499,18 @@ def crear(
     localidad = db.get(Localidad, datos.localidad_id)
     if localidad is None:
         raise HTTPException(status.HTTP_422_UNPROCESSABLE_ENTITY, "Esa localidad no existe")
-    tipo = db.scalar(select(TipoServicio).where(TipoServicio.codigo == "alojamiento"))
+    tipo = db.scalar(select(TipoServicio).where(TipoServicio.codigo == datos.tipo))
+    if tipo is None:
+        raise HTTPException(status.HTTP_422_UNPROCESSABLE_ENTITY, "Ese tipo no existe")
     _exigir_subtipo_del_tipo(db, datos.subtipo_servicio_id, tipo.id)
+    # Un salón arranca con la política de eventos y "a solicitud": un evento se
+    # coordina antes de cerrarse (docs/04 §2). El prestador lo puede cambiar.
+    es_salon = tipo.modo_reserva is ModoReserva.HORAS
+    politica = (
+        db.scalar(select(PoliticaCancelacion).where(PoliticaCancelacion.codigo == "eventos"))
+        if es_salon
+        else None
+    )
 
     publicacion = Publicacion(
         prestador_id=prestador.id,
@@ -349,6 +521,8 @@ def crear(
         descripcion="",
         estado=EstadoPublicacion.BORRADOR,
         localidad_id=localidad.id,
+        confirmacion_inmediata=not es_salon,
+        politica_cancelacion_id=politica.id if politica else None,
     )
     db.add(publicacion)
     db.commit()
@@ -416,6 +590,9 @@ def editar(
 
     if (subtipo := datos.get("subtipo_servicio_id")) is not None:
         _exigir_subtipo_del_tipo(db, subtipo, p.tipo_servicio_id)
+
+    if datos.get("porcentaje_sena") == 0:
+        datos["porcentaje_sena"] = None  # 0: sin seña, se cobra el total
 
     for campo, valor in datos.items():
         setattr(p, campo, valor.strip() if isinstance(valor, str) else valor)
@@ -495,11 +672,7 @@ def crear_unidad(
     db: Session = Depends(get_db),
 ) -> PublicacionOut:
     p = _mia(publicacion_id, prestador, db, editable=True)
-    if datos.capacidad_base and datos.capacidad_base > datos.capacidad:
-        raise HTTPException(
-            status.HTTP_422_UNPROCESSABLE_ENTITY,
-            "La capacidad sin cargo no puede superar la capacidad total",
-        )
+    _validar_unidad(p, datos)
     db.add(Unidad(publicacion_id=p.id, **datos.model_dump()))
     db.commit()
     return _respuesta(db, publicacion_id, prestador)
@@ -514,9 +687,8 @@ def editar_unidad(
     db: Session = Depends(get_db),
 ) -> PublicacionOut:
     p = _mia(publicacion_id, prestador, db, editable=True)
-    unidad = db.scalar(select(Unidad).where(Unidad.id == unidad_id, Unidad.publicacion_id == p.id))
-    if unidad is None:
-        raise HTTPException(status.HTTP_404_NOT_FOUND, "No encontramos esa unidad")
+    unidad = _unidad_de(db, p, unidad_id)
+    _validar_unidad(p, cambios)
     for campo, valor in cambios.model_dump().items():
         setattr(unidad, campo, valor)
     db.commit()
@@ -537,14 +709,19 @@ def borrar_unidad(
     # Si ya tuvo movimiento no se borra: se desactiva, para no perder el historial.
     from app.models import BloqueoFecha, ItemReserva
 
-    con_historia = db.scalar(
-        select(ItemReserva.id).where(ItemReserva.unidad_id == unidad.id)
-    ) or db.scalar(select(BloqueoFecha.id).where(BloqueoFecha.unidad_id == unidad.id))
+    con_historia = (
+        db.scalar(select(ItemReserva.id).where(ItemReserva.unidad_id == unidad.id))
+        or db.scalar(select(BloqueoFecha.id).where(BloqueoFecha.unidad_id == unidad.id))
+        or db.scalar(select(BloqueoHorario.id).where(BloqueoHorario.unidad_id == unidad.id))
+    )
     if con_historia:
         unidad.activa = False
     else:
-        for t in list(unidad.tarifas):
-            db.delete(t)
+        for hijo in [
+            *unidad.tarifas, *unidad.franjas, *unidad.adicionales,
+            *([unidad.tarifa_horaria] if unidad.tarifa_horaria else []),
+        ]:
+            db.delete(hijo)
         db.delete(unidad)
     db.commit()
     return _respuesta(db, publicacion_id, prestador)
@@ -560,9 +737,12 @@ def crear_tarifa(
     db: Session = Depends(get_db),
 ) -> PublicacionOut:
     p = _mia(publicacion_id, prestador, db, editable=True)
-    unidad = db.scalar(select(Unidad).where(Unidad.id == unidad_id, Unidad.publicacion_id == p.id))
-    if unidad is None:
-        raise HTTPException(status.HTTP_404_NOT_FOUND, "No encontramos esa unidad")
+    unidad = _unidad_de(db, p, unidad_id)
+    if p.tipo_servicio.modo_reserva is not ModoReserva.NOCHES:
+        raise HTTPException(
+            status.HTTP_409_CONFLICT,
+            "Un salón no se cobra por noche: cargá turnos o precio por hora",
+        )
     if datos.fecha_desde and datos.fecha_hasta and datos.fecha_hasta < datos.fecha_desde:
         raise HTTPException(
             status.HTTP_422_UNPROCESSABLE_ENTITY, "El rango de fechas está al revés"
@@ -595,6 +775,142 @@ def borrar_tarifa(
     if tarifa is None:
         raise HTTPException(status.HTTP_404_NOT_FOUND, "No encontramos esa tarifa")
     db.delete(tarifa)
+    db.commit()
+    return _respuesta(db, publicacion_id, prestador)
+
+
+# --- Salones: turnos, precio por hora y adicionales (docs/04 §4) ---
+
+
+@router.post("/{publicacion_id}/unidades/{unidad_id}/franjas", response_model=PublicacionOut,
+             status_code=201)
+def crear_franja(
+    publicacion_id: uuid.UUID,
+    unidad_id: uuid.UUID,
+    datos: NuevaFranja,
+    prestador: Prestador = Depends(prestador_actual),
+    db: Session = Depends(get_db),
+) -> PublicacionOut:
+    p = _mia(publicacion_id, prestador, db, editable=True)
+    _de_salon(p)
+    unidad = _unidad_de(db, p, unidad_id)
+    if datos.hora_inicio == datos.hora_fin:
+        raise HTTPException(
+            status.HTTP_422_UNPROCESSABLE_ENTITY, "El turno tiene que empezar y terminar distinto"
+        )
+    db.add(
+        FranjaHoraria(
+            unidad_id=unidad.id,
+            nombre=datos.nombre.strip(),
+            hora_inicio=datos.hora_inicio,
+            hora_fin=datos.hora_fin,
+            precio=datos.precio,
+            precios_dia_semana=_por_dia_in(datos.precios_dia_semana),
+        )
+    )
+    db.commit()
+    return _respuesta(db, publicacion_id, prestador)
+
+
+@router.delete("/{publicacion_id}/unidades/{unidad_id}/franjas/{franja_id}",
+               response_model=PublicacionOut)
+def borrar_franja(
+    publicacion_id: uuid.UUID,
+    unidad_id: uuid.UUID,
+    franja_id: uuid.UUID,
+    prestador: Prestador = Depends(prestador_actual),
+    db: Session = Depends(get_db),
+) -> PublicacionOut:
+    p = _mia(publicacion_id, prestador, db, editable=True)
+    unidad = _unidad_de(db, p, unidad_id)
+    franja = db.scalar(
+        select(FranjaHoraria).where(
+            FranjaHoraria.id == franja_id, FranjaHoraria.unidad_id == unidad.id
+        )
+    )
+    if franja is None:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "No encontramos ese turno")
+    # Las reservas guardan el turno en su desglose: borrarlo no las toca.
+    db.delete(franja)
+    db.commit()
+    return _respuesta(db, publicacion_id, prestador)
+
+
+@router.put("/{publicacion_id}/unidades/{unidad_id}/tarifa-horaria",
+            response_model=PublicacionOut)
+def guardar_tarifa_horaria(
+    publicacion_id: uuid.UUID,
+    unidad_id: uuid.UUID,
+    datos: NuevaTarifaHoraria,
+    prestador: Prestador = Depends(prestador_actual),
+    db: Session = Depends(get_db),
+) -> PublicacionOut:
+    p = _mia(publicacion_id, prestador, db, editable=True)
+    _de_salon(p)
+    unidad = _unidad_de(db, p, unidad_id)
+    campos = datos.model_dump()
+    campos["precios_dia_semana"] = _por_dia_in(datos.precios_dia_semana)
+    tarifa = unidad.tarifa_horaria
+    if tarifa is None:
+        db.add(TarifaHoraria(unidad_id=unidad.id, **campos))
+    else:
+        for campo, valor in campos.items():
+            setattr(tarifa, campo, valor)
+        tarifa.activa = True
+    db.commit()
+    return _respuesta(db, publicacion_id, prestador)
+
+
+@router.delete("/{publicacion_id}/unidades/{unidad_id}/tarifa-horaria",
+               response_model=PublicacionOut)
+def quitar_tarifa_horaria(
+    publicacion_id: uuid.UUID,
+    unidad_id: uuid.UUID,
+    prestador: Prestador = Depends(prestador_actual),
+    db: Session = Depends(get_db),
+) -> PublicacionOut:
+    p = _mia(publicacion_id, prestador, db, editable=True)
+    unidad = _unidad_de(db, p, unidad_id)
+    if unidad.tarifa_horaria is not None:
+        db.delete(unidad.tarifa_horaria)
+    db.commit()
+    return _respuesta(db, publicacion_id, prestador)
+
+
+@router.post("/{publicacion_id}/unidades/{unidad_id}/adicionales",
+             response_model=PublicacionOut, status_code=201)
+def crear_adicional(
+    publicacion_id: uuid.UUID,
+    unidad_id: uuid.UUID,
+    datos: NuevoAdicional,
+    prestador: Prestador = Depends(prestador_actual),
+    db: Session = Depends(get_db),
+) -> PublicacionOut:
+    p = _mia(publicacion_id, prestador, db, editable=True)
+    _de_salon(p)
+    unidad = _unidad_de(db, p, unidad_id)
+    db.add(Adicional(unidad_id=unidad.id, **datos.model_dump()))
+    db.commit()
+    return _respuesta(db, publicacion_id, prestador)
+
+
+@router.delete("/{publicacion_id}/unidades/{unidad_id}/adicionales/{adicional_id}",
+               response_model=PublicacionOut)
+def borrar_adicional(
+    publicacion_id: uuid.UUID,
+    unidad_id: uuid.UUID,
+    adicional_id: uuid.UUID,
+    prestador: Prestador = Depends(prestador_actual),
+    db: Session = Depends(get_db),
+) -> PublicacionOut:
+    p = _mia(publicacion_id, prestador, db, editable=True)
+    unidad = _unidad_de(db, p, unidad_id)
+    adicional = db.scalar(
+        select(Adicional).where(Adicional.id == adicional_id, Adicional.unidad_id == unidad.id)
+    )
+    if adicional is None:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "No encontramos ese adicional")
+    db.delete(adicional)
     db.commit()
     return _respuesta(db, publicacion_id, prestador)
 

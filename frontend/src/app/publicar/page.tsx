@@ -6,24 +6,20 @@ import Encabezado from "@/componentes/Encabezado";
 import estilos from "./publicar.module.css";
 
 export const metadata: Metadata = {
-  title: "Sumá tu alojamiento",
+  title: "Sumá tu alojamiento o tu salón",
   description:
-    "Cómo publicar tu alojamiento. El alta pública todavía no está abierta: arrancamos con un grupo inicial de prestadores.",
+    "Cómo publicar tu alojamiento o tu salón de eventos: fotos, precios, disponibilidad y cobro directo a tu cuenta de Mercado Pago.",
 };
-
-/* Página honesta: el alta de publicaciones es el Bloque 2 del plan y todavía no
-   existe. Antes que un formulario que no hace nada, se explica el estado real. */
 export default async function Publicar() {
   const cuenta = await cuentaActual();
   return (
     <>
       <Encabezado />
       <main className={estilos.pagina}>
-        <h1>Sumá tu alojamiento</h1>
+        <h1>Sumá tu alojamiento o tu salón</h1>
         <p className={estilos.bajada}>
-          Todavía no abrimos el alta pública. Estamos arrancando con un grupo inicial de
-          prestadores para probar el circuito completo —publicación, reserva y cobro— antes de
-          abrirlo a todos.
+          Publicá tus cabañas, y si tenés salón, quincho o espacio para eventos,
+          publicalo también: cada uno con sus precios y su disponibilidad.
         </p>
 
         <section>
@@ -34,26 +30,30 @@ export default async function Publicar() {
           <ol className={estilos.pasos}>
             <li>
               <span>
-                <strong>Creás tu publicación</strong> con fotos, servicios, reglas de la casa y
-                todas las unidades que alquiles, cada una con su capacidad.
+                <strong>Creás tu publicación</strong> con fotos, servicios,
+                reglas y todas las unidades o espacios que alquiles, cada uno
+                con su capacidad.
               </span>
             </li>
             <li>
               <span>
-                <strong>Cargás tarifas y calendario</strong>: precio por noche, temporadas,
-                estadía mínima, cargos y descuentos. Podés sincronizar con Booking y Airbnb por
-                iCal para que nunca se superpongan las fechas.
+                <strong>Cargás precios y calendario</strong>. Alojamiento:
+                precio por noche, temporadas, estadía mínima, y sincronización
+                con Booking y Airbnb. Salones: turnos fijos o precio por hora,
+                capacidad, adicionales y seña.
               </span>
             </li>
             <li>
               <span>
-                <strong>Revisamos la publicación</strong> antes de que salga a la vista.
+                <strong>Revisamos la publicación</strong> antes de que salga a
+                la vista.
               </span>
             </li>
             <li>
               <span>
-                <strong>Cobrás directo</strong>. El pago entra a tu cuenta de Mercado Pago y la
-                comisión se descuenta en la misma operación: la plataforma no retiene tu plata.
+                <strong>Cobrás directo</strong>. El pago entra a tu cuenta de
+                Mercado Pago: la plataforma no retiene tu plata. La comisión se
+                factura aparte.
               </span>
             </li>
           </ol>
@@ -63,29 +63,40 @@ export default async function Publicar() {
           <h2>Qué vas a necesitar</h2>
           <ul className={estilos.requisitos}>
             <li>CUIT y condición frente al IVA.</li>
-            <li>Una cuenta de Mercado Pago a tu nombre para recibir los cobros.</li>
-            <li>Al menos cinco fotos del alojamiento.</li>
-            <li>La ubicación en el mapa y los horarios de ingreso y salida.</li>
+            <li>
+              Una cuenta de Mercado Pago a tu nombre para recibir los cobros.
+            </li>
+            <li>Al menos cinco fotos.</li>
+            <li>
+              La ubicación en el mapa y, para alojamiento, los horarios de
+              ingreso y salida.
+            </li>
           </ul>
           <p className={estilos.nota}>
-            Sin datos fiscales y cuenta de cobro vinculada no se puede publicar: es lo que
-            permite que el dinero vaya directo a vos.
+            Sin datos fiscales y cuenta de cobro vinculada no se puede publicar:
+            es lo que permite que el dinero vaya directo a vos.
           </p>
         </section>
 
         {cuenta?.prestador ? (
           <p className={estilos.salida}>
             Ya cargaste tus datos de prestador:{" "}
-            <Link href="/mis-publicaciones">armá tu publicación</Link>. Queda en borrador hasta
-            que la mandes a revisión.
+            <Link href="/mis-publicaciones/nueva">publicá un alojamiento</Link>{" "}
+            o{" "}
+            <Link href="/mis-publicaciones/nueva?tipo=salon_eventos">
+              un salón
+            </Link>
+            . Queda en borrador hasta que la mandes a revisión.
           </p>
         ) : cuenta ? (
           <p className={estilos.salida}>
-            Para empezar, cargá tus datos fiscales desde <Link href="/cuenta">tu cuenta</Link>.
+            Para empezar, cargá tus datos fiscales desde{" "}
+            <Link href="/cuenta">tu cuenta</Link>.
           </p>
         ) : (
           <p className={estilos.salida}>
-            Para empezar, <Link href="/registrarse">creá tu cuenta</Link>. Mientras tanto podés{" "}
+            Para empezar, <Link href="/registrarse">creá tu cuenta</Link>.
+            Mientras tanto podés{" "}
             <Link href="/buscar">ver cómo se muestra la oferta</Link>.
           </p>
         )}

@@ -9,7 +9,10 @@ import Estado from "@/componentes/EstadoPublicacion";
 import { Alerta } from "@/componentes/Iconos";
 import estilos from "./mis.module.css";
 
-export const metadata: Metadata = { title: "Mis publicaciones", robots: { index: false } };
+export const metadata: Metadata = {
+  title: "Mis publicaciones",
+  robots: { index: false },
+};
 
 export default async function MisPublicaciones() {
   const cuenta = await cuentaActual();
@@ -17,7 +20,9 @@ export default async function MisPublicaciones() {
   if (!cuenta.prestador) redirect("/cuenta");
 
   const token = await tokenActual();
-  const publicaciones = token ? await misPublicaciones(token).catch(() => []) : [];
+  const publicaciones = token
+    ? await misPublicaciones(token).catch(() => [])
+    : [];
 
   return (
     <>
@@ -39,8 +44,9 @@ export default async function MisPublicaciones() {
           <p className={estilos.aviso}>
             <Alerta className={estilos.icono} />
             <span>
-              Podés preparar tu publicación, pero para mandarla a revisión falta vincular tu
-              cuenta de Mercado Pago. Es lo que hace que el pago entre directo a vos.
+              Podés preparar tu publicación, pero para mandarla a revisión falta
+              vincular tu cuenta de Mercado Pago. Es lo que hace que el pago
+              entre directo a vos.
             </span>
           </p>
         )}
@@ -49,8 +55,8 @@ export default async function MisPublicaciones() {
           <div className={estilos.vacio}>
             <h2>Todavía no tenés publicaciones</h2>
             <p>
-              Creá la primera. Podés guardarla como borrador e ir completándola de a poco: se
-              manda a revisión recién cuando esté lista.
+              Creá la primera. Podés guardarla como borrador e ir completándola
+              de a poco: se manda a revisión recién cuando esté lista.
             </p>
             <Link href="/mis-publicaciones/nueva" className={estilos.nueva}>
               Crear la primera
@@ -60,7 +66,10 @@ export default async function MisPublicaciones() {
           <ul className={estilos.lista}>
             {publicaciones.map((p) => (
               <li key={p.id}>
-                <Link href={`/mis-publicaciones/${p.id}`} className={estilos.fila}>
+                <Link
+                  href={`/mis-publicaciones/${p.id}`}
+                  className={estilos.fila}
+                >
                   <span className={estilos.miniatura}>
                     {p.fotos[0] ? (
                       <img src={p.fotos[0].url} alt="" loading="lazy" />
@@ -71,15 +80,24 @@ export default async function MisPublicaciones() {
                   <span className={estilos.datos}>
                     <strong>{p.titulo}</strong>
                     <span className={estilos.lugar}>
+                      {p.tipo === "salon_eventos" ? "Salón de eventos · " : ""}
                       {p.localidad} · {p.provincia}
                     </span>
                     <span className={estilos.numeros}>
                       <span className="cifra">{p.fotos.length}</span> fotos ·{" "}
                       <span className="cifra">{p.unidades.length}</span>{" "}
-                      {p.unidades.length === 1 ? "unidad" : "unidades"}
+                      {p.tipo === "salon_eventos"
+                        ? p.unidades.length === 1
+                          ? "espacio"
+                          : "espacios"
+                        : p.unidades.length === 1
+                          ? "unidad"
+                          : "unidades"}
                       {p.faltantes.length > 0 && (
                         <span className={estilos.faltan}>
-                          · faltan <span className="cifra">{p.faltantes.length}</span> cosas
+                          · faltan{" "}
+                          <span className="cifra">{p.faltantes.length}</span>{" "}
+                          cosas
                         </span>
                       )}
                     </span>

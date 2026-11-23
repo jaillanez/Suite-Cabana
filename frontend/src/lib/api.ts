@@ -331,12 +331,53 @@ export type UnidadEdicion = {
   descuento_mensual: string;
   activa: boolean;
   tarifas: TarifaEdicion[];
+  /* Salones (docs/04). En alojamiento vienen vacíos. */
+  capacidad_sentados: number | null;
+  preparacion_minutos: number;
+  franjas: FranjaEdicion[];
+  tarifa_horaria: TarifaHorariaEdicion | null;
+  adicionales: AdicionalEdicion[];
 };
+
+/** Precio por día de la semana: "0" es lunes, "6" domingo. */
+export type PreciosPorDia = Record<string, string> | null;
+
+export type FranjaEdicion = {
+  id: string;
+  nombre: string;
+  hora_inicio: string;
+  hora_fin: string;
+  precio: string;
+  precios_dia_semana: PreciosPorDia;
+};
+
+export type TarifaHorariaEdicion = {
+  precio_hora: string;
+  horas_minimas: number;
+  hora_apertura: string;
+  hora_cierre: string;
+  precios_dia_semana: PreciosPorDia;
+  recargo_nocturno_desde: string | null;
+  recargo_nocturno_porcentaje: string;
+};
+
+export type AdicionalEdicion = {
+  id: string;
+  nombre: string;
+  descripcion: string | null;
+  precio: string;
+  por_persona: boolean;
+};
+
+export type TipoServicioCodigo = "alojamiento" | "salon_eventos";
 
 export type FotoEdicion = { id: string; url: string; orden: number; descripcion: string | null };
 
 export type PublicacionEdicion = {
   id: string;
+  tipo: TipoServicioCodigo;
+  modo_reserva: "noches" | "horas";
+  porcentaje_sena: number | null;
   slug: string;
   titulo: string;
   descripcion: string;
@@ -371,7 +412,12 @@ export const miPublicacion = (token: string, id: string) =>
 
 export const crearPublicacion = (
   token: string,
-  datos: { titulo: string; localidad_id: string; subtipo_servicio_id?: string },
+  datos: {
+    titulo: string;
+    localidad_id: string;
+    subtipo_servicio_id?: string;
+    tipo?: TipoServicioCodigo;
+  },
 ) => api<PublicacionEdicion>(MIS, { method: "POST", token, body: JSON.stringify(datos) });
 
 export const editarPublicacion = (token: string, id: string, cambios: Record<string, unknown>) =>
@@ -418,6 +464,42 @@ export const borrarTarifa = (token: string, id: string, unidadId: string, tarifa
     method: "DELETE",
     token,
   });
+
+/* Salones: turnos, precio por hora y adicionales de un espacio. */
+const UNIDAD = (id: string, unidadId: string) => `${MIS}/${id}/unidades/${unidadId}`;
+
+const enviar = (token: string, ruta: string, method: string, datos?: unknown) =>
+  api<PublicacionEdicion>(ruta, {
+    method,
+    token,
+    ...(datos === undefined ? {} : { body: JSON.stringify(datos) }),
+  });
+
+export const crearFranja = (token: string, id: string, unidadId: string, datos: unknown) =>
+  enviar(token, `${UNIDAD(id, unidadId)}/franjas`, "POST", datos);
+
+export const borrarFranja = (token: string, id: string, unidadId: string, franjaId: string) =>
+  enviar(token, `${UNIDAD(id, unidadId)}/franjas/${franjaId}`, "DELETE");
+
+export const guardarTarifaHoraria = (
+  token: string,
+  id: string,
+  unidadId: string,
+  datos: unknown,
+) => enviar(token, `${UNIDAD(id, unidadId)}/tarifa-horaria`, "PUT", datos);
+
+export const quitarTarifaHoraria = (token: string, id: string, unidadId: string) =>
+  enviar(token, `${UNIDAD(id, unidadId)}/tarifa-horaria`, "DELETE");
+
+export const crearAdicional = (token: string, id: string, unidadId: string, datos: unknown) =>
+  enviar(token, `${UNIDAD(id, unidadId)}/adicionales`, "POST", datos);
+
+export const borrarAdicional = (
+  token: string,
+  id: string,
+  unidadId: string,
+  adicionalId: string,
+) => enviar(token, `${UNIDAD(id, unidadId)}/adicionales/${adicionalId}`, "DELETE");
 
 export const cambiarEstado = (
   token: string,
@@ -495,7 +577,8 @@ export type CatalogoAlta = {
   comodidades: (Comodidad & { icono: string | null })[];
 };
 
-export const catalogoAlta = () => api<CatalogoAlta>("/catalogos/alta");
+export const catalogoAlta = (tipo: TipoServicioCodigo = "alojamiento") =>
+  api<CatalogoAlta>(`/catalogos/alta?tipo=${tipo}`);
 
 /* --- Calendario de una unidad --- */
 

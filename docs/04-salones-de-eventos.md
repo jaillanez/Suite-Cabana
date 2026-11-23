@@ -106,9 +106,9 @@ viajero suma unidades del **mismo propietario**: una reserva, varios ítems
 
 ## 6. Etapas
 
-Cada etapa se puede publicar por separado. Hechas: **1** (noviembre 2026) y **2**
-(noviembre 2026, solo API: el viajero y el propietario la usan desde la web a
-partir de las etapas 3 y 4).
+Cada etapa se puede publicar por separado. Hechas (noviembre 2026): **1**, **2**
+(API de precio y reserva) y **3** (el propietario carga su salón desde la web).
+El viajero lo ve y lo reserva desde la web a partir de la etapa 4.
 
 | Etapa | Contenido |
 |---|---|

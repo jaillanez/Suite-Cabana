@@ -6,8 +6,14 @@ import { redirect } from "next/navigation";
 import {
   ApiError,
   aprobarPublicacion,
+  borrarAdicional,
   borrarFoto,
+  borrarFranja,
   borrarTarifa,
+  crearAdicional,
+  crearFranja,
+  guardarTarifaHoraria,
+  quitarTarifaHoraria,
   borrarUnidad,
   cambiarEstado,
   crearPublicacion,
@@ -80,6 +86,7 @@ export async function accionCrearPublicacion(_previo: unknown, datos: FormData) 
   const titulo = String(datos.get("titulo") ?? "").trim();
   const localidad_id = String(datos.get("localidad_id") ?? "");
   const subtipo = String(datos.get("subtipo_servicio_id") ?? "");
+  const tipo = datos.get("tipo") === "salon_eventos" ? "salon_eventos" : "alojamiento";
   if (!titulo || !localidad_id) return { error: "Falta el nombre o la localidad" };
 
   let creada: PublicacionEdicion;
@@ -88,6 +95,7 @@ export async function accionCrearPublicacion(_previo: unknown, datos: FormData) 
       titulo,
       localidad_id,
       subtipo_servicio_id: subtipo || undefined,
+      tipo,
     });
   } catch (e) {
     return problema(e, "No pudimos crear la publicación.");
@@ -128,6 +136,44 @@ export async function accionBorrarTarifa(id: string, unidadId: string, tarifaId:
   return conSesion(
     (t) => borrarTarifa(t, id, unidadId, tarifaId),
     "No pudimos borrar la tarifa.",
+  );
+}
+
+/* --- Salones --- */
+
+export async function accionCrearFranja(id: string, unidadId: string, datos: unknown) {
+  return conSesion((t) => crearFranja(t, id, unidadId, datos), "No pudimos agregar el turno.");
+}
+
+export async function accionBorrarFranja(id: string, unidadId: string, franjaId: string) {
+  return conSesion((t) => borrarFranja(t, id, unidadId, franjaId), "No pudimos quitar el turno.");
+}
+
+export async function accionGuardarTarifaHoraria(id: string, unidadId: string, datos: unknown) {
+  return conSesion(
+    (t) => guardarTarifaHoraria(t, id, unidadId, datos),
+    "No pudimos guardar el precio por hora.",
+  );
+}
+
+export async function accionQuitarTarifaHoraria(id: string, unidadId: string) {
+  return conSesion(
+    (t) => quitarTarifaHoraria(t, id, unidadId),
+    "No pudimos quitar el precio por hora.",
+  );
+}
+
+export async function accionCrearAdicional(id: string, unidadId: string, datos: unknown) {
+  return conSesion(
+    (t) => crearAdicional(t, id, unidadId, datos),
+    "No pudimos agregar el adicional.",
+  );
+}
+
+export async function accionBorrarAdicional(id: string, unidadId: string, adicionalId: string) {
+  return conSesion(
+    (t) => borrarAdicional(t, id, unidadId, adicionalId),
+    "No pudimos quitar el adicional.",
   );
 }
 

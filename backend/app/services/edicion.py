@@ -19,8 +19,8 @@ from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
 from app.core.config import get_settings
-from app.models import Foto, Publicacion, Tarifa, Unidad
-from app.models.enums import EstadoPublicacion
+from app.models import Foto, FranjaHoraria, Publicacion, Tarifa, TarifaHoraria, Unidad
+from app.models.enums import EstadoPublicacion, ModoReserva
 
 TRANSICIONES: dict[EstadoPublicacion, set[EstadoPublicacion]] = {
     EstadoPublicacion.BORRADOR: {EstadoPublicacion.EN_REVISION},
@@ -58,11 +58,16 @@ def faltantes(db: Session, publicacion: Publicacion) -> list[str]:
         problemas.append("La descripción necesita al menos 40 caracteres")
     if publicacion.ubicacion is None:
         problemas.append("Falta marcar la ubicación en el mapa")
+    salon = publicacion.tipo_servicio.modo_reserva is ModoReserva.HORAS
     if publicacion.subtipo_servicio_id is None:
-        problemas.append("Falta elegir el tipo de alojamiento")
+        problemas.append(
+            "Falta elegir el tipo de espacio" if salon else "Falta elegir el tipo de alojamiento"
+        )
     if publicacion.politica_cancelacion_id is None:
         problemas.append("Falta elegir una política de cancelación")
-    if publicacion.hora_ingreso is None or publicacion.hora_salida is None:
+    # Un salón no tiene ingreso y salida: sus horarios son los turnos o el
+    # horario de atención de cada unidad.
+    if not salon and (publicacion.hora_ingreso is None or publicacion.hora_salida is None):
         problemas.append("Faltan los horarios de ingreso y salida")
 
     fotos = db.scalar(
@@ -77,7 +82,29 @@ def faltantes(db: Session, publicacion: Publicacion) -> list[str]:
         )
     )
     if not unidades:
-        problemas.append("Falta cargar al menos una unidad")
+        problemas.append(
+            "Falta cargar al menos un espacio" if salon else "Falta cargar al menos una unidad"
+        )
+    elif salon:
+        # Un salón se puede reservar si tiene al menos un turno o precio por hora.
+        sin_precio = [
+            u.nombre
+            for u in unidades
+            if not db.scalar(
+                select(FranjaHoraria.id).where(
+                    FranjaHoraria.unidad_id == u.id, FranjaHoraria.activa.is_(True)
+                )
+            )
+            and not db.scalar(
+                select(TarifaHoraria.id).where(
+                    TarifaHoraria.unidad_id == u.id, TarifaHoraria.activa.is_(True)
+                )
+            )
+        ]
+        if sin_precio:
+            problemas.append(
+                f"Sin turnos ni precio por hora: {', '.join(sin_precio)}"
+            )
     else:
         sin_tarifa = [
             u.nombre

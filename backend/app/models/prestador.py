@@ -1,7 +1,7 @@
 import uuid
 from datetime import date
 
-from sqlalchemy import ForeignKey, String
+from sqlalchemy import CheckConstraint, ForeignKey, String
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.models.base import Base, IdMixin, TiempoMixin
@@ -9,6 +9,12 @@ from app.models.base import Base, IdMixin, TiempoMixin
 
 class Prestador(IdMixin, TiempoMixin, Base):
     __tablename__ = "prestador"
+    __table_args__ = (
+        CheckConstraint(
+            "porcentaje_sena IS NULL OR porcentaje_sena BETWEEN 0 AND 100",
+            name="porcentaje_sena_rango",
+        ),
+    )
 
     usuario_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("usuario.id"), unique=True)
     razon_social: Mapped[str] = mapped_column(String(200))

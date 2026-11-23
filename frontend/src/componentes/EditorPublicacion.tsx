@@ -18,9 +18,16 @@ import {
 import type { CatalogoAlta, PublicacionEdicion } from "@/lib/api";
 import { pesos, plural } from "@/lib/formato";
 import Estado, { TEXTOS_ESTADO } from "./EstadoPublicacion";
-import { Alerta, ChevronIzq, ChevronDer, Cruz, ICONOS_COMODIDAD } from "./Iconos";
+import {
+  Alerta,
+  ChevronIzq,
+  ChevronDer,
+  Cruz,
+  ICONOS_COMODIDAD,
+} from "./Iconos";
 import CalendarioUnidad from "./CalendarioUnidad";
 import MapaSelector from "./MapaSelector";
+import UnidadesSalon from "./UnidadesSalon";
 import estilos from "./EditorPublicacion.module.css";
 
 export default function EditorPublicacion({
@@ -33,12 +40,16 @@ export default function EditorPublicacion({
   puedePublicar: boolean;
 }) {
   const [p, setP] = useState(inicial);
-  const [aviso, setAviso] = useState<{ mensaje: string; faltantes?: string[] } | null>(null);
+  const [aviso, setAviso] = useState<{
+    mensaje: string;
+    faltantes?: string[];
+  } | null>(null);
   const [guardado, setGuardado] = useState(false);
   const [pendiente, empezar] = useTransition();
   const archivo = useRef<HTMLInputElement>(null);
 
   const bloqueada = p.estado === "en_revision";
+  const esSalon = p.tipo === "salon_eventos";
 
   function aplicar(resultado: Resultado) {
     if ("publicacion" in resultado) {
@@ -64,9 +75,14 @@ export default function EditorPublicacion({
         subtipo_servicio_id: valor("subtipo_servicio_id") || null,
         politica_cancelacion_id: valor("politica_cancelacion_id") || null,
         direccion: valor("direccion") || null,
-        hora_ingreso: valor("hora_ingreso") || null,
-        hora_salida: valor("hora_salida") || null,
         confirmacion_inmediata: datos.get("confirmacion_inmediata") === "on",
+        // Un salón no tiene ingreso y salida: sus horarios son los turnos.
+        ...(esSalon
+          ? { porcentaje_sena: Number(valor("porcentaje_sena") || 0) }
+          : {
+              hora_ingreso: valor("hora_ingreso") || null,
+              hora_salida: valor("hora_salida") || null,
+            }),
       }),
     );
   }
@@ -105,21 +121,31 @@ export default function EditorPublicacion({
               type="button"
               className={estilos.principal}
               disabled={pendiente || p.faltantes.length > 0 || !puedePublicar}
-              onClick={() => correr(() => accionCambiarEstado(p.id, "enviar-a-revision"))}
+              onClick={() =>
+                correr(() => accionCambiarEstado(p.id, "enviar-a-revision"))
+              }
             >
               Mandar a revisión
             </button>
           )}
           {p.estado === "aprobada" && (
             <>
-              <Link href={`/alojamiento/${p.slug}`} className={estilos.secundario}>
-                Ver publicada
-              </Link>
+              {/* La ficha pública de los salones llega con la etapa 4 (docs/04). */}
+              {!esSalon && (
+                <Link
+                  href={`/alojamiento/${p.slug}`}
+                  className={estilos.secundario}
+                >
+                  Ver publicada
+                </Link>
+              )}
               <button
                 type="button"
                 className={estilos.secundario}
                 disabled={pendiente}
-                onClick={() => correr(() => accionCambiarEstado(p.id, "pausar"))}
+                onClick={() =>
+                  correr(() => accionCambiarEstado(p.id, "pausar"))
+                }
               >
                 Pausar
               </button>
@@ -130,7 +156,9 @@ export default function EditorPublicacion({
               type="button"
               className={estilos.principal}
               disabled={pendiente}
-              onClick={() => correr(() => accionCambiarEstado(p.id, "reactivar"))}
+              onClick={() =>
+                correr(() => accionCambiarEstado(p.id, "reactivar"))
+              }
             >
               Reactivar
             </button>
@@ -140,7 +168,9 @@ export default function EditorPublicacion({
               type="button"
               className={estilos.principal}
               disabled={pendiente}
-              onClick={() => correr(() => accionCambiarEstado(p.id, "volver-a-borrador"))}
+              onClick={() =>
+                correr(() => accionCambiarEstado(p.id, "volver-a-borrador"))
+              }
             >
               Volver a editarla
             </button>
@@ -196,11 +226,16 @@ export default function EditorPublicacion({
       {guardado && <p className={estilos.guardado}>Guardado</p>}
 
       <fieldset className={estilos.bloque} disabled={bloqueada}>
-        <h2>Datos del alojamiento</h2>
+        <h2>{esSalon ? "Datos del salón" : "Datos del alojamiento"}</h2>
         <form action={guardar} className={estilos.formulario}>
           <label className={estilos.completo}>
             <span>Nombre</span>
-            <input name="titulo" defaultValue={p.titulo} maxLength={150} required />
+            <input
+              name="titulo"
+              defaultValue={p.titulo}
+              maxLength={150}
+              required
+            />
           </label>
           <label className={estilos.completo}>
             <span>Descripción</span>
@@ -208,12 +243,19 @@ export default function EditorPublicacion({
               name="descripcion"
               defaultValue={p.descripcion}
               rows={5}
-              placeholder="Contá qué tiene, cómo es el entorno y a qué distancia está de lo que la gente busca."
+              placeholder={
+                esSalon
+                  ? "Contá cómo es el lugar, para qué eventos sirve y qué incluye el alquiler."
+                  : "Contá qué tiene, cómo es el entorno y a qué distancia está de lo que la gente busca."
+              }
             />
           </label>
           <label>
-            <span>Tipo</span>
-            <select name="subtipo_servicio_id" defaultValue={p.subtipo_servicio_id ?? ""}>
+            <span>{esSalon ? "Tipo de espacio" : "Tipo"}</span>
+            <select
+              name="subtipo_servicio_id"
+              defaultValue={p.subtipo_servicio_id ?? ""}
+            >
               <option value="">Sin elegir</option>
               {catalogo.subtipos.map((s) => (
                 <option key={s.id} value={s.id}>
@@ -236,21 +278,62 @@ export default function EditorPublicacion({
               ))}
             </select>
           </label>
-          <label>
-            <span>Ingreso desde</span>
-            <input type="time" name="hora_ingreso" defaultValue={p.hora_ingreso ?? ""} />
-          </label>
-          <label>
-            <span>Salida hasta</span>
-            <input type="time" name="hora_salida" defaultValue={p.hora_salida ?? ""} />
-          </label>
+          {esSalon ? (
+            <label>
+              <span>Seña para reservar (%)</span>
+              <input
+                type="number"
+                name="porcentaje_sena"
+                min={0}
+                max={100}
+                defaultValue={p.porcentaje_sena ?? ""}
+                placeholder="Ej.: 30"
+              />
+              <small>
+                Se paga online al reservar; el resto lo arreglás vos. Vacío: se
+                paga todo.
+              </small>
+            </label>
+          ) : (
+            <>
+              <label>
+                <span>Ingreso desde</span>
+                <input
+                  type="time"
+                  name="hora_ingreso"
+                  defaultValue={p.hora_ingreso ?? ""}
+                />
+              </label>
+              <label>
+                <span>Salida hasta</span>
+                <input
+                  type="time"
+                  name="hora_salida"
+                  defaultValue={p.hora_salida ?? ""}
+                />
+              </label>
+            </>
+          )}
           <label className={estilos.completo}>
-            <span>Reglas de la casa</span>
-            <textarea name="reglas_casa" defaultValue={p.reglas_casa ?? ""} rows={2} />
+            <span>{esSalon ? "Reglas del lugar" : "Reglas de la casa"}</span>
+            <textarea
+              name="reglas_casa"
+              defaultValue={p.reglas_casa ?? ""}
+              rows={2}
+              placeholder={
+                esSalon
+                  ? "Música hasta las 4, se permite catering propio, sin pirotecnia…"
+                  : undefined
+              }
+            />
           </label>
           <label className={estilos.completo}>
             <span>Dirección</span>
-            <input name="direccion" defaultValue={p.direccion ?? ""} maxLength={200} />
+            <input
+              name="direccion"
+              defaultValue={p.direccion ?? ""}
+              maxLength={200}
+            />
             <small>No se muestra hasta que la reserva esté confirmada.</small>
           </label>
           <label className={`${estilos.completo} ${estilos.casilla}`}>
@@ -261,10 +344,17 @@ export default function EditorPublicacion({
             />
             <span>
               Confirmación inmediata
-              <small>Si lo desactivás, tenés un plazo para aceptar o rechazar cada pedido.</small>
+              <small>
+                Si lo desactivás, tenés un plazo para aceptar o rechazar cada
+                pedido.
+              </small>
             </span>
           </label>
-          <button type="submit" className={estilos.guardar} disabled={pendiente}>
+          <button
+            type="submit"
+            className={estilos.guardar}
+            disabled={pendiente}
+          >
             Guardar datos
           </button>
         </form>
@@ -275,7 +365,9 @@ export default function EditorPublicacion({
         <MapaSelector
           lat={p.lat}
           lon={p.lon}
-          onMover={(lat, lon) => correr(() => accionGuardarDatos(p.id, { lat, lon }))}
+          onMover={(lat, lon) =>
+            correr(() => accionGuardarDatos(p.id, { lat, lon }))
+          }
         />
       </fieldset>
 
@@ -308,14 +400,16 @@ export default function EditorPublicacion({
           Fotos <span className="cifra">{p.fotos.length}</span>
         </h2>
         <p className={estilos.ayuda}>
-          Hacen falta al menos 5. La primera es la que se ve en los resultados. Se achican y
-          optimizan solas al subirlas.
+          Hacen falta al menos 5. La primera es la que se ve en los resultados.
+          Se achican y optimizan solas al subirlas.
         </p>
         <ul className={estilos.fotos}>
           {p.fotos.map((f, i) => (
             <li key={f.id}>
               <img src={f.url} alt="" loading="lazy" />
-              {i === 0 && <span className={estilos.principalFoto}>Principal</span>}
+              {i === 0 && (
+                <span className={estilos.principalFoto}>Principal</span>
+              )}
               <div className={estilos.controlesFoto}>
                 <button
                   type="button"
@@ -367,157 +461,197 @@ export default function EditorPublicacion({
         </ul>
       </fieldset>
 
-      <fieldset className={estilos.bloque} disabled={bloqueada}>
-        <h2>Unidades</h2>
-        <p className={estilos.ayuda}>
-          Cada unidad es lo que alguien reserva: una cabaña, un departamento, una habitación.
-          Cada una lleva su capacidad y su tarifa.
-        </p>
+      {esSalon && (
+        <fieldset className={estilos.bloque} disabled={bloqueada}>
+          <UnidadesSalon p={p} correr={correr} pendiente={pendiente} />
+        </fieldset>
+      )}
 
-        <ul className={estilos.unidades}>
-          {p.unidades.map((u) => (
-            <li key={u.id} className={estilos.unidad}>
-              <div className={estilos.unidadCabecera}>
-                <div>
-                  <strong>{u.nombre}</strong>
-                  <span className={estilos.unidadDetalle}>
-                    hasta {plural(u.capacidad, "persona", "personas")}
-                    {u.capacidad_base ? ` · ${u.capacidad_base} sin cargo extra` : ""}
-                  </span>
-                </div>
-                <button
-                  type="button"
-                  className={estilos.borrar}
-                  disabled={pendiente}
-                  onClick={() => correr(() => accionBorrarUnidad(p.id, u.id))}
-                >
-                  Quitar
-                </button>
-              </div>
+      {!esSalon && (
+        <fieldset className={estilos.bloque} disabled={bloqueada}>
+          <h2>Unidades</h2>
+          <p className={estilos.ayuda}>
+            Cada unidad es lo que alguien reserva: una cabaña, un departamento,
+            una habitación. Cada una lleva su capacidad y su tarifa.
+          </p>
 
-              <ul className={estilos.tarifas}>
-                {u.tarifas.map((t) => (
-                  <li key={t.id}>
-                    <span>
-                      <strong>{t.nombre}</strong>
-                      {t.fecha_desde && (
-                        <span className={estilos.periodo}>
-                          {t.fecha_desde} al {t.fecha_hasta}
-                        </span>
-                      )}
-                      {t.estadia_minima > 1 && (
-                        <span className={estilos.periodo}>
-                          mínimo {t.estadia_minima} noches
-                        </span>
-                      )}
+          <ul className={estilos.unidades}>
+            {p.unidades.map((u) => (
+              <li key={u.id} className={estilos.unidad}>
+                <div className={estilos.unidadCabecera}>
+                  <div>
+                    <strong>{u.nombre}</strong>
+                    <span className={estilos.unidadDetalle}>
+                      hasta {plural(u.capacidad, "persona", "personas")}
+                      {u.capacidad_base
+                        ? ` · ${u.capacidad_base} sin cargo extra`
+                        : ""}
                     </span>
-                    <span className={`${estilos.precio} cifra`}>{pesos(t.precio_noche)}</span>
-                    <button
-                      type="button"
-                      className={estilos.borrar}
-                      disabled={pendiente}
-                      onClick={() => correr(() => accionBorrarTarifa(p.id, u.id, t.id))}
-                      aria-label={`Borrar tarifa ${t.nombre}`}
-                    >
-                      <Cruz />
-                    </button>
-                  </li>
-                ))}
-                {u.tarifas.length === 0 && (
-                  <li className={estilos.sinTarifa}>
-                    Sin tarifa: así no se puede publicar ni calcular un precio.
-                  </li>
-                )}
-              </ul>
+                  </div>
+                  <button
+                    type="button"
+                    className={estilos.borrar}
+                    disabled={pendiente}
+                    onClick={() => correr(() => accionBorrarUnidad(p.id, u.id))}
+                  >
+                    Quitar
+                  </button>
+                </div>
 
-              <form
-                className={estilos.filaForm}
-                action={(datos) => {
-                  const v = (k: string) => String(datos.get(k) ?? "").trim();
-                  correr(() =>
-                    accionCrearTarifa(p.id, u.id, {
-                      nombre: v("nombre") || "Tarifa",
-                      precio_noche: v("precio_noche"),
-                      fecha_desde: v("fecha_desde") || null,
-                      fecha_hasta: v("fecha_hasta") || null,
-                      estadia_minima: Number(v("estadia_minima") || 1),
-                    }),
-                  );
-                }}
-              >
-                <input name="nombre" placeholder="Nombre (Base, Verano…)" required />
-                {/* step="any": con min=1 y step=100 el navegador rechaza 52000
+                <ul className={estilos.tarifas}>
+                  {u.tarifas.map((t) => (
+                    <li key={t.id}>
+                      <span>
+                        <strong>{t.nombre}</strong>
+                        {t.fecha_desde && (
+                          <span className={estilos.periodo}>
+                            {t.fecha_desde} al {t.fecha_hasta}
+                          </span>
+                        )}
+                        {t.estadia_minima > 1 && (
+                          <span className={estilos.periodo}>
+                            mínimo {t.estadia_minima} noches
+                          </span>
+                        )}
+                      </span>
+                      <span className={`${estilos.precio} cifra`}>
+                        {pesos(t.precio_noche)}
+                      </span>
+                      <button
+                        type="button"
+                        className={estilos.borrar}
+                        disabled={pendiente}
+                        onClick={() =>
+                          correr(() => accionBorrarTarifa(p.id, u.id, t.id))
+                        }
+                        aria-label={`Borrar tarifa ${t.nombre}`}
+                      >
+                        <Cruz />
+                      </button>
+                    </li>
+                  ))}
+                  {u.tarifas.length === 0 && (
+                    <li className={estilos.sinTarifa}>
+                      Sin tarifa: así no se puede publicar ni calcular un
+                      precio.
+                    </li>
+                  )}
+                </ul>
+
+                <form
+                  className={estilos.filaForm}
+                  action={(datos) => {
+                    const v = (k: string) => String(datos.get(k) ?? "").trim();
+                    correr(() =>
+                      accionCrearTarifa(p.id, u.id, {
+                        nombre: v("nombre") || "Tarifa",
+                        precio_noche: v("precio_noche"),
+                        fecha_desde: v("fecha_desde") || null,
+                        fecha_hasta: v("fecha_hasta") || null,
+                        estadia_minima: Number(v("estadia_minima") || 1),
+                      }),
+                    );
+                  }}
+                >
+                  <input
+                    name="nombre"
+                    placeholder="Nombre (Base, Verano…)"
+                    required
+                  />
+                  {/* step="any": con min=1 y step=100 el navegador rechaza 52000
                     por no caer en la grilla de pasos, y bloquea el envío sin avisar. */}
-                <input
-                  name="precio_noche"
-                  type="number"
-                  min={1}
-                  step="any"
-                  placeholder="Precio por noche"
-                  required
-                />
-                <input name="fecha_desde" type="date" aria-label="Desde (temporada)" />
-                <input name="fecha_hasta" type="date" aria-label="Hasta (temporada)" />
-                <input
-                  name="estadia_minima"
-                  type="number"
-                  min={1}
-                  defaultValue={1}
-                  aria-label="Noches mínimas"
-                />
-                <button type="submit" disabled={pendiente}>
-                  Agregar tarifa
-                </button>
-              </form>
+                  <input
+                    name="precio_noche"
+                    type="number"
+                    min={1}
+                    step="any"
+                    placeholder="Precio por noche"
+                    required
+                  />
+                  <input
+                    name="fecha_desde"
+                    type="date"
+                    aria-label="Desde (temporada)"
+                  />
+                  <input
+                    name="fecha_hasta"
+                    type="date"
+                    aria-label="Hasta (temporada)"
+                  />
+                  <input
+                    name="estadia_minima"
+                    type="number"
+                    min={1}
+                    defaultValue={1}
+                    aria-label="Noches mínimas"
+                  />
+                  <button type="submit" disabled={pendiente}>
+                    Agregar tarifa
+                  </button>
+                </form>
 
-              <details className={estilos.agenda}>
-                <summary>Calendario y sincronización</summary>
-                <CalendarioUnidad
-                  publicacionId={p.id}
-                  unidadId={u.id}
-                  bloqueado={bloqueada}
-                />
-              </details>
-            </li>
-          ))}
-        </ul>
+                <details className={estilos.agenda}>
+                  <summary>Calendario y sincronización</summary>
+                  <CalendarioUnidad
+                    publicacionId={p.id}
+                    unidadId={u.id}
+                    bloqueado={bloqueada}
+                  />
+                </details>
+              </li>
+            ))}
+          </ul>
 
-        <form
-          className={estilos.filaForm}
-          action={(datos) => {
-            const v = (k: string) => String(datos.get(k) ?? "").trim();
-            correr(() =>
-              accionCrearUnidad(p.id, {
-                nombre: v("nombre"),
-                capacidad: Number(v("capacidad")),
-                capacidad_base: v("capacidad_base") ? Number(v("capacidad_base")) : null,
-                cargo_limpieza: v("cargo_limpieza") || "0",
-              }),
-            );
-          }}
-        >
-          <input name="nombre" placeholder="Nombre de la unidad" required maxLength={120} />
-          <input
-            name="capacidad"
-            type="number"
-            min={1}
-            max={30}
-            placeholder="Capacidad"
-            required
-          />
-          <input
-            name="capacidad_base"
-            type="number"
-            min={1}
-            max={30}
-            placeholder="Sin cargo extra"
-          />
-          <input name="cargo_limpieza" type="number" min={0} step="any" placeholder="Limpieza" />
-          <button type="submit" disabled={pendiente}>
-            Agregar unidad
-          </button>
-        </form>
-      </fieldset>
+          <form
+            className={estilos.filaForm}
+            action={(datos) => {
+              const v = (k: string) => String(datos.get(k) ?? "").trim();
+              correr(() =>
+                accionCrearUnidad(p.id, {
+                  nombre: v("nombre"),
+                  capacidad: Number(v("capacidad")),
+                  capacidad_base: v("capacidad_base")
+                    ? Number(v("capacidad_base"))
+                    : null,
+                  cargo_limpieza: v("cargo_limpieza") || "0",
+                }),
+              );
+            }}
+          >
+            <input
+              name="nombre"
+              placeholder="Nombre de la unidad"
+              required
+              maxLength={120}
+            />
+            <input
+              name="capacidad"
+              type="number"
+              min={1}
+              max={30}
+              placeholder="Capacidad"
+              required
+            />
+            <input
+              name="capacidad_base"
+              type="number"
+              min={1}
+              max={30}
+              placeholder="Sin cargo extra"
+            />
+            <input
+              name="cargo_limpieza"
+              type="number"
+              min={0}
+              step="any"
+              placeholder="Limpieza"
+            />
+            <button type="submit" disabled={pendiente}>
+              Agregar unidad
+            </button>
+          </form>
+        </fieldset>
+      )}
     </div>
   );
 }

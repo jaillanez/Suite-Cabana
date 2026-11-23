@@ -1,16 +1,44 @@
 "use client";
 
-import { useActionState } from "react";
+import { useActionState, useState } from "react";
 
 import { accionCrearPublicacion } from "@/lib/acciones-publicaciones";
-import type { CatalogoAlta } from "@/lib/api";
+import type { CatalogoAlta, TipoServicioCodigo } from "@/lib/api";
 import { Alerta } from "./Iconos";
 import estilos from "./FormularioAuth.module.css";
+import propios from "./FormularioNueva.module.css";
 
-export default function FormularioNueva({ catalogo }: { catalogo: CatalogoAlta }) {
-  const [estado, ejecutar, pendiente] = useActionState(accionCrearPublicacion, {} as {
-    error?: string;
-  });
+const TIPOS: { codigo: TipoServicioCodigo; nombre: string; detalle: string }[] =
+  [
+    {
+      codigo: "alojamiento",
+      nombre: "Alojamiento",
+      detalle: "Cabañas, casas, departamentos. Se reserva por noche.",
+    },
+    {
+      codigo: "salon_eventos",
+      nombre: "Salón de eventos",
+      detalle:
+        "Salón, quincho o espacio al aire libre. Se reserva por turno o por horas.",
+    },
+  ];
+
+export default function FormularioNueva({
+  catalogos,
+  tipoInicial = "alojamiento",
+}: {
+  catalogos: Record<TipoServicioCodigo, CatalogoAlta>;
+  tipoInicial?: TipoServicioCodigo;
+}) {
+  const [estado, ejecutar, pendiente] = useActionState(
+    accionCrearPublicacion,
+    {} as {
+      error?: string;
+    },
+  );
+  const [tipo, setTipo] = useState<TipoServicioCodigo>(tipoInicial);
+  const catalogo = catalogos[tipo];
+  const esSalon = tipo === "salon_eventos";
 
   return (
     <form action={ejecutar} className={estilos.formulario}>
@@ -21,10 +49,36 @@ export default function FormularioNueva({ catalogo }: { catalogo: CatalogoAlta }
         </p>
       )}
 
+      <fieldset className={propios.tipos}>
+        <legend>Qué vas a publicar</legend>
+        {TIPOS.map((t) => (
+          <label key={t.codigo} className={propios.tipo}>
+            <input
+              type="radio"
+              name="tipo"
+              value={t.codigo}
+              checked={tipo === t.codigo}
+              onChange={() => setTipo(t.codigo)}
+            />
+            <span>
+              <strong>{t.nombre}</strong>
+              <small>{t.detalle}</small>
+            </span>
+          </label>
+        ))}
+      </fieldset>
+
       <div className={estilos.campos}>
         <label className={estilos.completo}>
-          <span>Nombre del alojamiento</span>
-          <input name="titulo" required maxLength={150} placeholder="Cabañas del Arroyo" />
+          <span>{esSalon ? "Nombre del salón" : "Nombre del alojamiento"}</span>
+          <input
+            name="titulo"
+            required
+            maxLength={150}
+            placeholder={
+              esSalon ? "Quincho Los Algarrobos" : "Cabañas del Arroyo"
+            }
+          />
         </label>
 
         <label className={estilos.medio}>
@@ -41,8 +95,9 @@ export default function FormularioNueva({ catalogo }: { catalogo: CatalogoAlta }
           </select>
         </label>
 
-        <label className={estilos.medio}>
-          <span>Tipo</span>
+        {/* key: al cambiar de tipo, el subtipo elegido del otro tipo no puede quedar. */}
+        <label className={estilos.medio} key={tipo}>
+          <span>{esSalon ? "Tipo de espacio" : "Tipo"}</span>
           <select name="subtipo_servicio_id" defaultValue="">
             <option value="">Elegir después</option>
             {catalogo.subtipos.map((s) => (

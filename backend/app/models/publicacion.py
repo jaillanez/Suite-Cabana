@@ -4,6 +4,7 @@ from decimal import Decimal
 
 from geoalchemy2 import Geography
 from sqlalchemy import (
+    CheckConstraint,
     Column,
     DateTime,
     ForeignKey,
@@ -46,6 +47,10 @@ class Publicacion(IdMixin, TiempoMixin, Base):
     __table_args__ = (
         Index("ix_publicacion_ubicacion", "ubicacion", postgresql_using="gist"),
         Index("ix_publicacion_es_demo", "es_demo"),
+        CheckConstraint(
+            "porcentaje_sena IS NULL OR porcentaje_sena BETWEEN 0 AND 100",
+            name="porcentaje_sena_rango",
+        ),
     )
 
     prestador_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("prestador.id"), index=True)

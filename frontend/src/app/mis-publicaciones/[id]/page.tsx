@@ -25,7 +25,7 @@ export default async function Editar({ params }: { params: Promise<{ id: string 
     if (e instanceof ApiError && e.status === 404) notFound();
     throw e;
   }
-  const catalogo = await catalogoAlta();
+  const catalogo = await catalogoAlta(publicacion.tipo);
 
   return (
     <>
