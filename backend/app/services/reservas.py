@@ -63,6 +63,11 @@ from app.services.pagos.base import EstadoPago
 ALFABETO_CODIGO = string.ascii_uppercase.replace("O", "").replace("I", "") + "23456789"
 
 
+#: Techo técnico de una estadía: el precio se calcula noche por noche y un rango
+#: de años no tiene sentido. El tope de negocio, si se decide uno, va por debajo.
+MAX_NOCHES = 365
+
+
 class NoSePuedeReservar(Exception):
     """La reserva no se puede crear, con el motivo en el mensaje."""
 
@@ -121,6 +126,13 @@ def cotizar(
         # Un salón se reserva por horario (docs/04): cotizarlo por noches daría
         # un precio que no es el suyo.
         raise NoSePuedeReservar("Esto no se reserva por noches")
+    # Acá y no en precios: es el paso común de la reserva sola, el paquete y el
+    # listado de cabañas sumables. Sin esto, con anticipación mínima 0 (lo
+    # habitual) se podía reservar una noche que ya pasó.
+    if fecha_inicio < hoy:
+        raise NoSePuedeReservar("Esa fecha ya pasó")
+    if (fecha_fin - fecha_inicio).days > MAX_NOCHES:
+        raise NoSePuedeReservar(f"Se pueden reservar hasta {MAX_NOCHES} noches")
 
     try:
         precio = precios.calcular(

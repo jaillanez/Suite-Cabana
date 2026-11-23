@@ -287,3 +287,26 @@ def test_la_reserva_guarda_cuando_se_aceptaron(cliente, db, viajero, oferta):
     reserva = db.scalar(select(Reserva).where(Reserva.codigo == codigo))
     assert reserva.acepto_terminos_en is not None
     assert reserva.version_terminos
+
+
+def test_no_se_reserva_una_noche_que_ya_paso(cliente, viajero, oferta):
+    """Con anticipación mínima 0 (lo habitual) el motor de precios no lo frenaba."""
+    from datetime import date, timedelta
+
+    ayer = date.today() - timedelta(days=1)
+    r = reservar(
+        cliente, viajero, oferta,
+        desde=ayer.isoformat(), hasta=(ayer + timedelta(days=2)).isoformat(),
+    )
+    assert r.status_code == 422
+    assert "ya pasó" in r.json()["detail"]
+
+
+def test_un_rango_de_anios_se_rechaza_sin_recorrerlo(cliente, viajero, oferta):
+    from datetime import timedelta
+
+    r = reservar(
+        cliente, viajero, oferta,
+        desde=LLEGADA.isoformat(), hasta=(LLEGADA + timedelta(days=4000)).isoformat(),
+    )
+    assert r.status_code == 422
