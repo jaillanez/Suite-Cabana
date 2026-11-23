@@ -365,3 +365,40 @@ def test_al_anfitrion_le_queda_lo_de_todo_el_paquete(cliente, viajero, anfitrion
     )
     assert Decimal(r["comision_prestador"]) == _r(subtotales * Decimal("0.1") * Decimal("1.21"))
     assert Decimal(r["neto_prestador"]) == subtotales - Decimal(r["comision_prestador"])
+
+
+# --- Revisión de seguridad ---
+
+
+def test_una_cabana_no_se_retiene_por_meses(cliente, evento, oferta):  # noqa: F811
+    """Sin tope, un solo pedido tendría seis cabañas tomadas por meses mientras paga."""
+    largo = {"desde": DIA.isoformat(), "hasta": (DIA + timedelta(days=15)).isoformat()}
+    r = _cotizar(cliente, evento, {**_cabana(oferta), **largo})
+    assert r.status_code == 422
+    assert "14 noches" in r.json()["detail"]
+
+
+def test_de_una_cabana_ajena_no_se_dice_el_nombre(cliente, db, evento, oferta):  # noqa: F811
+    otro = Usuario(email="ajeno@demo.test", nombre="A", apellido="J", es_prestador=True)
+    db.add(otro)
+    db.flush()
+    ajeno = Prestador(usuario_id=otro.id, razon_social="Ajeno", fecha_alta=DIA - timedelta(days=9))
+    db.add(ajeno)
+    db.flush()
+    oferta["barata"].prestador_id = ajeno.id
+    db.commit()
+    # Aun repetida (el chequeo de duplicados nombra la unidad), no se nombra.
+    r = _cotizar(cliente, evento, _cabana(oferta, "u_barata"), _cabana(oferta, "u_barata"))
+    assert r.status_code == 422
+    assert "Cabañas Baratas" not in r.text
+
+
+def test_las_cabanas_sumables_tienen_tope(cliente, db, evento, oferta, monkeypatch):  # noqa: F811
+    from app.api.v1 import salones as api_salones
+
+    monkeypatch.setattr(api_salones, "TOPE_SUMABLES", 2)
+    r = cliente.get(
+        f"/api/v1/salones/unidades/{evento['unidad'].id}/alojamientos", params=NOCHE
+    )
+    assert r.status_code == 200
+    assert len(r.json()) == 2

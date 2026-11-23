@@ -38,6 +38,9 @@ from app.services.privacidad import aproximar
 
 router = APIRouter(prefix="/salones", tags=["salones"])
 
+#: Cuántas unidades del anfitrión se ofrecen, como mucho, para sumar al salón.
+TOPE_SUMABLES = 24
+
 
 # --- Formas ---
 
@@ -623,44 +626,50 @@ def alojamientos_sumables(
     """Las cabañas del mismo anfitrión que el salón, con su precio para esas
     noches y si están libres: lo que se puede sumar al evento (docs/04 S11)."""
     salon = _unidad(db, unidad_id)
-    if not desde < hasta or (hasta - desde).days > 14:
+    if not desde < hasta or (hasta - desde).days > reservas.MAX_NOCHES_PAQUETE:
         raise HTTPException(
-            status.HTTP_422_UNPROCESSABLE_ENTITY, "Elegí entre 1 y 14 noches"
+            status.HTTP_422_UNPROCESSABLE_ENTITY,
+            f"Elegí entre 1 y {reservas.MAX_NOCHES_PAQUETE} noches",
         )
     if desde < date.today():
         raise HTTPException(status.HTTP_422_UNPROCESSABLE_ENTITY, "Esa fecha ya pasó")
     publicaciones = svc.del_mismo_anfitrion(
         db, salon.publicacion.prestador_id, ModoReserva.NOCHES
     )
+    # Es público y cotiza cada unidad: el costo de una llamada tiene techo
+    # aunque el anfitrión cargue muchas unidades.
+    unidades = [
+        (p, u)
+        for p in publicaciones
+        for u in sorted(p.unidades, key=lambda x: x.nombre)
+        if u.activa
+    ][:TOPE_SUMABLES]
     salida: list[AlojamientoSumableOut] = []
-    for p in publicaciones:
-        for u in sorted(p.unidades, key=lambda x: x.nombre):
-            if not u.activa:
-                continue
-            libre = reservas._libre(db, u.id, desde, hasta)
-            total, motivo = None, None
-            if not libre:
-                motivo = "Ocupada esas noches"
-            else:
-                try:
-                    total = reservas.cotizar(
-                        db, u, desde, hasta, min(personas, u.capacidad)
-                    ).total_viajero
-                except reservas.NoSePuedeReservar as e:
-                    motivo = str(e)
-            salida.append(
-                AlojamientoSumableOut(
-                    unidad_id=u.id,
-                    unidad=u.nombre,
-                    publicacion=p.titulo,
-                    slug=p.slug,
-                    capacidad=u.capacidad,
-                    foto=p.fotos[0].url if p.fotos else None,
-                    libre=libre and total is not None,
-                    total=total,
-                    motivo=motivo,
-                )
+    for p, u in unidades:
+        libre = reservas._libre(db, u.id, desde, hasta)
+        total, motivo = None, None
+        if not libre:
+            motivo = "Ocupada esas noches"
+        else:
+            try:
+                total = reservas.cotizar(
+                    db, u, desde, hasta, min(personas, u.capacidad)
+                ).total_viajero
+            except reservas.NoSePuedeReservar as e:
+                motivo = str(e)
+        salida.append(
+            AlojamientoSumableOut(
+                unidad_id=u.id,
+                unidad=u.nombre,
+                publicacion=p.titulo,
+                slug=p.slug,
+                capacidad=u.capacidad,
+                foto=p.fotos[0].url if p.fotos else None,
+                libre=libre and total is not None,
+                total=total,
+                motivo=motivo,
             )
+        )
     # Primero lo que se puede sumar; lo ocupado queda abajo, con su motivo.
     salida.sort(key=lambda x: not x.libre)
     return salida

@@ -477,6 +477,9 @@ def cotizar_evento(
 
 #: Cuántos alojamientos se pueden sumar a un evento en una reserva.
 MAX_ESTADIAS = 6
+#: Noches máximas de cada alojamiento sumado. Sin tope, un solo pedido retendría
+#: hasta seis cabañas por meses mientras "paga".
+MAX_NOCHES_PAQUETE = 14
 
 
 @dataclass(frozen=True)
@@ -523,13 +526,18 @@ def cotizar_paquete(
     vistas: set[uuid.UUID] = set()
     cotizadas: list[tuple[Estadia, Cotizacion]] = []
     for e in estadias:
-        if e.unidad.id in vistas:
-            raise NoSePuedeReservar(f"{_nombre(e.unidad)} está elegida dos veces")
-        vistas.add(e.unidad.id)
+        # Primero de quién es: de una unidad ajena no se dice ni el nombre.
         # Un solo pago entra en una sola cuenta: el paquete es de un anfitrión.
         if e.unidad.publicacion.prestador_id != prestador_id:
             raise NoSePuedeReservar(
                 "Al salón solo se le pueden sumar alojamientos del mismo anfitrión"
+            )
+        if e.unidad.id in vistas:
+            raise NoSePuedeReservar(f"{_nombre(e.unidad)} está elegida dos veces")
+        vistas.add(e.unidad.id)
+        if (e.fecha_fin - e.fecha_inicio).days > MAX_NOCHES_PAQUETE:
+            raise NoSePuedeReservar(
+                f"{_nombre(e.unidad)}: se pueden sumar hasta {MAX_NOCHES_PAQUETE} noches"
             )
         # Las noches tienen que tocar el evento: llegar antes o irse después vale,
         # una estadía de otro mes no es un paquete.
