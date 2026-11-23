@@ -51,7 +51,14 @@ export default function BotonReservar({
       {estado?.pedirTelefono && <CampoWhatsApp />}
 
       <label className={estilos.terminos}>
-        <input type="checkbox" name="acepta_terminos" required />
+        {/* Al volver con el pedido de WhatsApp el formulario se reinicia: ya los
+            había aceptado, no hay por qué hacerlo tildar de nuevo. */}
+        <input
+          type="checkbox"
+          name="acepta_terminos"
+          required
+          defaultChecked={!!estado?.pedirTelefono}
+        />
         <span>
           Acepto los <Link href="/terminos">términos</Link> y la política de cancelación de
           este alojamiento.
