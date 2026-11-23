@@ -1299,6 +1299,8 @@ def agregar_calendario(
     # use el servidor para pedirle a terceros cientos de direcciones.
     from app.services import calendario as agenda_externa
 
+    # Bloquea la unidad mientras cuenta: dos pedidos a la vez no pasan el tope.
+    db.execute(select(Unidad.id).where(Unidad.id == unidad.id).with_for_update())
     ya_tiene = db.scalar(
         select(func.count(CalendarioExterno.id)).where(
             CalendarioExterno.unidad_id == unidad.id

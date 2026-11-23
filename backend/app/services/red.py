@@ -83,13 +83,16 @@ def descargar_publica(url: str, *, agente: str, tiempo: float) -> bytes:
     actual = url.strip()
     limite = time.monotonic() + tiempo
 
-    def a_tiempo() -> None:
-        if time.monotonic() > limite:
+    def a_tiempo() -> float:
+        """Lo que queda del total; cada pedido recibe solo eso como timeout."""
+        queda = limite - time.monotonic()
+        if queda <= 0:
             raise httpx.ReadTimeout("Se agotó el tiempo de descarga", request=None)
+        return queda
 
     with httpx.Client(timeout=tiempo, follow_redirects=False, trust_env=False) as cliente:
         for _ in range(MAX_REDIRECCIONES + 1):
-            a_tiempo()
+            queda = a_tiempo()
             validar_forma(actual)
             partes = urlsplit(actual)
             host = partes.hostname or ""
@@ -102,7 +105,8 @@ def descargar_publica(url: str, *, agente: str, tiempo: float) -> bytes:
             cabeceras = {"User-Agent": agente, "Host": partes.netloc.rsplit("@", 1)[-1]}
             extensiones = {"sni_hostname": host} if partes.scheme == "https" else {}
             pedido = cliente.build_request(
-                "GET", destino, headers=cabeceras, extensions=extensiones
+                "GET", destino, headers=cabeceras, extensions=extensiones,
+                timeout=httpx.Timeout(queda),
             )
             respuesta = cliente.send(pedido, stream=True)
             try:

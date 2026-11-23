@@ -316,7 +316,9 @@ def sincronizar_vencidos(
 
     bien = mal = 0
     for i, calendario in enumerate(pendientes):
-        if monotonic() > limite:
+        # Solo se arranca uno si entra entero: cada descarga puede tardar hasta
+        # TIEMPO_LIMITE, y la pasada no puede pasarse de su presupuesto.
+        if monotonic() + TIEMPO_LIMITE > limite:
             # Los que no llegaron a intentarse vuelven a su lugar en la fila.
             for salteado in pendientes[i:]:
                 salteado.ultimo_intento = anteriores[salteado.id]
