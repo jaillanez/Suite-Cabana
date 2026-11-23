@@ -33,7 +33,10 @@ export default function DetalleReserva({
   const [pagoSimulado, setPagoSimulado] = useState<string | null>(null);
   const [pendiente, empezar] = useTransition();
 
+  // La API manda primero el ítem principal (el evento, si hay); en un paquete
+  // (docs/04 S11) siguen las cabañas sumadas.
   const item = reserva.items[0];
+  const sumados = reserva.items.slice(1);
   // Un salón (docs/04): horario e invitados en vez de noches y huéspedes.
   const evento = Boolean(item?.inicio_en && item?.fin_en);
   const lineasEvento = (
@@ -173,6 +176,29 @@ export default function DetalleReserva({
         </dl>
       </section>
 
+      {sumados.length > 0 && (
+        <section className={estilos.bloque}>
+          <h2>Para quedarse a dormir</h2>
+          <dl className={estilos.datos}>
+            {sumados.map((s) => (
+              <div key={s.unidad_id}>
+                <dt>
+                  {s.unidad} · {s.publicacion}
+                </dt>
+                <dd>
+                  {rangoFechas(s.fecha_inicio, s.fecha_fin)} ·{" "}
+                  {plural(s.noches, "noche", "noches")} ·{" "}
+                  {plural(s.adultos + s.menores, "persona", "personas")}
+                  {s.direccion && s.direccion !== item?.direccion && (
+                    <> · {s.direccion}</>
+                  )}
+                </dd>
+              </div>
+            ))}
+          </dl>
+        </section>
+      )}
+
       <section className={estilos.bloque}>
         <h2>Lo que pagás</h2>
         {/* Con seña, lo grande es lo que se paga online: mostrar el total ahí
@@ -207,8 +233,24 @@ export default function DetalleReserva({
                 </dd>
               </div>
             )}
+            {sumados.length > 0 && (
+              <>
+                <div className={estilos.totalFila}>
+                  <dt>Evento</dt>
+                  <dd className="cifra">{pesosExactos(item.total)}</dd>
+                </div>
+                {sumados.map((s) => (
+                  <div key={s.unidad_id}>
+                    <dt>
+                      {s.unidad} · {plural(s.noches, "noche", "noches")}
+                    </dt>
+                    <dd className="cifra">{pesosExactos(s.total)}</dd>
+                  </div>
+                ))}
+              </>
+            )}
             <div className={estilos.totalFila}>
-              <dt>Total del evento</dt>
+              <dt>{sumados.length > 0 ? "Total" : "Total del evento"}</dt>
               <dd className="cifra">{pesosExactos(reserva.total)}</dd>
             </div>
           </dl>
@@ -358,6 +400,13 @@ export default function DetalleReserva({
           <h2>
             Cancelación {reserva.politica_cancelacion.nombre.toLowerCase()}
           </h2>
+          {sumados.length > 0 && (
+            <p className={estilos.nota}>
+              Es la política de {item.publicacion}. Cada alojamiento
+              sumado cancela con la suya, y el reintegro es la suma de las
+              partes.
+            </p>
+          )}
           <ul className={estilos.tramos}>
             {reserva.politica_cancelacion.tramos.map((t) => (
               <li key={t.dias_antes}>

@@ -3,7 +3,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 
 import { misReservas } from "@/lib/api";
-import { pesos, plural, rangoFechas } from "@/lib/formato";
+import { horarioEvento, pesos, plural, rangoFechas } from "@/lib/formato";
 import { cuentaActual, tokenActual } from "@/lib/sesion";
 import Encabezado from "@/componentes/Encabezado";
 import Estado from "@/componentes/EstadoReserva";
@@ -51,8 +51,16 @@ export default async function MisReservas() {
                         {item?.unidad} · {item?.localidad}, {item?.provincia}
                       </span>
                       <span className={estilos.detalle}>
-                        {item && rangoFechas(item.fecha_inicio, item.fecha_fin)} ·{" "}
-                        {item && plural(item.noches, "noche", "noches")}
+                        {item?.inicio_en && item.fin_en
+                          ? horarioEvento(item.inicio_en, item.fin_en)
+                          : item &&
+                            `${rangoFechas(item.fecha_inicio, item.fecha_fin)} · ${plural(
+                              item.noches,
+                              "noche",
+                              "noches",
+                            )}`}
+                        {r.items.length > 1 &&
+                          ` · + ${plural(r.items.length - 1, "alojamiento", "alojamientos")}`}
                       </span>
                       <span className={`${estilos.codigo} cifra`}>{r.codigo}</span>
                     </span>

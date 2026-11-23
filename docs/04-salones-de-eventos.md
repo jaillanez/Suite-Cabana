@@ -107,10 +107,24 @@ viajero suma unidades del **mismo propietario**: una reserva, varios ítems
 ## 6. Etapas
 
 Cada etapa se puede publicar por separado. Hechas (noviembre 2026): **1**, **2**
-(API de precio y reserva), **3** (el propietario carga su salón) y **4** (sección
+(API de precio y reserva), **3** (el propietario carga su salón), **4** (sección
 Salones, ficha, reserva con seña desde la web y el detalle de la reserva en
-lenguaje de evento) y **5** (agenda por horas de cada espacio, bloqueos a mano,
-reservas recibidas con horario e invitados). Falta la **6**: el paquete.
+lenguaje de evento), **5** (agenda por horas de cada espacio, bloqueos a mano,
+reservas recibidas con horario e invitados) y **6** (el paquete). Falta la **7**,
+que depende de los datos del propietario.
+
+Cómo quedó el paquete (S11):
+- Desde el panel de reserva del salón, "¿Se quedan a dormir?" lista las unidades
+  del mismo anfitrión para las noches desde el día del evento, con precio y si
+  están libres (`GET /salones/unidades/{id}/alojamientos`). Las elegidas viajan en
+  `alojamientos` de la cotización y de la reserva.
+- Las noches tienen que tocar el evento (se puede llegar antes o irse después).
+  Hasta 6 alojamientos por reserva.
+- La seña es la del salón, sobre el total del paquete.
+- Cada ítem guarda su snapshot de política (`item_reserva.politica_cancelacion`,
+  migración 0012). El reintegro reparte lo pagado entre los ítems según lo que vale
+  cada uno y aplica a cada parte su política y su fecha.
+- Si alguna parte es "a solicitud", el paquete entero espera la aprobación.
 
 | Etapa | Contenido |
 |---|---|

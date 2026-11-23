@@ -43,7 +43,8 @@ class Reserva(IdMixin, TiempoMixin, Base):
 
 
 class ItemReserva(IdMixin, Base):
-    """Un servicio dentro de la reserva. En Fase 1 hay uno; en Fase 3, varios (paquetes)."""
+    """Un servicio dentro de la reserva. Uno solo, o varios en un paquete
+    (salón + cabañas del mismo propietario, docs/04 §5 S11)."""
 
     __tablename__ = "item_reserva"
     __table_args__ = (CheckConstraint("fecha_fin >= fecha_inicio", name="fechas_validas"),)
@@ -64,6 +65,8 @@ class ItemReserva(IdMixin, Base):
     mascotas: Mapped[int] = mapped_column(SmallInteger, default=0)
     desglose: Mapped[dict] = mapped_column(JSONB)  # noches, limpieza, extras, descuentos
     subtotal: Mapped[Dinero]  # precio del prestador
+    # Snapshot de la política de este ítem: en un paquete cada uno cancela con la suya.
+    politica_cancelacion: Mapped[dict | None] = mapped_column(JSONB)
 
     reserva: Mapped[Reserva] = relationship(back_populates="items")
     unidad: Mapped["Unidad"] = relationship()  # noqa: F821

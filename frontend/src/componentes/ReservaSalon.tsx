@@ -11,7 +11,9 @@ import Link from "next/link";
 import { accionReservarEvento } from "@/lib/acciones-reservas";
 import {
   ApiError,
+  alojamientosSumables,
   cotizarEvento,
+  type AlojamientoSumable,
   disponibilidadSalon,
   type CotizacionEvento,
   type DisponibilidadSalon,
@@ -24,6 +26,8 @@ import {
   hoyISO,
   pesos,
   pesosExactos,
+  plural,
+  rangoFechas,
 } from "@/lib/formato";
 import { Alerta, Personas } from "./Iconos";
 import panel from "./PanelReserva.module.css";
@@ -31,6 +35,13 @@ import estilos from "./ReservaSalon.module.css";
 
 type Modo = "turno" | "horas";
 const MEDIA_HORA = 30 * 60 * 1000;
+
+/** El día ISO siguiente (o n días después), sin pasar por UTC. */
+function masDias(iso: string, n: number): string {
+  const [a, m, d] = iso.split("-").map(Number);
+  const f = new Date(Date.UTC(a, m - 1, d + n));
+  return f.toISOString().slice(0, 10);
+}
 
 function mensaje(e: unknown, porDefecto: string) {
   return e instanceof ApiError && e.message ? e.message : porDefecto;
@@ -80,6 +91,12 @@ export default function ReservaSalon({
   const [horas, setHoras] = useState(espacio?.por_horas?.horas_minimas ?? 3);
   const [adicionales, setAdicionales] = useState<string[]>([]);
   const [acepta, setAcepta] = useState(false);
+  // Paquete (docs/04 S11): cabañas del mismo anfitrión desde la noche del evento.
+  const [noches, setNoches] = useState(1);
+  const [estadias, setEstadias] = useState<Record<string, number>>({});
+  const [sumables, setSumables] = useState<AlojamientoSumable[] | null>(null);
+  const hayAlojamiento = ficha.alojamientos_del_anfitrion.length > 0;
+  const salida = dia ? masDias(dia, noches) : "";
 
   const [disp, setDisp] = useState<DisponibilidadSalon | null>(null);
   const [errorDisp, setErrorDisp] = useState<string | null>(null);
@@ -111,14 +128,56 @@ export default function ReservaSalon({
     };
   }, [espacio, dia]);
 
+  // Qué cabañas se pueden sumar esas noches, con su precio. Lo que dejó de
+  // estar libre se saca de lo elegido.
+  useEffect(() => {
+    if (!hayAlojamiento || !espacio || !dia) {
+      setSumables(null);
+      return;
+    }
+    let vigente = true;
+    alojamientosSumables(espacio.id, dia, salida, 2)
+      .then((lista) => {
+        if (!vigente) return;
+        setSumables(lista);
+        const libres = new Set(lista.filter((x) => x.libre).map((x) => x.unidad_id));
+        setEstadias((actual) =>
+          Object.fromEntries(
+            Object.entries(actual).filter(([id]) => libres.has(id)),
+          ),
+        );
+      })
+      .catch(() => vigente && setSumables([]));
+    return () => {
+      vigente = false;
+    };
+  }, [hayAlojamiento, espacio, dia, salida]);
+
   const pedido: PedidoEvento | null = useMemo(() => {
     if (!espacio || !dia || invitados < 1) return null;
-    const base = { unidad_id: espacio.id, dia, invitados, adicionales };
+    const alojamientos = Object.entries(estadias).map(([unidad_id, adultos]) => ({
+      unidad_id,
+      desde: dia,
+      hasta: salida,
+      adultos,
+    }));
+    const base = { unidad_id: espacio.id, dia, invitados, adicionales, alojamientos };
     if (modo === "turno" && franjaId) return { ...base, franja_id: franjaId };
     if (modo === "horas" && horaInicio)
       return { ...base, hora_inicio: horaInicio, horas };
     return null;
-  }, [espacio, dia, invitados, adicionales, modo, franjaId, horaInicio, horas]);
+  }, [
+    espacio,
+    dia,
+    invitados,
+    adicionales,
+    estadias,
+    salida,
+    modo,
+    franjaId,
+    horaInicio,
+    horas,
+  ]);
 
   useEffect(() => {
     if (!pedido) {
@@ -352,6 +411,93 @@ export default function ReservaSalon({
         </fieldset>
       )}
 
+      {hayAlojamiento && dia && (
+        <fieldset className={estilos.dormir}>
+          <legend>¿Se quedan a dormir?</legend>
+          <p className={estilos.nota}>
+            Sumá cabañas del mismo anfitrión a esta reserva: un solo pago y una
+            sola seña.
+          </p>
+          <label className={estilos.noches}>
+            <span>Noches, desde el día del evento</span>
+            <select
+              value={noches}
+              onChange={(e) => setNoches(Number(e.target.value))}
+            >
+              {[1, 2, 3, 4].map((n) => (
+                <option key={n} value={n}>
+                  {plural(n, "noche", "noches")}
+                </option>
+              ))}
+            </select>
+          </label>
+          {!sumables ? (
+            <p className={estilos.nota}>Buscando cabañas libres…</p>
+          ) : sumables.length === 0 ? (
+            <p className={estilos.nota}>No hay cabañas para sumar.</p>
+          ) : (
+            <ul className={estilos.cabanas}>
+              {sumables.map((a) => {
+                const elegida = a.unidad_id in estadias;
+                return (
+                  <li key={a.unidad_id} data-libre={a.libre}>
+                    <label>
+                      <input
+                        type="checkbox"
+                        disabled={!a.libre}
+                        checked={elegida}
+                        onChange={(e) =>
+                          setEstadias((actual) => {
+                            const nuevo = { ...actual };
+                            if (e.target.checked)
+                              nuevo[a.unidad_id] = Math.min(2, a.capacidad);
+                            else delete nuevo[a.unidad_id];
+                            return nuevo;
+                          })
+                        }
+                      />
+                      <span>
+                        <strong>{a.unidad}</strong> · {a.publicacion}
+                        <small>
+                          {a.libre
+                            ? `hasta ${a.capacidad} personas`
+                            : a.motivo}
+                        </small>
+                      </span>
+                      {a.total && (
+                        <span className="cifra">{pesos(a.total)}</span>
+                      )}
+                    </label>
+                    {elegida && (
+                      <label className={estilos.personas}>
+                        <span>Personas</span>
+                        <select
+                          value={estadias[a.unidad_id]}
+                          onChange={(e) =>
+                            setEstadias((actual) => ({
+                              ...actual,
+                              [a.unidad_id]: Number(e.target.value),
+                            }))
+                          }
+                        >
+                          {Array.from({ length: a.capacidad }, (_, i) => i + 1).map(
+                            (n) => (
+                              <option key={n} value={n}>
+                                {n}
+                              </option>
+                            ),
+                          )}
+                        </select>
+                      </label>
+                    )}
+                  </li>
+                );
+              })}
+            </ul>
+          )}
+        </fieldset>
+      )}
+
       {errorCot && (
         <p className={estilos.error} role="alert">
           <Alerta className={estilos.iconoError} />
@@ -379,8 +525,31 @@ export default function ReservaSalon({
                 <dd className="cifra">{pesosExactos(cot.cargo_servicio)}</dd>
               </div>
             )}
+            {cot.alojamientos.length > 0 && (
+              <>
+                <div className={estilos.parcial}>
+                  <dt>Evento</dt>
+                  <dd className="cifra">{pesosExactos(cot.total_evento)}</dd>
+                </div>
+                {cot.alojamientos.map((a) => (
+                  <div key={a.unidad_id}>
+                    <dt>
+                      {a.unidad} · {a.publicacion}
+                      <small>
+                        {rangoFechas(a.desde, a.hasta)},{" "}
+                        {plural(a.noches, "noche", "noches")},{" "}
+                        {plural(a.personas, "persona", "personas")}
+                      </small>
+                    </dt>
+                    <dd className="cifra">{pesosExactos(a.total)}</dd>
+                  </div>
+                ))}
+              </>
+            )}
             <div className={estilos.total}>
-              <dt>Total del evento</dt>
+              <dt>
+                {cot.alojamientos.length > 0 ? "Total" : "Total del evento"}
+              </dt>
               <dd className="cifra">{pesosExactos(cot.total)}</dd>
             </div>
           </dl>

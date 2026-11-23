@@ -38,10 +38,7 @@ export default function ReservasPrestador({ inicial }: { inicial: Reserva[] }) {
       <ul className={estilos.lista}>
         {reservas.map((r) => {
           const item = r.items[0];
-          const comision = item?.comision;
-          const neto = comision
-            ? Number(item.subtotal) - Number(comision.descuento_prestador)
-            : Number(item?.subtotal ?? 0);
+          const sumados = r.items.slice(1); // paquete: las cabañas del evento
           return (
             <li key={r.codigo} className={estilos.ficha}>
               <div className={estilos.encabezado}>
@@ -67,6 +64,13 @@ export default function ReservasPrestador({ inicial }: { inicial: Reserva[] }) {
                       )}{" "}
                     · código <span className="cifra">{r.codigo}</span>
                   </span>
+                  {sumados.map((s) => (
+                    <span key={s.unidad_id} className={estilos.detalle}>
+                      + {s.unidad} de {s.publicacion} ·{" "}
+                      {rangoFechas(s.fecha_inicio, s.fecha_fin)} ·{" "}
+                      {plural(s.adultos + s.menores, "persona", "personas")}
+                    </span>
+                  ))}
                 </div>
                 <Estado estado={r.estado} />
               </div>
@@ -76,17 +80,17 @@ export default function ReservasPrestador({ inicial }: { inicial: Reserva[] }) {
                   <dt>Paga el viajero</dt>
                   <dd className="cifra">{pesos(r.total)}</dd>
                 </div>
-                {comision && (
+                {Number(r.comision_prestador) > 0 && (
                   <div>
                     <dt>Comisión de la plataforma</dt>
                     <dd className="cifra">
-                      −{pesosExactos(comision.descuento_prestador)}
+                      −{pesosExactos(r.comision_prestador)}
                     </dd>
                   </div>
                 )}
                 <div className={estilos.neto}>
                   <dt>Te queda</dt>
-                  <dd className="cifra">{pesos(neto)}</dd>
+                  <dd className="cifra">{pesos(r.neto_prestador)}</dd>
                 </div>
               </dl>
 

@@ -350,8 +350,9 @@ Ya resueltos: envío de correos (verificación por SMTP), vinculación de Mercad
 el anfitrión, liberación de reservas vencidas y envío de notificaciones
 (`app/tareas.py`).
 
-Próxima mejora planificada: salones de eventos y paquete salón + cabañas
-([`docs/04-salones-de-eventos.md`](docs/04-salones-de-eventos.md)).
+Salones de eventos y paquete salón + cabañas: hechos
+([`docs/04-salones-de-eventos.md`](docs/04-salones-de-eventos.md)). Falta la etapa 7,
+cargar el salón real de Los Búhos con sus datos y fotos.
 
 ## Producción (alojateaqui.com.ar)
 

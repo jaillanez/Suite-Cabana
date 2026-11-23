@@ -87,6 +87,17 @@ class DisponibilidadOut(BaseModel):
     adicionales: list[AdicionalOut]
 
 
+class EstadiaPedido(BaseModel):
+    """Noches en una cabaña del mismo anfitrión, sumadas al evento (paquete)."""
+
+    unidad_id: uuid.UUID
+    desde: date
+    hasta: date
+    adultos: Annotated[int, Field(ge=1, le=30)] = 2
+    menores: Annotated[int, Field(ge=0, le=30)] = 0
+    mascotas: Annotated[int, Field(ge=0, le=10)] = 0
+
+
 class PedidoEvento(BaseModel):
     unidad_id: uuid.UUID
     dia: date
@@ -95,6 +106,9 @@ class PedidoEvento(BaseModel):
     hora_inicio: time | None = None
     horas: Annotated[int | None, Field(ge=1, le=24)] = None
     adicionales: list[uuid.UUID] = Field(default_factory=list, max_length=30)
+    alojamientos: list[EstadiaPedido] = Field(
+        default_factory=list, max_length=reservas.MAX_ESTADIAS
+    )
 
 
 class NuevaReservaEvento(PedidoEvento):
@@ -106,18 +120,49 @@ class LineaOut(BaseModel):
     monto: Dinero
 
 
+class EstadiaCotizadaOut(BaseModel):
+    unidad_id: uuid.UUID
+    unidad: str
+    publicacion: str
+    desde: date
+    hasta: date
+    noches: int
+    personas: int
+    subtotal: Dinero
+    cargo_servicio: Dinero
+    total: Dinero
+
+
 class CotizacionEventoOut(BaseModel):
     inicio: datetime
     fin: datetime
     invitados: int
     alquiler: Dinero
     lineas: list[LineaOut]
-    subtotal: Dinero = Field(description="Lo que cobra el anfitrión")
-    cargo_servicio: Dinero
-    total: Dinero = Field(description="Lo que cuesta el evento, todo incluido")
+    subtotal: Dinero = Field(description="Lo que cobra el anfitrión por el evento")
+    cargo_servicio: Dinero = Field(description="Cargo de servicio del evento")
+    total_evento: Dinero = Field(description="El evento solo, todo incluido")
+    alojamientos: list[EstadiaCotizadaOut] = Field(
+        description="Las noches sumadas al evento (paquete)"
+    )
+    total: Dinero = Field(description="Lo que cuesta todo, evento y alojamientos")
     sena: Dinero | None = Field(description="Lo que se paga online para reservar")
     a_pagar_ahora: Dinero
     saldo_con_anfitrion: Dinero | None
+
+
+class AlojamientoSumableOut(BaseModel):
+    """Una unidad del mismo anfitrión que se puede sumar al evento."""
+
+    unidad_id: uuid.UUID
+    unidad: str
+    publicacion: str
+    slug: str
+    capacidad: int
+    foto: str | None
+    libre: bool
+    total: Dinero | None = Field(description="Cuánto suma, si está libre")
+    motivo: str | None = Field(description="Por qué no se puede sumar")
 
 
 class PrecioDesdeOut(BaseModel):
@@ -241,13 +286,47 @@ def _unidad(db: Session, unidad_id: uuid.UUID) -> Unidad:
     return unidad
 
 
-def _cotizar(db: Session, datos: PedidoEvento) -> reservas.CotizacionEvento:
+def _estadias(db: Session, pedidos: list[EstadiaPedido]) -> list[reservas.Estadia]:
+    """Las unidades de alojamiento pedidas. Que sean del mismo anfitrión, que se
+    reserven por noches y que estén libres lo decide el motor de reservas."""
+    if not pedidos:
+        return []
+    unidades = {
+        u.id: u
+        for u in db.scalars(
+            select(Unidad)
+            .where(Unidad.id.in_({e.unidad_id for e in pedidos}))
+            .options(
+                selectinload(Unidad.tarifas),
+                selectinload(Unidad.publicacion).selectinload(Publicacion.prestador),
+                selectinload(Unidad.publicacion).selectinload(Publicacion.tipo_servicio),
+                selectinload(Unidad.publicacion).selectinload(Publicacion.politica_cancelacion),
+                selectinload(Unidad.publicacion)
+                .selectinload(Publicacion.localidad)
+                .selectinload(Localidad.provincia),
+            )
+        )
+    }
+    faltan = [e for e in pedidos if e.unidad_id not in unidades]
+    if faltan:
+        raise HTTPException(
+            status.HTTP_422_UNPROCESSABLE_ENTITY, "No encontramos uno de los alojamientos"
+        )
+    return [
+        reservas.Estadia(
+            unidades[e.unidad_id], e.desde, e.hasta, e.adultos, e.menores, e.mascotas
+        )
+        for e in pedidos
+    ]
+
+
+def _cotizar(db: Session, datos: PedidoEvento) -> reservas.CotizacionPaquete:
     unidad = _unidad(db, datos.unidad_id)
     try:
-        return reservas.cotizar_evento(
+        return reservas.cotizar_paquete(
             db, unidad, datos.dia, datos.invitados,
             franja_id=datos.franja_id, hora_inicio=datos.hora_inicio, horas=datos.horas,
-            adicionales=datos.adicionales,
+            adicionales=datos.adicionales, estadias=_estadias(db, datos.alojamientos),
         )
     except reservas.NoSePuedeReservar as e:
         raise HTTPException(status.HTTP_422_UNPROCESSABLE_ENTITY, str(e)) from e
@@ -494,9 +573,10 @@ def disponibilidad(
 
 @router.post("/cotizacion", response_model=CotizacionEventoOut)
 def cotizacion(datos: PedidoEvento, db: Session = Depends(get_db)) -> CotizacionEventoOut:
-    """Cuánto sale el evento y cuánto se paga ahora. No reserva nada."""
-    cot = _cotizar(db, datos)
-    a_pagar = cot.sena or cot.total_viajero
+    """Cuánto sale el evento (y lo que se le sume) y cuánto se paga ahora. No
+    reserva nada."""
+    paquete = _cotizar(db, datos)
+    cot = paquete.evento
     return CotizacionEventoOut(
         inicio=cot.precio.inicio,
         fin=cot.precio.fin,
@@ -505,11 +585,85 @@ def cotizacion(datos: PedidoEvento, db: Session = Depends(get_db)) -> Cotizacion
         lineas=[LineaOut(concepto=ln.concepto, monto=ln.monto) for ln in cot.precio.lineas],
         subtotal=cot.precio.subtotal,
         cargo_servicio=cot.comision.cargo_viajero,
-        total=cot.total_viajero,
-        sena=cot.sena,
-        a_pagar_ahora=a_pagar,
-        saldo_con_anfitrion=(cot.total_viajero - cot.sena) if cot.sena else None,
+        total_evento=cot.total_viajero,
+        alojamientos=[
+            EstadiaCotizadaOut(
+                unidad_id=e.unidad.id,
+                unidad=e.unidad.nombre,
+                publicacion=e.unidad.publicacion.titulo,
+                desde=e.fecha_inicio,
+                hasta=e.fecha_fin,
+                noches=c.noches,
+                personas=e.personas + e.menores,
+                subtotal=c.precio.subtotal,
+                cargo_servicio=c.comision.cargo_viajero,
+                total=c.total_viajero,
+            )
+            for e, c in paquete.estadias
+        ],
+        total=paquete.total_viajero,
+        sena=paquete.sena,
+        a_pagar_ahora=paquete.sena or paquete.total_viajero,
+        saldo_con_anfitrion=(
+            paquete.total_viajero - paquete.sena if paquete.sena else None
+        ),
     )
+
+
+@router.get(
+    "/unidades/{unidad_id}/alojamientos", response_model=list[AlojamientoSumableOut]
+)
+def alojamientos_sumables(
+    unidad_id: uuid.UUID,
+    desde: date,
+    hasta: date,
+    personas: Annotated[int, Query(ge=1, le=30)] = 2,
+    db: Session = Depends(get_db),
+) -> list[AlojamientoSumableOut]:
+    """Las cabañas del mismo anfitrión que el salón, con su precio para esas
+    noches y si están libres: lo que se puede sumar al evento (docs/04 S11)."""
+    salon = _unidad(db, unidad_id)
+    if not desde < hasta or (hasta - desde).days > 14:
+        raise HTTPException(
+            status.HTTP_422_UNPROCESSABLE_ENTITY, "Elegí entre 1 y 14 noches"
+        )
+    if desde < date.today():
+        raise HTTPException(status.HTTP_422_UNPROCESSABLE_ENTITY, "Esa fecha ya pasó")
+    publicaciones = svc.del_mismo_anfitrion(
+        db, salon.publicacion.prestador_id, ModoReserva.NOCHES
+    )
+    salida: list[AlojamientoSumableOut] = []
+    for p in publicaciones:
+        for u in sorted(p.unidades, key=lambda x: x.nombre):
+            if not u.activa:
+                continue
+            libre = reservas._libre(db, u.id, desde, hasta)
+            total, motivo = None, None
+            if not libre:
+                motivo = "Ocupada esas noches"
+            else:
+                try:
+                    total = reservas.cotizar(
+                        db, u, desde, hasta, min(personas, u.capacidad)
+                    ).total_viajero
+                except reservas.NoSePuedeReservar as e:
+                    motivo = str(e)
+            salida.append(
+                AlojamientoSumableOut(
+                    unidad_id=u.id,
+                    unidad=u.nombre,
+                    publicacion=p.titulo,
+                    slug=p.slug,
+                    capacidad=u.capacidad,
+                    foto=p.fotos[0].url if p.fotos else None,
+                    libre=libre and total is not None,
+                    total=total,
+                    motivo=motivo,
+                )
+            )
+    # Primero lo que se puede sumar; lo ocupado queda abajo, con su motivo.
+    salida.sort(key=lambda x: not x.libre)
+    return salida
 
 
 @router.post("/reservas", response_model=ReservaOut, status_code=status.HTTP_201_CREATED)
@@ -529,7 +683,7 @@ def reservar(
         reserva = reservas.crear_evento(
             db, usuario, unidad, datos.dia, datos.invitados,
             franja_id=datos.franja_id, hora_inicio=datos.hora_inicio, horas=datos.horas,
-            adicionales=datos.adicionales,
+            adicionales=datos.adicionales, estadias=_estadias(db, datos.alojamientos),
         )
     except reservas.FechasTomadas as e:
         raise HTTPException(status.HTTP_409_CONFLICT, str(e)) from e

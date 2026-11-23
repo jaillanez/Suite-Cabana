@@ -710,6 +710,8 @@ export type ItemReserva = {
   menores: number;
   mascotas: number;
   subtotal: string;
+  /** Lo que paga el viajero por este ítem (subtotal + cargo de servicio). */
+  total: string;
   desglose: Record<string, unknown>;
   comision: ComisionReserva | null;
   fotos: { url: string; descripcion: string | null }[];
@@ -729,6 +731,9 @@ export type Reserva = {
   monto_sena: string | null;
   /** Con seña: lo que queda por pagarle al anfitrión. */
   saldo_con_anfitrion?: string | null;
+  /** Del lado del anfitrión, sumando todos los ítems. */
+  comision_prestador: string;
+  neto_prestador: string;
   moneda: string;
   vence_pago_en: string | null;
   vence_aprobacion_en: string | null;
@@ -1203,7 +1208,51 @@ export type PedidoEvento = {
   hora_inicio?: string | null;
   horas?: number | null;
   adicionales?: string[];
+  alojamientos?: EstadiaPedido[];
 };
+
+/* Paquete (docs/04 S11): noches en cabañas del mismo anfitrión, sumadas al evento. */
+export type EstadiaPedido = {
+  unidad_id: string;
+  desde: string;
+  hasta: string;
+  adultos: number;
+};
+
+export type EstadiaCotizada = {
+  unidad_id: string;
+  unidad: string;
+  publicacion: string;
+  desde: string;
+  hasta: string;
+  noches: number;
+  personas: number;
+  subtotal: string;
+  cargo_servicio: string;
+  total: string;
+};
+
+export type AlojamientoSumable = {
+  unidad_id: string;
+  unidad: string;
+  publicacion: string;
+  slug: string;
+  capacidad: number;
+  foto: string | null;
+  libre: boolean;
+  total: string | null;
+  motivo: string | null;
+};
+
+export const alojamientosSumables = (
+  salonUnidadId: string,
+  desde: string,
+  hasta: string,
+  personas: number,
+) =>
+  api<AlojamientoSumable[]>(
+    `/salones/unidades/${salonUnidadId}/alojamientos?desde=${desde}&hasta=${hasta}&personas=${personas}`,
+  );
 
 export type CotizacionEvento = {
   inicio: string;
@@ -1213,6 +1262,8 @@ export type CotizacionEvento = {
   lineas: { concepto: string; monto: string }[];
   subtotal: string;
   cargo_servicio: string;
+  total_evento: string;
+  alojamientos: EstadiaCotizada[];
   total: string;
   sena: string | null;
   a_pagar_ahora: string;

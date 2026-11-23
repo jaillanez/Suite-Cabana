@@ -220,7 +220,8 @@ export default async function FichaSalon({ params, searchParams }: Params) {
               <section>
                 <h2 className={estilos.subtitulo}>Para quedarse a dormir</h2>
                 <p className={estilos.descripcion}>
-                  El mismo anfitrión tiene alojamiento:{" "}
+                  El mismo anfitrión tiene alojamiento, y podés sumarlo a la
+                  reserva del salón en un solo pago:{" "}
                   {f.alojamientos_del_anfitrion.map((a, i) => (
                     <span key={a.slug}>
                       {i > 0 && ", "}

@@ -218,7 +218,6 @@ def crear(
 
     s = get_settings()
     publicacion = unidad.publicacion
-    politica = publicacion.politica_cancelacion
 
     reserva = Reserva(
         codigo=generar_codigo(db),
@@ -227,38 +226,14 @@ def crear(
         total=cotizacion.total_viajero,
         monto_sena=_sena(publicacion, cotizacion.total_viajero),
         vence_pago_en=datetime.now(UTC) + timedelta(minutes=s.minutos_retencion_pago),
-        politica_cancelacion=_politica_snapshot(politica),
+        politica_cancelacion=_politica_snapshot(publicacion.politica_cancelacion),
     )
     db.add(reserva)
     db.flush()
 
-    item = ItemReserva(
-        reserva_id=reserva.id,
-        unidad_id=unidad.id,
-        prestador_id=publicacion.prestador_id,
-        fecha_inicio=fecha_inicio,
-        fecha_fin=fecha_fin,
-        adultos=personas,
-        menores=menores,
-        mascotas=mascotas,
-        desglose=cotizacion.precio.desglose(),
-        subtotal=cotizacion.precio.subtotal,
-    )
-    db.add(item)
-    db.flush()
-
-    _guardar_comision(db, item, cotizacion.comision)
-
-    db.add(
-        BloqueoFecha(
-            unidad_id=unidad.id,
-            rango=Range(fecha_inicio, fecha_fin, bounds="[)"),
-            origen=OrigenBloqueo.RETENCION,
-            activo=True,
-            vence_en=reserva.vence_pago_en,
-            item_reserva_id=item.id,
-            nota=f"Retención de la reserva {reserva.codigo}",
-        )
+    _retener_estadia(
+        db, reserva, Estadia(unidad, fecha_inicio, fecha_fin, personas, menores, mascotas),
+        cotizacion,
     )
 
     try:
@@ -271,6 +246,57 @@ def crear(
 
     _avisar_al_viajero(db, reserva, "reserva_creada")
     return reserva
+
+
+@dataclass(frozen=True)
+class Estadia:
+    """Noches en una unidad de alojamiento: sola, o sumada a un evento (paquete)."""
+
+    unidad: Unidad
+    fecha_inicio: date
+    fecha_fin: date
+    personas: int = 2
+    menores: int = 0
+    mascotas: int = 0
+
+
+def _retener_estadia(
+    db: Session, reserva: Reserva, e: Estadia, cotizacion: Cotizacion
+) -> ItemReserva:
+    """El ítem de una estadía, su comisión y la retención de las noches.
+
+    El choque con otra reserva no se detecta acá sino al hacer flush (lo decide
+    la restricción de exclusión): quien llama lo traduce.
+    """
+    publicacion = e.unidad.publicacion
+    item = ItemReserva(
+        reserva_id=reserva.id,
+        unidad_id=e.unidad.id,
+        prestador_id=publicacion.prestador_id,
+        fecha_inicio=e.fecha_inicio,
+        fecha_fin=e.fecha_fin,
+        adultos=e.personas,
+        menores=e.menores,
+        mascotas=e.mascotas,
+        desglose=cotizacion.precio.desglose(),
+        subtotal=cotizacion.precio.subtotal,
+        politica_cancelacion=_politica_snapshot(publicacion.politica_cancelacion),
+    )
+    db.add(item)
+    db.flush()
+    _guardar_comision(db, item, cotizacion.comision)
+    db.add(
+        BloqueoFecha(
+            unidad_id=e.unidad.id,
+            rango=Range(e.fecha_inicio, e.fecha_fin, bounds="[)"),
+            origen=OrigenBloqueo.RETENCION,
+            activo=True,
+            vence_en=reserva.vence_pago_en,
+            item_reserva_id=item.id,
+            nota=f"Retención de la reserva {reserva.codigo}",
+        )
+    )
+    return item
 
 
 def _sena(publicacion: Publicacion, total: Decimal) -> Decimal | None:
@@ -286,6 +312,28 @@ def _sena(publicacion: Publicacion, total: Decimal) -> Decimal | None:
 def monto_a_cobrar(reserva: Reserva) -> Decimal:
     """Lo que se le cobra online al viajero: la seña si hay, si no el total."""
     return reserva.monto_sena if reserva.monto_sena else reserva.total
+
+
+@dataclass(frozen=True)
+class Reparto:
+    """Cómo se reparte el total de la reserva, sumando todos sus ítems."""
+
+    neto_prestador: Decimal  # lo del anfitrión, ya descontada su parte de comisión
+    comision_neta: Decimal
+    iva: Decimal
+    comision_total: Decimal
+
+
+def reparto(reserva: Reserva) -> Reparto:
+    neto = neta = iva = total = Decimal(0)
+    for i in reserva.items:
+        c = i.comision
+        neto += i.subtotal - (c.descuento_prestador if c else 0)
+        if c:
+            neta += c.comision_neta
+            iva += c.iva
+            total += c.comision_total
+    return Reparto(_r(neto), _r(neta), _r(iva), _r(total))
 
 
 def pagado(reserva: Reserva) -> Decimal:
@@ -427,6 +475,86 @@ def cotizar_evento(
     )
 
 
+#: Cuántos alojamientos se pueden sumar a un evento en una reserva.
+MAX_ESTADIAS = 6
+
+
+@dataclass(frozen=True)
+class CotizacionPaquete:
+    """Un evento y, si se suman, las estadías del mismo anfitrión (docs/04 S11)."""
+
+    evento: CotizacionEvento
+    estadias: list[tuple[Estadia, Cotizacion]]
+    total_viajero: Decimal
+    sena: Decimal | None
+
+
+def _nombre(unidad: Unidad) -> str:
+    return f"{unidad.publicacion.titulo} · {unidad.nombre}"
+
+
+def cotizar_paquete(
+    db: Session,
+    unidad: Unidad,
+    dia: date,
+    invitados: int,
+    franja_id: uuid.UUID | None = None,
+    hora_inicio=None,
+    horas: int | None = None,
+    adicionales: list[uuid.UUID] | tuple = (),
+    estadias: list[Estadia] | tuple = (),
+    hoy: date | None = None,
+    ahora: datetime | None = None,
+) -> CotizacionPaquete:
+    """El evento más las noches que se suman, sin tocar nada.
+
+    Cada estadía se cotiza igual que sola (mismo precio, su propia comisión); la
+    seña es la del salón sobre el total del paquete: se reserva desde el salón.
+    """
+    hoy = hoy or date.today()
+    ev = cotizar_evento(
+        db, unidad, dia, invitados, franja_id, hora_inicio, horas, adicionales, hoy, ahora
+    )
+    if len(estadias) > MAX_ESTADIAS:
+        raise NoSePuedeReservar(f"Se pueden sumar hasta {MAX_ESTADIAS} alojamientos")
+
+    prestador_id = unidad.publicacion.prestador_id
+    fin_evento = ev.precio.fin.astimezone(pe.ZONA).date()
+    vistas: set[uuid.UUID] = set()
+    cotizadas: list[tuple[Estadia, Cotizacion]] = []
+    for e in estadias:
+        if e.unidad.id in vistas:
+            raise NoSePuedeReservar(f"{_nombre(e.unidad)} está elegida dos veces")
+        vistas.add(e.unidad.id)
+        # Un solo pago entra en una sola cuenta: el paquete es de un anfitrión.
+        if e.unidad.publicacion.prestador_id != prestador_id:
+            raise NoSePuedeReservar(
+                "Al salón solo se le pueden sumar alojamientos del mismo anfitrión"
+            )
+        # Las noches tienen que tocar el evento: llegar antes o irse después vale,
+        # una estadía de otro mes no es un paquete.
+        if e.fecha_inicio > fin_evento or e.fecha_fin < dia:
+            raise NoSePuedeReservar(
+                f"{_nombre(e.unidad)}: la estadía tiene que coincidir con el evento"
+            )
+        try:
+            c = cotizar(
+                db, e.unidad, e.fecha_inicio, e.fecha_fin,
+                e.personas + e.menores, e.mascotas, hoy,
+            )
+        except NoSePuedeReservar as err:
+            raise NoSePuedeReservar(f"{_nombre(e.unidad)}: {err}") from err
+        cotizadas.append((e, c))
+
+    total = _r(ev.total_viajero + sum((c.total_viajero for _, c in cotizadas), Decimal(0)))
+    return CotizacionPaquete(
+        evento=ev,
+        estadias=cotizadas,
+        total_viajero=total,
+        sena=_sena(unidad.publicacion, total),
+    )
+
+
 def crear_evento(
     db: Session,
     usuario: Usuario,
@@ -437,21 +565,29 @@ def crear_evento(
     hora_inicio=None,
     horas: int | None = None,
     adicionales: list[uuid.UUID] | tuple = (),
+    estadias: list[Estadia] | tuple = (),
     hoy: date | None = None,
 ) -> Reserva:
-    """Crea la reserva del evento y retiene el horario mientras el viajero paga.
+    """Crea la reserva del evento —y de las noches que se sumen— y retiene todo
+    mientras el viajero paga.
 
     Igual que con las noches, el choque lo decide la base (`horarios.bloquear`):
-    se retiene el evento más el tiempo de preparación posterior.
+    se retiene el evento más el tiempo de preparación posterior. Con un paquete,
+    o se retiene todo o nada: todo va en la misma transacción y cualquier choque
+    la deshace entera.
     """
     if not usuario.email_verificado:
         raise NoSePuedeReservar("Verificá tu correo antes de reservar")
-    cot = cotizar_evento(
-        db, unidad, dia, invitados, franja_id, hora_inicio, horas, adicionales, hoy
+    paquete = cotizar_paquete(
+        db, unidad, dia, invitados, franja_id, hora_inicio, horas, adicionales, estadias, hoy
     )
+    cot = paquete.evento
     inicio, fin_bloqueo = pe.rango_ocupado(cot.precio, salon_plano(unidad))
     if not horarios.libre(db, unidad.id, inicio, fin_bloqueo):
         raise FechasTomadas("Ese horario ya no está disponible")
+    for e, _ in paquete.estadias:
+        if not _libre(db, e.unidad.id, e.fecha_inicio, e.fecha_fin):
+            raise FechasTomadas(f"{_nombre(e.unidad)}: esas fechas ya no están disponibles")
 
     s = get_settings()
     publicacion = unidad.publicacion
@@ -459,8 +595,8 @@ def crear_evento(
         codigo=generar_codigo(db),
         usuario_id=usuario.id,
         estado=EstadoReserva.PENDIENTE_PAGO,
-        total=cot.total_viajero,
-        monto_sena=cot.sena,
+        total=paquete.total_viajero,
+        monto_sena=paquete.sena,
         vence_pago_en=datetime.now(UTC) + timedelta(minutes=s.minutos_retencion_pago),
         politica_cancelacion=_politica_snapshot(publicacion.politica_cancelacion),
     )
@@ -480,6 +616,7 @@ def crear_evento(
         mascotas=0,
         desglose=cot.precio.desglose(),
         subtotal=cot.precio.subtotal,
+        politica_cancelacion=_politica_snapshot(publicacion.politica_cancelacion),
     )
     db.add(item)
     db.flush()
@@ -497,6 +634,18 @@ def crear_evento(
         raise FechasTomadas(
             "Alguien reservó ese horario mientras completabas. Probá con otro."
         ) from e
+
+    for e, c in paquete.estadias:
+        _retener_estadia(db, reserva, e, c)
+    try:
+        db.flush()
+    except IntegrityError as err:
+        # Se deshace todo, el salón incluido: el paquete no se reserva a medias.
+        db.rollback()
+        raise FechasTomadas(
+            "Alguien reservó uno de los alojamientos mientras completabas. "
+            "Probá con otras fechas o sin ese alojamiento."
+        ) from err
 
     _avisar_al_viajero(db, reserva, "reserva_creada")
     return reserva
@@ -518,8 +667,7 @@ def registrar_pago(
     datos: dict | None = None,
 ) -> Reserva:
     """Aplica el resultado de un pago. Es idempotente: repetir no duplica nada."""
-    item = reserva.items[0]
-    comision = item.comision
+    partes = reparto(reserva)
 
     # Ya visto: se actualiza, no se duplica.
     pago = db.scalar(
@@ -542,9 +690,9 @@ def registrar_pago(
             tipo=TipoPago.TOTAL,
             pasarela=pasarela,
             monto=monto if monto is not None else reserva.total,
-            monto_prestador=item.subtotal - (comision.descuento_prestador if comision else 0),
-            monto_comision=comision.comision_neta if comision else Decimal(0),
-            iva_comision=comision.iva if comision else Decimal(0),
+            monto_prestador=partes.neto_prestador,
+            monto_comision=partes.comision_neta,
+            iva_comision=partes.iva,
         )
         db.add(pago)
 
@@ -583,8 +731,9 @@ def registrar_pago(
     return reserva
 
 
-def _afirmar_bloqueos(db: Session, reserva: Reserva, item: ItemReserva) -> bool:
-    """Pasa la retención a reserva firme. False si el lugar ya no está.
+def _afirmar_bloqueos(db: Session, reserva: Reserva) -> bool:
+    """Pasa las retenciones de todos los ítems a reserva firme. False si algún
+    lugar ya no está: en un paquete se confirma todo o nada.
 
     Una retención vencida pudo haberse desactivado y otro tomado ese lugar: al
     reactivarla, la restricción de exclusión lo rechaza. Se prueba en un
@@ -594,19 +743,21 @@ def _afirmar_bloqueos(db: Session, reserva: Reserva, item: ItemReserva) -> bool:
     # que otra operación ya desactivó, y entonces reactivarlo no mandaría nada a
     # la base y la restricción de exclusión nunca tendría la chance de rechazarlo.
     releer = {"populate_existing": True}
+    ids = [i.id for i in reserva.items]
     bloqueos = [
         *db.scalars(
             select(BloqueoFecha)
-            .where(BloqueoFecha.item_reserva_id == item.id)
+            .where(BloqueoFecha.item_reserva_id.in_(ids))
             .execution_options(**releer)
         ),
         *db.scalars(
             select(BloqueoHorario)
-            .where(BloqueoHorario.item_reserva_id == item.id)
+            .where(BloqueoHorario.item_reserva_id.in_(ids))
             .execution_options(**releer)
         ),
     ]
-    if not bloqueos:
+    # Cada ítem tiene que tener su bloqueo: si a uno le falta, ese lugar se soltó.
+    if {b.item_reserva_id for b in bloqueos} != set(ids):
         return False
     try:
         with db.begin_nested():
@@ -629,10 +780,11 @@ def _confirmar(db: Session, reserva: Reserva) -> bool:
     if reserva.estado in (EstadoReserva.CONFIRMADA, EstadoReserva.COMPLETADA):
         return True  # idempotente
 
-    item = reserva.items[0]
-    if not _afirmar_bloqueos(db, reserva, item):
+    if not _afirmar_bloqueos(db, reserva):
         return False
-    inmediata = item.unidad.publicacion.confirmacion_inmediata
+    # El anfitrión aprueba o rechaza el paquete entero: si alguna parte es "a
+    # solicitud", lo es toda la reserva.
+    inmediata = all(i.unidad.publicacion.confirmacion_inmediata for i in reserva.items)
     s = get_settings()
 
     reserva.estado = (
@@ -692,30 +844,58 @@ def calcular_reintegro(reserva: Reserva, hoy: date | None = None) -> Reintegro:
     """Cuánto se devuelve según la política que la reserva guardó (docs/01 §5 R8).
 
     Se usa el snapshot, no la política actual: el viajero aceptó la de ese momento.
+
+    En un paquete cada ítem cancela con su política y desde su propia fecha: la
+    plata pagada se reparte entre los ítems según lo que vale cada uno, y el
+    reintegro es la suma (docs/04 S11).
     """
     hoy = hoy or date.today()
-    politica = reserva.politica_cancelacion or {}
-    tramos = politica.get("tramos") or []
-    if not tramos:
-        return Reintegro(0, Decimal("0.00"), "Esta reserva no tiene política de cancelación")
+    # Sobre lo que entró, no sobre el total: con seña no se devuelve plata que el
+    # viajero nunca pagó. Si todavía no pagó, sobre lo que tendría que pagar.
+    base = pagado(reserva) or monto_a_cobrar(reserva)
+    items = sorted(reserva.items, key=lambda i: (i.fecha_inicio, i.inicio_en is None))
+    if len(items) <= 1:
+        porcentaje, motivo = _tramo(
+            (items[0].politica_cancelacion if items else None) or reserva.politica_cancelacion,
+            min((i.fecha_inicio for i in items), default=hoy),
+            hoy,
+        )
+        return Reintegro(porcentaje, _r(base * Decimal(porcentaje) / 100), motivo)
 
-    inicio = min(i.fecha_inicio for i in reserva.items)
+    valores = [
+        i.subtotal + (i.comision.cargo_viajero if i.comision else Decimal(0)) for i in items
+    ]
+    suma = sum(valores, Decimal(0)) or Decimal(1)
+    monto, repartido = Decimal(0), Decimal(0)
+    detalle = []
+    for n, (item, valor) in enumerate(zip(items, valores, strict=True)):
+        # La última parte se lleva el resto: los centavos del redondeo no se pierden.
+        parte = base - repartido if n == len(items) - 1 else _r(base * valor / suma)
+        repartido += parte
+        # Solo la del ítem: una cabaña sin política no hereda la de eventos del salón.
+        porcentaje, _ = _tramo(item.politica_cancelacion, item.fecha_inicio, hoy)
+        monto += _r(parte * Decimal(porcentaje) / 100)
+        detalle.append(f"{item.unidad.nombre} {porcentaje} %")
+    monto = _r(monto)
+    return Reintegro(
+        porcentaje=int((monto * 100 / base).to_integral_value()) if base else 0,
+        monto=monto,
+        motivo="Cada parte con su política: " + ", ".join(detalle),
+    )
+
+
+def _tramo(politica: dict | None, inicio: date, hoy: date) -> tuple[int, str]:
+    """El porcentaje de reintegro de una política a tantos días del inicio."""
+    tramos = (politica or {}).get("tramos") or []
+    if not tramos:
+        return 0, "Esta reserva no tiene política de cancelación"
     faltan = (inicio - hoy).days
     # Gana el tramo más exigente que el viajero todavía alcanza.
     elegibles = [t for t in tramos if faltan >= int(t.get("dias_antes", 0))]
     if not elegibles:
-        return Reintegro(0, Decimal("0.00"), "Ya pasó el plazo para cancelar con reintegro")
-
+        return 0, "Ya pasó el plazo para cancelar con reintegro"
     mejor = max(elegibles, key=lambda t: int(t.get("porcentaje_reintegro", 0)))
-    porcentaje = int(mejor.get("porcentaje_reintegro", 0))
-    # Sobre lo que entró, no sobre el total: con seña no se devuelve plata que el
-    # viajero nunca pagó. Si todavía no pagó, sobre lo que tendría que pagar.
-    base = pagado(reserva) or monto_a_cobrar(reserva)
-    return Reintegro(
-        porcentaje=porcentaje,
-        monto=_r(base * Decimal(porcentaje) / 100),
-        motivo=f"Cancelás con {faltan} días de anticipación",
-    )
+    return int(mejor.get("porcentaje_reintegro", 0)), f"Cancelás con {faltan} días de anticipación"
 
 
 def cancelar(db: Session, reserva: Reserva, motivo: str, hoy: date | None = None) -> Reintegro:
@@ -776,13 +956,27 @@ def liberar_vencidas(db: Session, ahora: datetime | None = None) -> int:
 # --- Avisos (docs/01 §5 R9) ---
 
 
+def principal(reserva: Reserva) -> ItemReserva:
+    """El ítem que da nombre a la reserva: el evento si hay, si no el primero."""
+    return next((i for i in reserva.items if i.inicio_en), reserva.items[0])
+
+
+def ordenados(reserva: Reserva) -> list[ItemReserva]:
+    """Los ítems para mostrar: el principal primero, después por fecha."""
+    item = principal(reserva)
+    resto = sorted(
+        (i for i in reserva.items if i is not item),
+        key=lambda i: (i.fecha_inicio, i.unidad.publicacion.titulo, i.unidad.nombre),
+    )
+    return [item, *resto]
+
+
 def _datos_para_aviso(reserva: Reserva) -> dict:
     """Lo que las plantillas necesitan saber de la reserva."""
-    item = reserva.items[0]
+    item = principal(reserva)
     publicacion = item.unidad.publicacion
     web = get_settings().url_publica_web.rstrip("/")
-    comision = item.comision
-    neto = item.subtotal - (comision.descuento_prestador if comision else Decimal(0))
+    neto = reparto(reserva).neto_prestador
     personas = item.adultos + item.menores
     if item.inicio_en and item.fin_en:
         # Un evento: "del 15/03/2027 21:00 al 16/03/2027 05:00 h", no dos fechas.
@@ -793,10 +987,19 @@ def _datos_para_aviso(reserva: Reserva) -> dict:
         desde = item.fecha_inicio.strftime("%d/%m/%Y")
         hasta = item.fecha_fin.strftime("%d/%m/%Y")
         quienes = f"{personas} persona" + ("s" if personas != 1 else "")
+    unidad = item.unidad.nombre
+    sumadas = ordenados(reserva)[1:]
+    if sumadas:
+        # Paquete: las plantillas hablan de una unidad; se nombran las demás ahí.
+        unidad += "; además " + ", ".join(
+            f"{i.unidad.nombre} de {i.unidad.publicacion.titulo} del "
+            f"{i.fecha_inicio:%d/%m/%Y} al {i.fecha_fin:%d/%m/%Y}"
+            for i in sumadas
+        )
     return {
         "codigo": reserva.codigo,
         "alojamiento": publicacion.titulo,
-        "unidad": item.unidad.nombre,
+        "unidad": unidad,
         "desde": desde,
         "hasta": hasta,
         "total": f"$ {reserva.total:,.2f}".replace(",", "."),

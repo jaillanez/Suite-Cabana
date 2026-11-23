@@ -104,6 +104,7 @@ class ItemOut(BaseModel):
     menores: int
     mascotas: int
     subtotal: Dinero
+    total: Dinero  # lo que paga el viajero por este ítem: subtotal + cargo de servicio
     desglose: dict
     comision: ComisionOut | None
     fotos: list[FotoOut]
@@ -137,6 +138,9 @@ class ReservaOut(BaseModel):
     saldo_con_anfitrion: Dinero | None = Field(
         default=None, description="Con seña: lo que queda por pagarle al anfitrión"
     )
+    # Del lado del anfitrión, sumando todos los ítems (un paquete tiene varios).
+    comision_prestador: Dinero
+    neto_prestador: Dinero
     moneda: str
     vence_pago_en: datetime | None
     vence_aprobacion_en: datetime | None
@@ -188,6 +192,7 @@ def _item_out(item: ItemReserva, con_direccion: bool = False) -> ItemOut:
         menores=item.menores,
         mascotas=item.mascotas,
         subtotal=item.subtotal,
+        total=item.subtotal + (c.cargo_viajero if c else 0),
         desglose=item.desglose,
         comision=(
             ComisionOut(
@@ -213,7 +218,12 @@ def _reserva_out(reserva: Reserva) -> ReservaOut:
         EstadoReserva.CONFIRMADA,
     )
     reintegro = reservas.calcular_reintegro(reserva) if cancelable else None
+    partes = reservas.reparto(reserva)
     return ReservaOut(
+        comision_prestador=sum(
+            (i.comision.descuento_prestador for i in reserva.items if i.comision), Decimal(0)
+        ),
+        neto_prestador=partes.neto_prestador,
         codigo=reserva.codigo,
         estado=reserva.estado,
         total=reserva.total,
@@ -230,7 +240,7 @@ def _reserva_out(reserva: Reserva) -> ReservaOut:
         creada_en=reserva.creado_en,
         items=[
             _item_out(i, con_direccion=reserva.estado in privacidad.ESTADOS_CON_DIRECCION)
-            for i in reserva.items
+            for i in reservas.ordenados(reserva)
         ],
         pagos=[
             PagoOut(
@@ -368,8 +378,8 @@ def pagar(
         raise HTTPException(status.HTTP_501_NOT_IMPLEMENTED, str(e)) from e
 
     s = get_settings()
-    item = reserva.items[0]
-    comision = item.comision
+    item = reservas.principal(reserva)
+    partes = reservas.reparto(reserva)
     web = s.url_publica_web.rstrip("/")
     prestador = item.unidad.publicacion.prestador
 
@@ -401,16 +411,20 @@ def pagar(
     # comisión es sobre el total (docs/04 §2) y queda en el snapshot.
     a_cobrar = reservas.monto_a_cobrar(reserva)
     es_sena = a_cobrar < reserva.total
+    sumados = len(reserva.items) - 1
     cobro = Cobro(
         codigo_reserva=reserva.codigo,
         descripcion=(
             ("Seña · " if es_sena else "")
             + f"{item.unidad.publicacion.titulo} · {item.unidad.nombre}"
+            + (
+                f" + {sumados} alojamiento{'s' if sumados != 1 else ''}"
+                if sumados
+                else ""
+            )
         ),
         total=a_cobrar,
-        comision_plataforma=min(
-            comision.comision_total if comision else Decimal(0), a_cobrar
-        ),
+        comision_plataforma=min(partes.comision_total, a_cobrar),
         moneda=reserva.moneda,
         email_pagador=usuario.email,
         cuenta_prestador=credencial,
@@ -440,13 +454,9 @@ def pagar(
             estado="pendiente",
             monto=a_cobrar,
             # Con seña entra todo al anfitrión: es un adelanto de su parte.
-            monto_prestador=(
-                a_cobrar
-                if es_sena
-                else item.subtotal - (comision.descuento_prestador if comision else 0)
-            ),
-            monto_comision=comision.comision_neta if comision else Decimal(0),
-            iva_comision=comision.iva if comision else Decimal(0),
+            monto_prestador=a_cobrar if es_sena else partes.neto_prestador,
+            monto_comision=partes.comision_neta,
+            iva_comision=partes.iva,
         )
     )
     db.commit()
@@ -640,7 +650,7 @@ async def webhook(
         registro.error = f"No existe la reserva {notificacion.codigo_reserva}"
         db.commit()
         return {"estado": "reserva inexistente"}
-    if duenio is not None and reserva.items[0].unidad.publicacion.prestador_id != duenio.id:
+    if duenio is not None and any(i.prestador_id != duenio.id for i in reserva.items):
         registro.error = f"El pago no es de una reserva de {duenio.id}"
         db.commit()
         return {"estado": "reserva ajena"}
