@@ -34,10 +34,18 @@ def test_el_numero_se_guarda_normalizado(escrito, guardado):
     assert contacto.normalizar(escrito) == guardado
 
 
-@pytest.mark.parametrize("escrito", ["123", "hola", "264 412", "+1 2"])
+@pytest.mark.parametrize("escrito", ["123", "hola", "264 412", "+1 2", "264412345678"])
 def test_un_numero_que_no_es_celular_se_rechaza(escrito):
     with pytest.raises(contacto.TelefonoInvalido):
         contacto.normalizar(escrito)
+
+
+def test_si_el_15_puede_estar_en_dos_lugares_no_se_adivina():
+    """011 15 1512-3456: ¿el 15 es el de después del 11 o el del número? Un
+    número mal corregido le escribiría a otra persona."""
+    with pytest.raises(contacto.TelefonoInvalido, match="sin el 15"):
+        contacto.normalizar("011 15 1512-3456")
+    assert contacto.normalizar("11 1512 3456") == "+5491115123456"
 
 
 # --- Reservar pide el WhatsApp ---
@@ -65,6 +73,9 @@ def test_el_whatsapp_se_cambia_desde_la_cuenta(cliente, db, viajero):  # noqa: F
     assert r.status_code == 200
     assert r.json()["telefono"] == "+5491155550000"
     r = cliente.put("/api/v1/auth/telefono", headers=viajero, json={"telefono": "123456"})
+    assert r.status_code == 422
+    # Vacío tampoco: no se puede quedar sin WhatsApp desde acá.
+    r = cliente.put("/api/v1/auth/telefono", headers=viajero, json={"telefono": "  "})
     assert r.status_code == 422
 
 

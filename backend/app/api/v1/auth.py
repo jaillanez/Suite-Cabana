@@ -373,6 +373,9 @@ def cambiar_telefono(
 ) -> UsuarioOut:
     """El WhatsApp de la cuenta: el viajero lo necesita para reservar y el
     anfitrión para mandar a revisión."""
+    # Vacío no: el anfitrión lo necesita publicado y el viajero para reservar.
+    if not datos.telefono.strip():
+        raise HTTPException(status.HTTP_422_UNPROCESSABLE_ENTITY, contacto.MENSAJE_INVALIDO)
     usuario.telefono = _telefono(datos.telefono)
     db.commit()
     return _usuario_out(usuario, db)
