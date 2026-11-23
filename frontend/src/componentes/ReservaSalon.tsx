@@ -268,6 +268,7 @@ export default function ReservaSalon({
             type="date"
             value={dia}
             min={hoyISO()}
+            max={hoyISO(730)}
             onChange={(e) => setDia(e.target.value)}
           />
         </label>

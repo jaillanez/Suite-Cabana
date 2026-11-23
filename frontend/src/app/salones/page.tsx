@@ -70,7 +70,7 @@ export default async function Salones({ searchParams }: Props) {
           </label>
           <label>
             <span>Día del evento</span>
-            <input type="date" name="dia" defaultValue={dia} min={hoyISO()} />
+            <input type="date" name="dia" defaultValue={dia} min={hoyISO()} max={hoyISO(730)} />
           </label>
           <label>
             <span>Invitados</span>

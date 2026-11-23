@@ -28,6 +28,7 @@ de precios, disponibilidad y búsqueda asume noches de alojamiento.
 | Reintegro | Sobre **lo pagado** (la seña), no sobre el total: no se devuelve plata que no entró |
 | Confirmación | **A solicitud** por defecto: el propietario aprueba antes de confirmar |
 | Salón + cabañas | **Incluido**: una sola reserva con varios ítems, del mismo propietario |
+| Anticipación | Un salón se reserva hasta **24 meses** antes (las cabañas, 12). Las cabañas de un paquete siguen al evento |
 
 Con cobro directo la comisión no se retiene en el pago: queda en el snapshot y se
 factura aparte, como las cabañas.

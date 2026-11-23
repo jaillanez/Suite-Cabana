@@ -402,3 +402,44 @@ def test_las_cabanas_sumables_tienen_tope(cliente, db, evento, oferta, monkeypat
     )
     assert r.status_code == 200
     assert len(r.json()) == 2
+
+
+def test_un_salon_se_reserva_hasta_24_meses_antes_y_sus_cabanas_tambien(
+    cliente, evento, oferta  # noqa: F811
+):
+    """Las cabañas solas, hasta 12 meses; sumadas a un evento, siguen al evento."""
+    from datetime import date
+
+    lejos = date.today() + timedelta(days=600)
+    cabana = {
+        "unidad_id": str(oferta["u_cara"].id),
+        "desde": lejos.isoformat(),
+        "hasta": (lejos + timedelta(days=1)).isoformat(),
+    }
+    pedido = _pedido(
+        evento, dia=lejos.isoformat(), franja_id=str(evento["noche"].id), alojamientos=[cabana]
+    )
+    r = cliente.post("/api/v1/salones/cotizacion", json=pedido)
+    assert r.status_code == 200, r.text
+    assert len(r.json()["alojamientos"]) == 1
+    sumables = cliente.get(
+        f"/api/v1/salones/unidades/{evento['unidad'].id}/alojamientos",
+        params={"desde": cabana["desde"], "hasta": cabana["hasta"]},
+    ).json()
+    assert any(a["libre"] for a in sumables)
+
+    # La misma cabaña sola, a 20 meses, no.
+    with pytest.raises(reservas.NoSePuedeReservar, match="12 meses"):
+        reservas.cotizar(None, oferta["u_cara"], lejos, lejos + timedelta(days=1))
+
+    # Más allá de los 24 meses, ni el salón.
+    muy_lejos = (date.today() + timedelta(days=731)).isoformat()
+    r = cliente.post("/api/v1/salones/cotizacion", json={**pedido, "dia": muy_lejos,
+                                                        "alojamientos": []})
+    assert r.status_code == 422
+    assert "24 meses" in r.json()["detail"]
+    r = cliente.get(
+        f"/api/v1/salones/unidades/{evento['unidad'].id}/disponibilidad",
+        params={"dia": muy_lejos},
+    )
+    assert r.status_code == 422

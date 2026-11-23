@@ -335,6 +335,18 @@ def _cotizar(db: Session, datos: PedidoEvento) -> reservas.CotizacionPaquete:
         raise HTTPException(status.HTTP_422_UNPROCESSABLE_ENTITY, str(e)) from e
 
 
+def _dia_reservable(dia: date | None) -> None:
+    """Ni pasado ni más allá de la ventana de eventos (24 meses)."""
+    if dia is None:
+        return
+    if dia < date.today():
+        raise HTTPException(status.HTTP_422_UNPROCESSABLE_ENTITY, "Ese día ya pasó")
+    if (dia - date.today()).days > reservas.VENTANA_EVENTOS_DIAS:
+        raise HTTPException(
+            status.HTTP_422_UNPROCESSABLE_ENTITY, "Los salones se reservan hasta 24 meses antes"
+        )
+
+
 # --- Endpoints ---
 
 
@@ -351,8 +363,7 @@ def buscar(
     db: Session = Depends(get_db),
 ) -> BusquedaSalonesOut:
     """Salones por destino e invitados. Con día, solo los que tienen lugar ese día."""
-    if dia is not None and dia < date.today():
-        raise HTTPException(status.HTTP_422_UNPROCESSABLE_ENTITY, "Ese día ya pasó")
+    _dia_reservable(dia)
     p = svc.buscar(
         db, localidad=localidad, provincia=provincia, dia=dia, invitados=invitados,
         subtipos=tuple(subtipo or ()), comodidades=tuple(comodidad or ()),
@@ -507,6 +518,7 @@ def disponibilidad(
     Muestra lo ocupado sin decir por quién ni por qué: al viajero le alcanza con
     saber que no está libre.
     """
+    _dia_reservable(dia)
     unidad = _unidad(db, unidad_id)
     franjas = [reservas.franja_plana(f) for f in unidad.franjas if f.activa]
     tarifa = reservas.tarifa_horas(unidad)
@@ -633,6 +645,10 @@ def alojamientos_sumables(
         )
     if desde < date.today():
         raise HTTPException(status.HTTP_422_UNPROCESSABLE_ENTITY, "Esa fecha ya pasó")
+    if (desde - date.today()).days > reservas.VENTANA_EVENTOS_DIAS_PAQUETE:
+        raise HTTPException(
+            status.HTTP_422_UNPROCESSABLE_ENTITY, "Los salones se reservan hasta 24 meses antes"
+        )
     publicaciones = svc.del_mismo_anfitrion(
         db, salon.publicacion.prestador_id, ModoReserva.NOCHES
     )
@@ -653,7 +669,8 @@ def alojamientos_sumables(
         else:
             try:
                 total = reservas.cotizar(
-                    db, u, desde, hasta, min(personas, u.capacidad)
+                    db, u, desde, hasta, min(personas, u.capacidad),
+                    ventana_dias=reservas.VENTANA_EVENTOS_DIAS_PAQUETE,
                 ).total_viajero
             except reservas.NoSePuedeReservar as e:
                 motivo = str(e)

@@ -66,6 +66,12 @@ ALFABETO_CODIGO = string.ascii_uppercase.replace("O", "").replace("I", "") + "23
 #: Techo técnico de una estadía: el precio se calcula noche por noche y un rango
 #: de años no tiene sentido. El tope de negocio, si se decide uno, va por debajo.
 MAX_NOCHES = precios.ESTADIA_MAXIMA
+# Un salón se reserva con más anticipación que una cabaña: casamientos y fiestas
+# grandes se arreglan con más de un año.
+VENTANA_EVENTOS_DIAS = 730
+# Las cabañas de un paquete siguen al evento, no la ventana de 12 meses: tocan su
+# día, y uno que cruza la medianoche termina al siguiente.
+VENTANA_EVENTOS_DIAS_PAQUETE = VENTANA_EVENTOS_DIAS + 1
 
 
 class NoSePuedeReservar(Exception):
@@ -110,6 +116,7 @@ def cotizar(
     personas: int = 2,
     mascotas: int = 0,
     hoy: date | None = None,
+    ventana_dias: int = precios.VENTANA_DIAS,
 ) -> Cotizacion:
     """Precio y comisión de una estadía, sin tocar nada.
 
@@ -143,6 +150,7 @@ def cotizar(
             personas=personas,
             mascotas=mascotas,
             hoy=hoy,
+            ventana_dias=ventana_dias,
         )
     except precios.NoDisponible as e:
         raise NoSePuedeReservar(str(e)) from e
@@ -438,6 +446,8 @@ def cotizar_evento(
         raise NoSePuedeReservar("Ese salón no está disponible")
     if publicacion.tipo_servicio.modo_reserva is not ModoReserva.HORAS:
         raise NoSePuedeReservar("Esto no se reserva por horario")
+    if (dia - hoy).days > VENTANA_EVENTOS_DIAS:
+        raise NoSePuedeReservar("Los salones se reservan hasta 24 meses antes")
 
     elegidos = set(adicionales)
     disponibles = {a.id: a for a in unidad.adicionales if a.activo}
@@ -561,6 +571,7 @@ def cotizar_paquete(
             c = cotizar(
                 db, e.unidad, e.fecha_inicio, e.fecha_fin,
                 e.personas + e.menores, e.mascotas, hoy,
+                ventana_dias=VENTANA_EVENTOS_DIAS_PAQUETE,
             )
         except NoSePuedeReservar as err:
             raise NoSePuedeReservar(f"{_nombre(e.unidad)}: {err}") from err

@@ -172,14 +172,19 @@ def calcular(
     personas: int = 1,
     mascotas: int = 0,
     hoy: date | None = None,
+    ventana_dias: int = VENTANA_DIAS,
 ) -> Precio:
-    """Precio del prestador para la estadía. Lanza NoDisponible si no se puede reservar."""
+    """Precio del prestador para la estadía. Lanza NoDisponible si no se puede reservar.
+
+    `ventana_dias` se agranda solo para las cabañas de un paquete con salón, que
+    acompañan a un evento reservable con más anticipación.
+    """
     if fecha_fin <= fecha_inicio:
         raise NoDisponible(MotivoNoDisponible.RANGO_INVALIDO)
     if personas > unidad.capacidad:
         raise NoDisponible(MotivoNoDisponible.CAPACIDAD_INSUFICIENTE)
     referencia = hoy or date.today()
-    if (fecha_inicio - referencia).days > VENTANA_DIAS:
+    if (fecha_inicio - referencia).days > ventana_dias:
         raise NoDisponible(MotivoNoDisponible.FUERA_DE_VENTANA)
 
     cantidad = (fecha_fin - fecha_inicio).days
