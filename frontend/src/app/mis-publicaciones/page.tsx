@@ -95,9 +95,9 @@ export default async function MisPublicaciones() {
                           : "unidades"}
                       {p.faltantes.length > 0 && (
                         <span className={estilos.faltan}>
-                          · faltan{" "}
+                          · {p.faltantes.length === 1 ? "falta" : "faltan"}{" "}
                           <span className="cifra">{p.faltantes.length}</span>{" "}
-                          cosas
+                          {p.faltantes.length === 1 ? "cosa" : "cosas"}
                         </span>
                       )}
                     </span>

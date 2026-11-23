@@ -111,8 +111,19 @@ Cada etapa se puede publicar por separado. Hechas (noviembre 2026): **1**, **2**
 (API de precio y reserva), **3** (el propietario carga su salón), **4** (sección
 Salones, ficha, reserva con seña desde la web y el detalle de la reserva en
 lenguaje de evento), **5** (agenda por horas de cada espacio, bloqueos a mano,
-reservas recibidas con horario e invitados) y **6** (el paquete). Falta la **7**,
-que depende de los datos del propietario.
+reservas recibidas con horario e invitados) y **6** (el paquete). La **7** está a
+medias: la parte nuestra está hecha y falta lo que aporta el propietario.
+
+Cómo quedó Los Búhos (etapa 7):
+- La semilla carga "Salón Los Búhos" como **borrador** del mismo anfitrión que las
+  cabañas, con las 5 fotos de `fotos/los-buhos/salon/` (en el orden de
+  `datos.LOS_BUHOS_SALON`), tipo Salón, política "Eventos", a solicitud y la única
+  comodidad que se ve sin dudas en las fotos: mesas y sillas.
+- No lleva espacio, turnos, precios, seña ni descripción: son del propietario, y
+  la semilla imprime la lista (`datos.PENDIENTES_SALON_LOS_BUHOS`). Los carga desde
+  su panel y lo manda a revisión como cualquier anfitrión.
+- En producción solo está el catálogo: allá Los Búhos se da de alta con su propia
+  cuenta.
 
 Cómo quedó el paquete (S11):
 - Desde el panel de reserva del salón, "¿Se quedan a dormir?" lista las unidades

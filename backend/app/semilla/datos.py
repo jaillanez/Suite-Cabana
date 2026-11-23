@@ -230,7 +230,42 @@ PENDIENTES_LOS_BUHOS = [
     "incluye las comisiones de ellos y no se puede separar desde afuera",
     "¿Cobra limpieza o persona extra? Hoy van en cero",
     "Capacidad: acá dice 5 personas y en Airbnb dice 4 — conviene que coincidan",
-    "El alquiler por día del salón es otro tipo de servicio: entra en la Fase 2",
+]
+
+# El salón de Los Búhos (docs/04, etapa 7). Queda en BORRADOR: de él solo se sabe
+# lo que muestran las fotos. Capacidad, turnos, precios y seña son del prestador;
+# inventarlos sería publicar una oferta que nadie hizo. Él los completa desde su
+# panel, con el mismo editor que cualquier anfitrión.
+LOS_BUHOS_SALON = {
+    "titulo": "Salón Los Búhos",
+    "slug": "los-buhos-salon-medano-de-oro",
+    "subtipo": "salon_eventos",
+    "politica": "eventos",
+    # Lo único que se ve sin dudas en las fotos. El resto (aire, cocina, parrilla)
+    # puede estar o no: lo confirma él.
+    "comodidades": ["mesas_sillas"],
+    # En `fotos/los-buhos/salon/`. Orden explícito: los nombres no vienen numerados
+    # y el alfabético pondría el baño antes que el salón.
+    "fotos": [
+        "salon Interior 1.jpeg",
+        "Salon interior 2.jpeg",
+        "Salon interior 3.jpeg",
+        "Salon interior 4.jpeg",
+        "baño damas.jpeg",
+    ],
+}
+
+# Lo que tiene que aportar el prestador para publicar el salón.
+PENDIENTES_SALON_LOS_BUHOS = [
+    "Capacidad con todos sentados y de pie (en las fotos hay mesa para unas 40 personas)",
+    "Cómo lo alquila: turnos fijos (nombre, horario, precio) y/o por hora (precio, "
+    "mínimo de horas, horario de atención)",
+    "Seña: qué porcentaje cobra al reservar",
+    "Tiempo de preparación o limpieza entre eventos",
+    "Adicionales con precio (vajilla, limpieza, sonido…) y reglas (música hasta qué "
+    "hora, catering propio, decoración)",
+    "Descripción del salón, en sus palabras",
+    "Comodidades: confirmar aire acondicionado, cocina, parrilla y estacionamiento",
 ]
 
 # Porcentajes PROVISORIOS: docs/01 §9 los marca como decisión pendiente de Dirección.

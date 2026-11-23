@@ -351,8 +351,9 @@ el anfitrión, liberación de reservas vencidas y envío de notificaciones
 (`app/tareas.py`).
 
 Salones de eventos y paquete salón + cabañas: hechos
-([`docs/04-salones-de-eventos.md`](docs/04-salones-de-eventos.md)). Falta la etapa 7,
-cargar el salón real de Los Búhos con sus datos y fotos.
+([`docs/04-salones-de-eventos.md`](docs/04-salones-de-eventos.md)). La etapa 7 deja el
+salón de Los Búhos como borrador con sus fotos; capacidad, turnos, precios y seña
+los carga el propietario desde su panel (lista en `datos.PENDIENTES_SALON_LOS_BUHOS`).
 
 ## Producción (alojateaqui.com.ar)
 

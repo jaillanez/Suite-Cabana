@@ -1,9 +1,12 @@
-# Fotos del salón — esperando la Fase 2
+# Fotos del salón de Los Búhos
 
-El alquiler del salón por día **no es un alojamiento**: es otro tipo de servicio, y en
-el modelo de datos entra como tal en la Fase 2 (ver `PRODUCT.md` y `docs/00 §6`).
+El salón es su propia publicación, de tipo "Salón de eventos" (`docs/04`), y no va en
+la ficha de las cabañas: quien reserva para dormir no tiene por qué ver una mesa para
+cuarenta comensales.
 
-Por eso no van en la ficha de las cabañas. Alguien que reserva una cabaña para dormir y
-ve como tercera foto una mesa para cuarenta comensales no entiende qué está alquilando.
+La semilla las carga en la publicación "Salón Los Búhos", que queda en **borrador**,
+por el mismo procesador que una subida desde la web (WebP, orientación corregida y
+**EXIF borrado**: las fotos del teléfono llevan la ubicación GPS).
 
-Quedan acá, listas. Cuando el salón tenga su propia publicación, se cargan ahí.
+El orden no es el alfabético sino el de `LOS_BUHOS_SALON["fotos"]` en
+`backend/app/semilla/datos.py`. Si agregás o renombrás una foto, actualizá esa lista.

@@ -12,12 +12,14 @@ from app.semilla import (
     cargar_los_buhos,
     cargar_oferta,
     cargar_reservas,
+    cargar_salon_los_buhos,
     configurar_comision,
     fotos_de_los_buhos,
+    fotos_del_salon_los_buhos,
     limpiar_demo,
     resumen,
 )
-from app.semilla.datos import PENDIENTES_LOS_BUHOS
+from app.semilla.datos import PENDIENTES_LOS_BUHOS, PENDIENTES_SALON_LOS_BUHOS
 
 
 def main() -> int:
@@ -87,7 +89,9 @@ def main() -> int:
         if not args.solo_catalogo:
             limpiar_demo(db)
             conteo = cargar_oferta(db)
-            cargar_los_buhos(db)
+            buhos = cargar_los_buhos(db)
+            if buhos is not None:
+                cargar_salon_los_buhos(db, buhos)
             print(
                 f"Oferta de ejemplo: {conteo['publicaciones']} publicaciones, "
                 f"{conteo['unidades']} unidades, {conteo['bloqueos']} bloqueos, "
@@ -119,6 +123,13 @@ def main() -> int:
                 print("Sigue con datos PROVISORIOS. Falta:")
                 for pendiente in faltan:
                     print(f"  · {pendiente}")
+            print(
+                "\nSalón Los Búhos: en borrador, con "
+                f"{len(fotos_del_salon_los_buhos())} foto(s). Para publicarlo falta "
+                "que el prestador cargue:"
+            )
+            for pendiente in PENDIENTES_SALON_LOS_BUHOS:
+                print(f"  · {pendiente}")
     return 0
 
 

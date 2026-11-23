@@ -34,11 +34,14 @@ from sqlalchemy.orm import Session
 from app.core.config import get_settings
 from app.core.security import hashear_password
 from app.models import (
+    Adicional,
     BloqueoFecha,
+    BloqueoHorario,
     CalendarioExterno,
     Comodidad,
     Favorito,
     Foto,
+    FranjaHoraria,
     ItemReserva,
     Localidad,
     Notificacion,
@@ -53,6 +56,7 @@ from app.models import (
     ReservaExterna,
     SubtipoServicio,
     Tarifa,
+    TarifaHoraria,
     TipoServicio,
     Unidad,
     Usuario,
@@ -209,6 +213,9 @@ def limpiar_demo(db: Session) -> int:
                 delete(CalendarioExterno).where(CalendarioExterno.unidad_id.in_(unidades))
             )
             db.execute(delete(BloqueoFecha).where(BloqueoFecha.unidad_id.in_(unidades)))
+            # Lo propio de los salones (docs/04): sus bloqueos por hora también
+            # apuntan a ítems de reserva, así que se van antes que ellos.
+            db.execute(delete(BloqueoHorario).where(BloqueoHorario.unidad_id.in_(unidades)))
             # Las ventas que entraron por fuera cuelgan del prestador, no de la
             # unidad: las que quedaron «por revisar» todavía no tienen unidad.
             db.execute(
@@ -229,6 +236,8 @@ def limpiar_demo(db: Session) -> int:
                 db.execute(delete(ItemReserva).where(ItemReserva.reserva_id.in_(reservas)))
                 db.execute(delete(Reserva).where(Reserva.id.in_(reservas)))
             db.execute(delete(Tarifa).where(Tarifa.unidad_id.in_(unidades)))
+            for tabla in (FranjaHoraria, TarifaHoraria, Adicional):
+                db.execute(delete(tabla).where(tabla.unidad_id.in_(unidades)))
             db.execute(delete(Unidad).where(Unidad.id.in_(unidades)))
         db.execute(delete(Foto).where(Foto.publicacion_id.in_(ids)))
         db.execute(
@@ -591,6 +600,73 @@ def cargar_los_buhos(db: Session) -> Publicacion | None:
         )
     db.flush()
     return publicacion
+
+
+CARPETA_SALON_LOS_BUHOS = CARPETA_LOS_BUHOS / "salon"
+
+
+def fotos_del_salon_los_buhos() -> list[Path]:
+    """Las del salón, en el orden de `datos.LOS_BUHOS_SALON`; las que falten se saltean."""
+    return [
+        p
+        for nombre in datos.LOS_BUHOS_SALON["fotos"]
+        if (p := CARPETA_SALON_LOS_BUHOS / nombre).is_file()
+    ]
+
+
+def cargar_salon_los_buhos(db: Session, cabanas: Publicacion) -> Publicacion:
+    """El salón de Los Búhos como borrador del mismo prestador (docs/04, etapa 7).
+
+    Comparte anfitrión, distrito y punto del mapa con las cabañas: eso es lo que
+    permite el paquete salón + cabañas. No lleva espacios, turnos ni precios: son
+    datos del prestador (`datos.PENDIENTES_SALON_LOS_BUHOS`) y se cargan desde su
+    panel. Por eso queda en borrador, sin poder aparecer en la búsqueda.
+    """
+    from app.services import fotos as procesador
+
+    d = datos.LOS_BUHOS_SALON
+    ya_esta = db.scalar(select(Publicacion).where(Publicacion.slug == d["slug"]))
+    if ya_esta:
+        return ya_esta
+
+    tipo = db.scalar(select(TipoServicio).where(TipoServicio.codigo == "salon_eventos"))
+    subtipo = db.scalar(select(SubtipoServicio).where(SubtipoServicio.codigo == d["subtipo"]))
+    politica = db.scalar(
+        select(PoliticaCancelacion).where(PoliticaCancelacion.codigo == d["politica"])
+    )
+    salon = Publicacion(
+        prestador_id=cabanas.prestador_id,
+        tipo_servicio_id=tipo.id,
+        subtipo_servicio_id=subtipo.id if subtipo else None,
+        titulo=d["titulo"],
+        slug=d["slug"],
+        descripcion="",  # la escribe él: ver PENDIENTES_SALON_LOS_BUHOS
+        estado=EstadoPublicacion.BORRADOR,
+        localidad_id=cabanas.localidad_id,
+        zona_id=cabanas.zona_id,
+        # El mismo punto que las cabañas, desde los datos: copiar la columna de una
+        # publicación ya leída de la base exige shapely.
+        ubicacion=_punto(datos.LOS_BUHOS["lat"], datos.LOS_BUHOS["lon"]),
+        confirmacion_inmediata=False,  # a solicitud, como pide docs/04
+        politica_cancelacion_id=politica.id if politica else None,
+        es_demo=True,
+    )
+    salon.comodidades = list(
+        db.scalars(select(Comodidad).where(Comodidad.codigo.in_(d["comodidades"])))
+    )
+    db.add(salon)
+    db.flush()
+
+    # Por el mismo procesador que una subida desde la web: les borra el EXIF.
+    for orden, archivo in enumerate(fotos_del_salon_los_buhos()):
+        tipo_foto = mimetypes.guess_type(archivo.name)[0]
+        try:
+            guardada = procesador.guardar(salon.id, archivo.read_bytes(), tipo_foto)
+        except procesador.FotoInvalida:
+            continue
+        db.add(Foto(publicacion_id=salon.id, url=guardada.url, orden=orden))
+    db.flush()
+    return salon
 
 
 def cargar_reservas(db: Session, cantidad: int = 45) -> dict[str, int]:
