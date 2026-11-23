@@ -1,6 +1,6 @@
 """Salones para el viajero (docs/04, etapa 4): buscar, ficha, y si hay lugar un día."""
 
-from datetime import datetime, timedelta
+from datetime import datetime, time, timedelta
 from decimal import Decimal
 
 import pytest
@@ -143,3 +143,41 @@ def test_un_salon_sin_precio_no_muestra_ese_espacio(cliente, db, evento):  # noq
     db.commit()
     f = cliente.get(f"/api/v1/salones/ficha/{evento['publicacion'].slug}").json()
     assert [e["nombre"] for e in f["espacios"]] == ["Salón"]
+
+
+def test_con_dia_la_agenda_se_consulta_una_sola_vez(db, evento):  # noqa: F811
+    """El endpoint es público: el costo no puede crecer con la cantidad de salones."""
+    from sqlalchemy import event
+
+    from app.models import FranjaHoraria, Publicacion
+
+    base = evento["publicacion"]
+    for i in range(4):
+        otra = Publicacion(
+            prestador_id=base.prestador_id, tipo_servicio_id=base.tipo_servicio_id,
+            titulo=f"Salón {i}", slug=f"salon-extra-{i}", descripcion="x",
+            estado=base.estado, localidad_id=base.localidad_id, ubicacion=base.ubicacion,
+        )
+        db.add(otra)
+        db.flush()
+        u = Unidad(publicacion_id=otra.id, nombre="Salón", capacidad=100)
+        db.add(u)
+        db.flush()
+        db.add(FranjaHoraria(unidad_id=u.id, nombre="Noche", hora_inicio=time(21),
+                             hora_fin=time(5), precio=Decimal(1000)))
+    db.flush()
+
+    consultas: list[str] = []
+
+    def contar(conn, cursor, sql, *a):
+        if "bloqueo_horario" in sql:
+            consultas.append(sql)
+
+    conexion = db.connection()
+    event.listen(conexion, "before_cursor_execute", contar)
+    try:
+        pagina = svc.buscar(db, dia=DIA)
+    finally:
+        event.remove(conexion, "before_cursor_execute", contar)
+    assert pagina.total == 5
+    assert len(consultas) == 1

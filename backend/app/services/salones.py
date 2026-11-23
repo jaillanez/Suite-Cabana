@@ -10,7 +10,7 @@ from __future__ import annotations
 
 import math
 from dataclasses import dataclass
-from datetime import UTC, date, datetime, timedelta
+from datetime import UTC, date, datetime, time, timedelta
 from decimal import Decimal
 from uuid import UUID
 
@@ -32,6 +32,8 @@ from app.services import precios_eventos as pe
 
 POR_PAGINA_MAX = 48
 TOPE_CANDIDATAS = 500
+#: Con día hay que mirar la agenda de cada candidata: el tope es más bajo.
+TOPE_CANDIDATAS_CON_DIA = 200
 
 
 class NoEncontrado(Exception):
@@ -113,17 +115,40 @@ def precio_desde(unidades: list[Unidad], dia: date | None) -> PrecioDesde | None
     return min(opciones, key=lambda o: o.monto) if opciones else None
 
 
-def hay_lugar(db: Session, unidad: Unidad, dia: date, ahora: datetime | None = None) -> bool:
+def _ventana_del_dia(dia: date) -> tuple[datetime, datetime]:
+    """Todo lo que puede tocar a un evento de ese día: desde la víspera (una
+    preparación que se estira) hasta la madrugada del día siguiente y algo más."""
+    inicio = pe.en_hora(dia, time(0, 0)) - timedelta(hours=12)
+    return inicio, inicio + timedelta(hours=60)
+
+
+def hay_lugar(
+    db: Session,
+    unidad: Unidad,
+    dia: date,
+    ahora: datetime | None = None,
+    ocupado: list | None = None,
+) -> bool:
     """Si ese día se puede reservar algo de este espacio: un turno libre, o un hueco
-    del mínimo de horas dentro del horario de atención."""
+    del mínimo de horas dentro del horario de atención.
+
+    `ocupado`: lo tomado de la unidad alrededor de ese día, si ya se trajo (la
+    búsqueda lo trae de todas las unidades en una consulta). Sin él, se consulta.
+    """
     ahora = ahora or datetime.now(UTC)
     preparacion = timedelta(minutes=unidad.preparacion_minutos or 0)
+    if ocupado is None:
+        desde, hasta = _ventana_del_dia(dia)
+        ocupado = horarios.ocupados(db, unidad.id, desde, hasta)
+
+    def libre(inicio: datetime, fin: datetime) -> bool:
+        return not any(o.inicio < fin and o.fin > inicio for o in ocupado)
 
     for f in unidad.franjas:
         if not f.activa:
             continue
         inicio, fin = reservas.franja_plana(f).rango(dia)
-        if inicio > ahora and horarios.libre(db, unidad.id, inicio, fin + preparacion):
+        if inicio > ahora and libre(inicio, fin + preparacion):
             return True
 
     t = reservas.tarifa_horas(unidad)
@@ -139,7 +164,9 @@ def hay_lugar(db: Session, unidad: Unidad, dia: date, ahora: datetime | None = N
         return False
 
     cursor = apertura
-    for o in horarios.ocupados(db, unidad.id, apertura - preparacion, cierre):
+    for o in sorted(ocupado, key=lambda x: x.inicio):
+        if o.fin <= apertura - preparacion or o.inicio >= cierre:
+            continue
         if o.inicio > cursor and o.inicio - cursor >= minimo + preparacion:
             return True
         cursor = max(cursor, o.fin)
@@ -182,9 +209,17 @@ def buscar(
         )
         consulta = consulta.where(tiene == len(pedidas))
 
+    tope = TOPE_CANDIDATAS if dia is None else TOPE_CANDIDATAS_CON_DIA
     candidatas = db.scalars(
-        consulta.options(*_opciones()).order_by(Publicacion.titulo).limit(TOPE_CANDIDATAS)
+        consulta.options(*_opciones()).order_by(Publicacion.titulo).limit(tope)
     ).unique().all()
+
+    # La agenda de todas las unidades candidatas, en una sola consulta.
+    agenda: dict = {}
+    if dia is not None:
+        desde, hasta = _ventana_del_dia(dia)
+        ids = [u.id for p in candidatas for u in espacios(p, invitados)]
+        agenda = horarios.ocupados_de(db, ids, desde, hasta)
 
     resultados: list[Resultado] = []
     for p in candidatas:
@@ -193,7 +228,9 @@ def buscar(
             continue
         disponible = None
         if dia is not None:
-            disponible = any(hay_lugar(db, u, dia) for u in utiles)
+            disponible = any(
+                hay_lugar(db, u, dia, ocupado=agenda.get(u.id, [])) for u in utiles
+            )
             if not disponible:
                 continue  # con día, se muestra solo lo que se puede reservar ese día
         resultados.append(

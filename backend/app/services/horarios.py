@@ -105,6 +105,32 @@ def ocupados(
     return [Ocupado(b.rango.lower, b.rango.upper, b.origen) for b in filas]
 
 
+def ocupados_de(
+    db: Session, unidades: list, desde: datetime, hasta: datetime, ahora: datetime | None = None
+) -> dict:
+    """Lo ocupado de varias unidades en una sola consulta: {unidad_id: [Ocupado]}.
+
+    Para la búsqueda: preguntar unidad por unidad multiplica las consultas por la
+    cantidad de salones, y ese endpoint es público.
+    """
+    ahora = ahora or datetime.now(UTC)
+    if not unidades:
+        return {}
+    filas = db.scalars(
+        select(BloqueoHorario)
+        .where(
+            BloqueoHorario.unidad_id.in_(unidades),
+            _vigente(ahora),
+            BloqueoHorario.rango.op("&&")(_rango(desde, hasta)),
+        )
+        .order_by(func.lower(BloqueoHorario.rango))
+    ).all()
+    resultado: dict = {u: [] for u in unidades}
+    for b in filas:
+        resultado[b.unidad_id].append(Ocupado(b.rango.lower, b.rango.upper, b.origen))
+    return resultado
+
+
 def bloquear(
     db: Session,
     unidad: Unidad,
