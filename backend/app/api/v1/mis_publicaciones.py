@@ -14,7 +14,7 @@ from decimal import Decimal
 from typing import Annotated, Literal
 
 from fastapi import APIRouter, Depends, File, HTTPException, Query, UploadFile, status
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, model_validator
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session, selectinload
 
@@ -115,6 +115,12 @@ class NuevaTarifa(BaseModel):
     estadia_maxima: Annotated[int | None, Field(default=None, ge=1, le=365)] = None
     anticipacion_minima_dias: Annotated[int, Field(default=0, ge=0, le=90)] = 0
     prioridad: int = 0
+
+    @model_validator(mode="after")
+    def _minimo_hasta_el_maximo(self) -> NuevaTarifa:
+        if self.estadia_maxima is not None and self.estadia_minima > self.estadia_maxima:
+            raise ValueError("El mínimo de noches no puede superar al máximo")
+        return self
 
 
 class NuevaFranja(BaseModel):

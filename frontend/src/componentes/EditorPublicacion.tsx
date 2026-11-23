@@ -513,6 +513,11 @@ export default function EditorPublicacion({
                             mínimo {t.estadia_minima} noches
                           </span>
                         )}
+                        {t.estadia_maxima && (
+                          <span className={estilos.periodo}>
+                            máximo {t.estadia_maxima} noches
+                          </span>
+                        )}
                       </span>
                       <span className={`${estilos.precio} cifra`}>
                         {pesos(t.precio_noche)}
@@ -549,6 +554,9 @@ export default function EditorPublicacion({
                         fecha_desde: v("fecha_desde") || null,
                         fecha_hasta: v("fecha_hasta") || null,
                         estadia_minima: Number(v("estadia_minima") || 1),
+                        estadia_maxima: v("estadia_maxima")
+                          ? Number(v("estadia_maxima"))
+                          : null,
                       }),
                     );
                   }}
@@ -582,8 +590,19 @@ export default function EditorPublicacion({
                     name="estadia_minima"
                     type="number"
                     min={1}
-                    defaultValue={1}
-                    aria-label="Noches mínimas"
+                    className={estilos.noches}
+                    placeholder="Mín. noches"
+                    aria-label="Noches mínimas (opcional, 1 si queda vacío)"
+                  />
+                  {/* Vacío = sin máximo propio: rige el de la plataforma (365). */}
+                  <input
+                    name="estadia_maxima"
+                    type="number"
+                    min={1}
+                    max={365}
+                    className={estilos.noches}
+                    placeholder="Máx. noches"
+                    aria-label="Noches máximas (opcional)"
                   />
                   <button type="submit" disabled={pendiente}>
                     Agregar tarifa

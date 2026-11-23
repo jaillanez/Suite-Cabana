@@ -155,6 +155,8 @@ export default async function Ficha({ params, searchParams }: Params) {
                           : ""}
                         {u.estadia_minima > 1 &&
                           ` · mínimo ${u.estadia_minima} noches`}
+                        {u.estadia_maxima < 365 &&
+                          ` · máximo ${u.estadia_maxima} noches`}
                       </p>
                       {(Number(u.cargo_limpieza) > 0 ||
                         Number(u.descuento_semanal) > 0) && (

@@ -47,6 +47,7 @@ class UnidadFicha:
     capacidad_base: int | None
     tarifa_base: Decimal | None
     estadia_minima: int
+    estadia_maxima: int  # la de la unidad, o el tope de la plataforma
     cargo_limpieza: Decimal
     cargo_persona_extra: Decimal
     cargo_mascota: Decimal
@@ -76,13 +77,17 @@ def _coordenadas(db: Session, publicacion_id: UUID) -> tuple[float | None, float
     return (fila[0], fila[1]) if fila else (None, None)
 
 
-def _tarifa_base(unidad: Unidad) -> tuple[Decimal | None, int]:
+def _tarifa_base(unidad: Unidad) -> tuple[Decimal | None, int, int]:
     """La tarifa sin fechas es el precio de referencia de la unidad."""
     bases = [t for t in unidad.tarifas if t.fecha_desde is None and t.fecha_hasta is None]
     elegida = bases[0] if bases else (unidad.tarifas[0] if unidad.tarifas else None)
     if elegida is None:
-        return None, 1
-    return elegida.precio_noche, elegida.estadia_minima
+        return None, 1, precios.ESTADIA_MAXIMA
+    return (
+        elegida.precio_noche,
+        elegida.estadia_minima,
+        elegida.estadia_maxima or precios.ESTADIA_MAXIMA,
+    )
 
 
 def _libre(db: Session, unidad_id: UUID, desde: date, hasta: date) -> bool:
@@ -141,7 +146,7 @@ def obtener(
     for u in sorted(publicacion.unidades, key=lambda x: (x.capacidad, x.nombre)):
         if not u.activa:
             continue
-        tarifa_base, estadia_minima = _tarifa_base(u)
+        tarifa_base, estadia_minima, estadia_maxima = _tarifa_base(u)
         disponible: bool | None = None
         motivo: str | None = None
         cobro = None
@@ -174,6 +179,7 @@ def obtener(
                 capacidad_base=u.capacidad_base,
                 tarifa_base=tarifa_base,
                 estadia_minima=estadia_minima,
+                estadia_maxima=estadia_maxima,
                 cargo_limpieza=u.cargo_limpieza,
                 cargo_persona_extra=u.cargo_persona_extra,
                 cargo_mascota=u.cargo_mascota,

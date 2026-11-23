@@ -142,6 +142,8 @@ export type UnidadFicha = {
   capacidad_base: number | null;
   tarifa_base: string | null;
   estadia_minima: number;
+  /** El de la unidad, o el tope de la plataforma (365). */
+  estadia_maxima: number;
   cargo_limpieza: string;
   cargo_persona_extra: string;
   cargo_mascota: string;

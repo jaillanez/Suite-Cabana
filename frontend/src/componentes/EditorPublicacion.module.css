@@ -521,6 +521,11 @@
   background: var(--fondo);
 }
 
+/* Mínimo y máximo de noches: números cortos, no necesitan el ancho de un nombre. */
+.filaForm input.noches {
+  flex: 0 1 108px;
+}
+
 .filaForm button {
   padding: 0.4375rem 0.875rem;
   border: 1px solid var(--borde-fuerte);

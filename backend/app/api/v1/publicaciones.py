@@ -346,6 +346,7 @@ class UnidadFichaOut(BaseModel):
         description="Precio por noche de referencia, sin temporada ni cargos"
     )
     estadia_minima: int
+    estadia_maxima: int
     cargo_limpieza: Dinero
     cargo_persona_extra: Dinero
     cargo_mascota: Dinero
@@ -429,6 +430,7 @@ def _unidad_ficha_out(u: fichas.UnidadFicha) -> UnidadFichaOut:
         capacidad_base=u.capacidad_base,
         tarifa_base=u.tarifa_base,
         estadia_minima=u.estadia_minima,
+        estadia_maxima=u.estadia_maxima,
         cargo_limpieza=u.cargo_limpieza,
         cargo_persona_extra=u.cargo_persona_extra,
         cargo_mascota=u.cargo_mascota,

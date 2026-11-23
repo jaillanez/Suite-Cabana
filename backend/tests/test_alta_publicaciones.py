@@ -323,6 +323,24 @@ def test_la_tarifa_base_convive_con_las_de_temporada(cliente, prestador, catalog
     ).status_code == 201
 
 
+def test_el_minimo_de_noches_no_supera_al_maximo(cliente, prestador, catalogo):
+    pid = _crear(cliente, prestador, catalogo)
+    unidad = cliente.post(
+        f"/api/v1/mis-publicaciones/{pid}/unidades",
+        headers=prestador,
+        json={"nombre": "Cabaña", "capacidad": 4},
+    ).json()["unidades"][0]["id"]
+    ruta = f"/api/v1/mis-publicaciones/{pid}/unidades/{unidad}/tarifas"
+    tarifa = {"nombre": "Base", "precio_noche": "50000", "estadia_minima": 5}
+    r = cliente.post(ruta, headers=prestador, json={**tarifa, "estadia_maxima": 3})
+    assert r.status_code == 422
+    assert cliente.post(ruta, headers=prestador, json={**tarifa, "estadia_maxima": 366}
+                        ).status_code == 422
+    r = cliente.post(ruta, headers=prestador, json={**tarifa, "estadia_maxima": 30})
+    assert r.status_code == 201
+    assert r.json()["unidades"][0]["tarifas"][0]["estadia_maxima"] == 30
+
+
 # --- Estados ---
 
 

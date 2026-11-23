@@ -82,6 +82,23 @@ def test_estadia_minima_y_maxima():
     assert larga.value.motivo is MotivoNoDisponible.ESTADIA_LARGA
 
 
+def test_sin_maximo_propio_rige_el_de_la_plataforma():
+    with pytest.raises(NoDisponible) as e:
+        calcular(UNIDAD, [BASE], date(2026, 10, 1), date(2027, 10, 2), hoy=date(2026, 9, 1))
+    assert e.value.motivo is MotivoNoDisponible.ESTADIA_LARGA  # 366 noches
+    p = calcular(UNIDAD, [BASE], date(2026, 10, 1), date(2027, 10, 1), hoy=date(2026, 9, 1))
+    assert p.cantidad_noches == 365
+
+
+def test_se_reserva_hasta_12_meses_antes():
+    hoy = date(2026, 10, 10)
+    p = calcular(UNIDAD, [BASE], date(2027, 10, 10), date(2027, 10, 12), hoy=hoy)
+    assert p.cantidad_noches == 2
+    with pytest.raises(NoDisponible) as e:
+        calcular(UNIDAD, [BASE], date(2027, 10, 11), date(2027, 10, 13), hoy=hoy)
+    assert e.value.motivo is MotivoNoDisponible.FUERA_DE_VENTANA
+
+
 def test_anticipacion_minima():
     t = Tarifa(precio_noche=D("60000"), anticipacion_minima_dias=5)
     with pytest.raises(NoDisponible) as e:

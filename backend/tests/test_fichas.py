@@ -128,3 +128,14 @@ def test_estadia_minima_se_respeta_en_la_ficha(db, oferta):
     grande = next(u for u in f.unidades if u.nombre == "Cabaña 1")
     assert grande.disponible is False
     assert grande.motivo == precios.MENSAJES[precios.MotivoNoDisponible.ESTADIA_CORTA]
+
+
+def test_la_ficha_dice_el_maximo_de_noches(db, oferta):
+    """Sin máximo propio, el de la plataforma; con uno, el de la unidad."""
+    tarifa = db.scalar(select(Tarifa).where(Tarifa.unidad_id == oferta["u_cara"].id))
+    f = fichas.obtener(db, "caro", hoy=HOY)
+    assert next(u for u in f.unidades if u.nombre == "Cabaña 1").estadia_maxima == 365
+    tarifa.estadia_maxima = 14
+    db.flush()
+    f = fichas.obtener(db, "caro", hoy=HOY)
+    assert next(u for u in f.unidades if u.nombre == "Cabaña 1").estadia_maxima == 14

@@ -8,6 +8,8 @@ Reglas aplicadas, en orden:
 1. Cada noche toma el precio de la tarifa vigente de mayor prioridad que la cubra.
    `precios_dia_semana` sobrescribe el precio de esa tarifa para ese día.
 2. La tarifa de la primera noche gobierna estadía mínima, máxima y anticipación.
+   Sin máximo propio rige el de la plataforma, y la llegada no puede estar a más
+   de 12 meses (los dos topes, como Airbnb).
 3. Persona extra se cobra por noche, sobre `capacidad_base`.
 4. Mascota se cobra una vez por estadía.
 5. El descuento por estadía larga se aplica solo sobre el alojamiento, nunca
@@ -25,6 +27,9 @@ CENTAVO = Decimal("0.01")
 CIEN = Decimal(100)
 NOCHES_SEMANA = 7
 NOCHES_MES = 28
+# Topes de la plataforma: el anfitrión puede achicarlos, no agrandarlos.
+ESTADIA_MAXIMA = 365
+VENTANA_DIAS = 365  # hasta cuánto adelante se reserva
 
 
 def _r(v: Decimal | int | str) -> Decimal:
@@ -41,6 +46,7 @@ class MotivoNoDisponible(StrEnum):
     ANTICIPACION_INSUFICIENTE = "anticipacion_insuficiente"
     CAPACIDAD_INSUFICIENTE = "capacidad_insuficiente"
     RANGO_INVALIDO = "rango_invalido"
+    FUERA_DE_VENTANA = "fuera_de_ventana"
 
 
 MENSAJES = {
@@ -50,6 +56,7 @@ MENSAJES = {
     MotivoNoDisponible.ANTICIPACION_INSUFICIENTE: "La unidad exige reservar con más anticipación",
     MotivoNoDisponible.CAPACIDAD_INSUFICIENTE: "La unidad no entra esa cantidad de personas",
     MotivoNoDisponible.RANGO_INVALIDO: "La fecha de salida debe ser posterior a la de llegada",
+    MotivoNoDisponible.FUERA_DE_VENTANA: "Se puede reservar hasta 12 meses antes",
 }
 
 
@@ -171,8 +178,14 @@ def calcular(
         raise NoDisponible(MotivoNoDisponible.RANGO_INVALIDO)
     if personas > unidad.capacidad:
         raise NoDisponible(MotivoNoDisponible.CAPACIDAD_INSUFICIENTE)
+    referencia = hoy or date.today()
+    if (fecha_inicio - referencia).days > VENTANA_DIAS:
+        raise NoDisponible(MotivoNoDisponible.FUERA_DE_VENTANA)
 
     cantidad = (fecha_fin - fecha_inicio).days
+    # Antes de recorrer las noches: un rango de años no se calcula para rechazarlo.
+    if cantidad > ESTADIA_MAXIMA:
+        raise NoDisponible(MotivoNoDisponible.ESTADIA_LARGA)
     dias = [fecha_inicio + timedelta(days=i) for i in range(cantidad)]
 
     noches: list[Noche] = []
@@ -189,7 +202,6 @@ def calcular(
     if gobierna.estadia_maxima is not None and cantidad > gobierna.estadia_maxima:
         raise NoDisponible(MotivoNoDisponible.ESTADIA_LARGA)
     if gobierna.anticipacion_minima_dias:
-        referencia = hoy or date.today()
         if (fecha_inicio - referencia).days < gobierna.anticipacion_minima_dias:
             raise NoDisponible(MotivoNoDisponible.ANTICIPACION_INSUFICIENTE)
 

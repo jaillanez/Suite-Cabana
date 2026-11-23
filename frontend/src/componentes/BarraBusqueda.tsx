@@ -216,6 +216,7 @@ export default function BarraBusqueda({
           type="date"
           value={desde}
           min={minimo}
+          max={hoyISO(365)}
           onChange={(e) => {
             setDesde(e.target.value);
             if (hasta && hasta <= e.target.value) setHasta("");

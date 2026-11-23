@@ -44,6 +44,7 @@ export default function PanelReserva({ ficha }: { ficha: Ficha }) {
             type="date"
             value={desde}
             min={hoyISO()}
+            max={hoyISO(365)}
             onChange={(e) =>
               fijar({ desde: e.target.value, ...(hasta <= e.target.value ? { hasta: "" } : {}) })
             }
@@ -55,6 +56,7 @@ export default function PanelReserva({ ficha }: { ficha: Ficha }) {
             type="date"
             value={hasta}
             min={desde || hoyISO()}
+            max={hoyISO(365 * 2)}
             onChange={(e) => fijar({ hasta: e.target.value })}
           />
         </label>
@@ -98,6 +100,7 @@ export default function PanelReserva({ ficha }: { ficha: Ficha }) {
                 <span className={estilos.capacidad}>
                   hasta {plural(u.capacidad, "persona", "personas")}
                   {u.estadia_minima > 1 && ` · mínimo ${u.estadia_minima} noches`}
+                  {u.estadia_maxima < 365 && ` · máximo ${u.estadia_maxima}`}
                 </span>
                 {u.precio ? (
                   <span className={`${estilos.monto} cifra`}>{pesos(u.precio.total)}</span>

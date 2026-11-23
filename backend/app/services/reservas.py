@@ -65,7 +65,7 @@ ALFABETO_CODIGO = string.ascii_uppercase.replace("O", "").replace("I", "") + "23
 
 #: Techo técnico de una estadía: el precio se calcula noche por noche y un rango
 #: de años no tiene sentido. El tope de negocio, si se decide uno, va por debajo.
-MAX_NOCHES = 365
+MAX_NOCHES = precios.ESTADIA_MAXIMA
 
 
 class NoSePuedeReservar(Exception):
