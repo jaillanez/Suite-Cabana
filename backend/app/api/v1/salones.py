@@ -26,7 +26,7 @@ from app.api.v1.publicaciones import (
     PoliticaOut,
     PrestadorOut,
 )
-from app.api.v1.reservas import ReservaOut, _reserva_out
+from app.api.v1.reservas import ReservaOut, _reserva_out, exigir_telefono
 from app.core.config import get_settings
 from app.core.database import get_db
 from app.models import Localidad, Publicacion, Unidad, Usuario
@@ -116,6 +116,7 @@ class PedidoEvento(BaseModel):
 
 class NuevaReservaEvento(PedidoEvento):
     acepta_terminos: bool = False
+    telefono: Annotated[str | None, Field(default=None, max_length=30)] = None
 
 
 class LineaOut(BaseModel):
@@ -705,6 +706,7 @@ def reservar(
             "Hay que aceptar los términos y la política de cancelación para reservar",
         )
     unidad = _unidad(db, datos.unidad_id)
+    exigir_telefono(db, usuario, datos.telefono)
     try:
         reserva = reservas.crear_evento(
             db, usuario, unidad, datos.dia, datos.invitados,
@@ -719,4 +721,4 @@ def reservar(
     reserva.acepto_terminos_en = datetime.now(UTC)
     reserva.version_terminos = get_settings().version_terminos
     db.commit()
-    return _reserva_out(reservas.traer(db, reserva.codigo))
+    return _reserva_out(reservas.traer(db, reserva.codigo), "viajero")

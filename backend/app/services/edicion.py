@@ -65,6 +65,9 @@ def faltantes(db: Session, publicacion: Publicacion) -> list[str]:
         )
     if publicacion.politica_cancelacion_id is None:
         problemas.append("Falta elegir una política de cancelación")
+    # Con la reserva confirmada, el viajero le escribe por WhatsApp desde la reserva.
+    if not publicacion.prestador.usuario.telefono:
+        problemas.append("Falta tu WhatsApp: cargalo en Mi cuenta")
     # Un salón no tiene ingreso y salida: sus horarios son los turnos o el
     # horario de atención de cada unidad.
     if not salon and (publicacion.hora_ingreso is None or publicacion.hora_salida is None):

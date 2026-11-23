@@ -29,6 +29,7 @@ import {
   plural,
   rangoFechas,
 } from "@/lib/formato";
+import { CampoWhatsApp } from "./BotonReservar";
 import { Alerta, Personas } from "./Iconos";
 import panel from "./PanelReserva.module.css";
 import estilos from "./ReservaSalon.module.css";
@@ -103,6 +104,9 @@ export default function ReservaSalon({
   const [cot, setCot] = useState<CotizacionEvento | null>(null);
   const [errorCot, setErrorCot] = useState<string | null>(null);
   const [errorReserva, setErrorReserva] = useState<string | null>(null);
+  // Solo aparece si la cuenta no tiene WhatsApp (el backend responde 428).
+  const [pedirTelefono, setPedirTelefono] = useState(false);
+  const [telefono, setTelefono] = useState("");
   const [reservando, empezar] = useTransition();
 
   // Cambiar de espacio o de día invalida lo elegido: los turnos y horas son otros.
@@ -222,12 +226,16 @@ export default function ReservaSalon({
     if (!pedido) return;
     setErrorReserva(null);
     empezar(async () => {
-      const r = await accionReservarEvento(pedido);
+      const r = await accionReservarEvento(
+        pedido,
+        pedirTelefono ? telefono : undefined,
+      );
       if (r?.ingresar) {
         const volver = `/salon/${ficha.slug}?dia=${dia}&invitados=${invitados}`;
         router.push(`/ingresar?volver=${encodeURIComponent(volver)}`);
         return;
       }
+      if (r?.pedirTelefono) setPedirTelefono(true);
       if (r?.error) setErrorReserva(r.error);
     });
   }
@@ -579,6 +587,10 @@ export default function ReservaSalon({
         </p>
       )}
 
+      {pedirTelefono && (
+        <CampoWhatsApp valor={telefono} cambiar={setTelefono} />
+      )}
+
       <label className={estilos.terminos}>
         <input
           type="checkbox"
@@ -594,7 +606,9 @@ export default function ReservaSalon({
       <button
         type="button"
         className={estilos.reservar}
-        disabled={!cot || !acepta || reservando}
+        disabled={
+          !cot || !acepta || reservando || (pedirTelefono && !telefono.trim())
+        }
         onClick={reservar}
       >
         {reservando

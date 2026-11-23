@@ -7,8 +7,9 @@ Decisiones que conviene tener a la vista:
 - El correo de verificación se envía por SMTP al registrarse y cada vez que se
   pide. En local sin SMTP el endpoint devuelve el enlace para poder probar el
   circuito; en cualquier otro entorno no lo devuelve nunca.
-- La verificación de teléfono queda pendiente: falta decidir el proveedor de
-  WhatsApp (docs/01 §9), y el modelo ya tiene el campo.
+- El teléfono no se verifica: sirve para que viajero y anfitrión se escriban por
+  WhatsApp con la reserva confirmada (`app.services.contacto`). Se guarda
+  normalizado.
 - Un usuario puede ser viajero y prestador a la vez; `es_operador` no se
   auto-asigna nunca desde acá.
 """
@@ -36,7 +37,7 @@ from app.core.security import (
 )
 from app.models import Notificacion, Prestador, Usuario
 from app.models.enums import CanalNotificacion, EstadoNotificacion
-from app.services import cuenta_cobro, google
+from app.services import contacto, cuenta_cobro, google
 from app.services.notificaciones.base import ErrorDeEnvio, Mensaje
 from app.services.notificaciones.correo import CorreoSMTP
 from app.services.pagos import ErrorDePasarela
@@ -259,7 +260,7 @@ def registro(datos: Registro, db: Session = Depends(get_db)) -> Sesion:
         hash_password=hashear_password(datos.password),
         nombre=datos.nombre.strip(),
         apellido=datos.apellido.strip(),
-        telefono=(datos.telefono or "").strip() or None,
+        telefono=_telefono(datos.telefono),
         acepto_terminos_en=datetime.now(UTC),
         version_terminos=get_settings().version_terminos,
     )
@@ -347,6 +348,34 @@ def ingreso_google(datos: CredencialGoogle, db: Session = Depends(get_db)) -> Se
 
     db.commit()
     return _sesion(usuario)
+
+
+def _telefono(texto: str | None) -> str | None:
+    if not texto or not texto.strip():
+        return None
+    try:
+        return contacto.normalizar(texto)
+    except contacto.TelefonoInvalido as e:
+        raise HTTPException(status.HTTP_422_UNPROCESSABLE_ENTITY, str(e)) from e
+
+
+class NuevoTelefono(BaseModel):
+    # Sin largo mínimo acá: si no, el rechazo sale en inglés (Pydantic) y no con
+    # el mensaje de contacto.normalizar.
+    telefono: Annotated[str, Field(max_length=30)]
+
+
+@router.put("/telefono", response_model=UsuarioOut)
+def cambiar_telefono(
+    datos: NuevoTelefono,
+    usuario: Usuario = Depends(usuario_actual),
+    db: Session = Depends(get_db),
+) -> UsuarioOut:
+    """El WhatsApp de la cuenta: el viajero lo necesita para reservar y el
+    anfitrión para mandar a revisión."""
+    usuario.telefono = _telefono(datos.telefono)
+    db.commit()
+    return _usuario_out(usuario, db)
 
 
 @router.get("/yo", response_model=UsuarioOut)

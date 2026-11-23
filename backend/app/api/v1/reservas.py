@@ -39,7 +39,7 @@ from app.models import (
     Usuario,
 )
 from app.models.enums import EstadoReserva
-from app.services import cifrado, cuenta_cobro, pagos, privacidad, reservas
+from app.services import cifrado, contacto, cuenta_cobro, pagos, privacidad, reservas
 from app.services.pagos.base import Cobro
 
 router = APIRouter(tags=["reservas"])
@@ -57,6 +57,9 @@ class NuevaReserva(BaseModel):
     mascotas: Annotated[int, Field(ge=0, le=5)] = 0
     acepta_terminos: bool = Field(
         default=False, description="docs/01 §5 R11: también se aceptan al reservar"
+    )
+    telefono: Annotated[str | None, Field(default=None, max_length=30)] = Field(
+        default=None, description="WhatsApp del viajero, si todavía no lo cargó"
     )
 
 
@@ -151,6 +154,10 @@ class ReservaOut(BaseModel):
     items: list[ItemOut]
     pagos: list[PagoOut]
     reintegro_si_cancela: ReintegroOut | None
+    whatsapp: str | None = Field(
+        default=None,
+        description="Enlace para escribirle al otro lado; solo con la reserva confirmada",
+    )
 
 
 class PreferenciaOut(BaseModel):
@@ -211,7 +218,7 @@ def _item_out(item: ItemReserva, con_direccion: bool = False) -> ItemOut:
     )
 
 
-def _reserva_out(reserva: Reserva) -> ReservaOut:
+def _reserva_out(reserva: Reserva, para: contacto.Lado | None = None) -> ReservaOut:
     cancelable = reserva.estado in (
         EstadoReserva.PENDIENTE_PAGO,
         EstadoReserva.PENDIENTE_APROBACION,
@@ -255,7 +262,24 @@ def _reserva_out(reserva: Reserva) -> ReservaOut:
             if reintegro
             else None
         ),
+        whatsapp=contacto.enlace(reserva, para) if para else None,
     )
+
+
+def exigir_telefono(db: Session, usuario: Usuario, telefono: str | None) -> None:
+    """Para reservar hace falta un WhatsApp: es por donde se coordina la llegada.
+
+    Si viene uno, se guarda en la cuenta (normalizado). 428 si no hay ninguno: la
+    web lo usa para mostrar el campo y volver a enviar.
+    """
+    if telefono and telefono.strip():
+        try:
+            usuario.telefono = contacto.normalizar(telefono)
+        except contacto.TelefonoInvalido as e:
+            raise HTTPException(status.HTTP_422_UNPROCESSABLE_ENTITY, str(e)) from e
+        db.flush()
+    if not usuario.telefono:
+        raise HTTPException(status.HTTP_428_PRECONDITION_REQUIRED, contacto.FALTA_TELEFONO)
 
 
 def _mia(codigo: str, usuario: Usuario, db: Session) -> Reserva:
@@ -311,6 +335,7 @@ def crear(
             status.HTTP_422_UNPROCESSABLE_ENTITY,
             "Hay que aceptar los términos y la política de cancelación para reservar",
         )
+    exigir_telefono(db, usuario, datos.telefono)
 
     try:
         reserva = reservas.crear(
@@ -331,7 +356,7 @@ def crear(
     reserva.acepto_terminos_en = datetime.now(UTC)
     reserva.version_terminos = get_settings().version_terminos
     db.commit()
-    return _reserva_out(reservas.traer(db, reserva.codigo))
+    return _reserva_out(reservas.traer(db, reserva.codigo), "viajero")
 
 
 @router.get("/reservas", response_model=list[ReservaOut])
@@ -345,14 +370,14 @@ def mis_reservas(
             .order_by(Reserva.creado_en.desc())
         )
     )
-    return [_reserva_out(reservas.traer(db, c)) for c in codigos]
+    return [_reserva_out(reservas.traer(db, c), "viajero") for c in codigos]
 
 
 @router.get("/reservas/{codigo}", response_model=ReservaOut)
 def ver_reserva(
     codigo: str, usuario: Usuario = Depends(usuario_actual), db: Session = Depends(get_db)
 ) -> ReservaOut:
-    return _reserva_out(_mia(codigo, usuario, db))
+    return _reserva_out(_mia(codigo, usuario, db), "viajero")
 
 
 @router.post("/reservas/{codigo}/pagar", response_model=PreferenciaOut)
@@ -482,7 +507,7 @@ def cancelar(
     except reservas.TransicionInvalida as e:
         raise HTTPException(status.HTTP_409_CONFLICT, str(e)) from e
     db.commit()
-    return _reserva_out(reservas.traer(db, codigo))
+    return _reserva_out(reservas.traer(db, codigo), "viajero")
 
 
 # --- Prestador ---
@@ -515,7 +540,7 @@ def reservas_del_prestador(
             .order_by(Reserva.creado_en.desc(), Reserva.codigo)
         )
     )
-    return [_reserva_out(reservas.traer(db, c)) for c in codigos]
+    return [_reserva_out(reservas.traer(db, c), "anfitrion") for c in codigos]
 
 
 @router.post("/mis-reservas/{codigo}/aprobar", response_model=ReservaOut)
@@ -530,7 +555,7 @@ def aprobar_solicitud(
     except reservas.TransicionInvalida as e:
         raise HTTPException(status.HTTP_409_CONFLICT, str(e)) from e
     db.commit()
-    return _reserva_out(reservas.traer(db, codigo))
+    return _reserva_out(reservas.traer(db, codigo), "anfitrion")
 
 
 @router.post("/mis-reservas/{codigo}/rechazar", response_model=ReservaOut)
@@ -546,7 +571,7 @@ def rechazar_solicitud(
     except reservas.TransicionInvalida as e:
         raise HTTPException(status.HTTP_409_CONFLICT, str(e)) from e
     db.commit()
-    return _reserva_out(reservas.traer(db, codigo))
+    return _reserva_out(reservas.traer(db, codigo), "anfitrion")
 
 
 # --- Webhooks ---

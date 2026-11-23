@@ -25,6 +25,7 @@ def viajero(db):
         nombre="Ana",
         apellido="Pérez",
         email_verificado=True,
+        telefono="+5492644123456",
     )
     db.add(u)
     db.flush()
@@ -381,35 +382,27 @@ def test_cancelar_avisa_con_el_motivo(db, viajero, unidad):
     assert all("Se me complicó el viaje" in a.cuerpo for a in avisos)
 
 
-def test_el_whatsapp_queda_registrado_aunque_no_haya_proveedor(db, unidad):
-    """docs/01 §9: el proveedor está sin definir. El aviso no se pierde."""
+def test_los_avisos_van_solo_por_correo(db, unidad):
+    """WhatsApp no tiene proveedor: es el botón de la reserva confirmada
+    (app.services.contacto). Encolar mensajes que nunca salen no sirve a nadie."""
     from app.models import Notificacion
-    from app.models.enums import CanalNotificacion, EstadoNotificacion
-    from app.services import notificaciones
+    from app.models.enums import CanalNotificacion
 
     con_telefono = Usuario(
         email="contel@ejemplo.com.ar",
         nombre="Con",
         apellido="Teléfono",
-        telefono="2645550000",
+        telefono="+5492645550000",
         email_verificado=True,
     )
     db.add(con_telefono)
     db.flush()
 
     reserva = reservar(db, con_telefono, unidad)
-    wa = db.scalar(
-        select(Notificacion).where(
-            Notificacion.reserva_id == reserva.id,
-            Notificacion.canal == CanalNotificacion.WHATSAPP,
-        )
+    canales = set(
+        db.scalars(select(Notificacion.canal).where(Notificacion.reserva_id == reserva.id))
     )
-    assert wa is not None
-    assert wa.destino == "2645550000"
-
-    notificaciones.enviar(db, wa)
-    assert wa.estado is EstadoNotificacion.DESCARTADA
-    assert "proveedor" in wa.error  # queda dicho por qué, y se puede reenviar
+    assert canales == {CanalNotificacion.EMAIL}
 
 
 def test_el_correo_se_marca_enviado(db, viajero, unidad):

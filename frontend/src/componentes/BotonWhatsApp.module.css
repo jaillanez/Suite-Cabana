@@ -1,0 +1,24 @@
+.boton {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  justify-self: start;
+  padding: 0.5625rem 0.875rem;
+  border: 1px solid var(--borde-fuerte);
+  border-radius: var(--radio);
+  background: var(--fondo);
+  color: var(--texto);
+  font-size: 0.875rem;
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.boton:hover {
+  background: var(--fondo-2);
+}
+
+.icono {
+  width: 18px;
+  height: 18px;
+  flex: none;
+}

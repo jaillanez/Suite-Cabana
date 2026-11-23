@@ -252,7 +252,6 @@ export type Cuenta = {
   apellido: string;
   telefono: string | null;
   email_verificado: boolean;
-  telefono_verificado: boolean;
   es_viajero: boolean;
   es_prestador: boolean;
   es_operador: boolean;
@@ -274,6 +273,10 @@ export const ingresar = (datos: { email: string; password: string }) =>
   api<Sesion>("/auth/ingreso", { method: "POST", body: JSON.stringify(datos) });
 
 export const miCuenta = (token: string) => api<Cuenta>("/auth/yo", { token });
+
+/** El WhatsApp de la cuenta. El backend lo normaliza y lo devuelve como quedó. */
+export const cambiarTelefono = (token: string, telefono: string) =>
+  api<Cuenta>("/auth/telefono", { method: "PUT", token, body: JSON.stringify({ telefono }) });
 
 export const pedirVerificacion = (token: string) =>
   api<PedidoVerificacion>("/auth/verificacion", { method: "POST", token });
@@ -750,6 +753,8 @@ export type Reserva = {
   items: ItemReserva[];
   pagos: { pasarela: string; estado: string; monto: string; id_externo: string | null }[];
   reintegro_si_cancela: { porcentaje: number; monto: string; motivo: string } | null;
+  /** Enlace wa.me para escribirle al otro lado. Solo con la reserva confirmada. */
+  whatsapp: string | null;
 };
 
 export type Preferencia = {
@@ -771,6 +776,7 @@ export const crearReserva = (
     menores?: number;
     mascotas?: number;
     acepta_terminos: boolean;
+    telefono?: string;
   },
 ) => api<Reserva>("/reservas", { method: "POST", token, body: JSON.stringify(datos) });
 
@@ -1291,7 +1297,7 @@ export const cotizarEvento = (pedido: PedidoEvento) =>
 
 export const reservarEvento = (
   token: string,
-  pedido: PedidoEvento & { acepta_terminos: boolean },
+  pedido: PedidoEvento & { acepta_terminos: boolean; telefono?: string },
 ) =>
   api<Reserva>("/salones/reservas", { method: "POST", token, body: JSON.stringify(pedido) });
 

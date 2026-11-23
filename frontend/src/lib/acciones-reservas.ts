@@ -20,6 +20,16 @@ import { tokenActual } from "./sesion";
 export type ResultadoReserva = { reserva: Reserva } | { error: string };
 export type ResultadoPago = { url: string; pasarela: string } | { error: string };
 
+/** 428: falta el WhatsApp del viajero. El formulario muestra el campo y reenvía. */
+type FaltaTelefono = { error: string; pedirTelefono?: boolean };
+
+function problemaAlReservar(e: unknown, porDefecto: string): FaltaTelefono {
+  if (e instanceof ApiError && e.status === 428) {
+    return { error: e.message, pedirTelefono: true };
+  }
+  return problema(e, porDefecto);
+}
+
 function problema(e: unknown, porDefecto: string): { error: string } {
   if (e instanceof ApiError) {
     const d = e.detalle;
@@ -68,9 +78,10 @@ export async function accionReservar(_previo: unknown, datos: FormData) {
       menores: Number(v("menores") || 0),
       mascotas: Number(v("mascotas") || 0),
       acepta_terminos: true,
+      telefono: v("telefono") || undefined,
     });
   } catch (e) {
-    return problema(e, "No pudimos crear la reserva.");
+    return problemaAlReservar(e, "No pudimos crear la reserva.");
   }
   revalidatePath("/reservas");
   redirect(`/reservas/${reserva.codigo}`);
@@ -80,18 +91,23 @@ export async function accionReservar(_previo: unknown, datos: FormData) {
     vuelve a la ficha, en vez de perder lo que el viajero ya eligió. */
 export async function accionReservarEvento(
   pedido: PedidoEvento,
-): Promise<{ error: string; ingresar?: boolean } | never> {
+  telefono?: string,
+): Promise<{ error: string; ingresar?: boolean; pedirTelefono?: boolean } | never> {
   const token = await tokenActual();
   if (!token) return { error: "Ingresá para reservar.", ingresar: true };
 
   let reserva: Reserva;
   try {
-    reserva = await reservarEvento(token, { ...pedido, acepta_terminos: true });
+    reserva = await reservarEvento(token, {
+      ...pedido,
+      acepta_terminos: true,
+      telefono: telefono || undefined,
+    });
   } catch (e) {
     if (e instanceof ApiError && e.status === 401) {
       return { error: "Tu sesión venció. Ingresá de nuevo.", ingresar: true };
     }
-    return problema(e, "No pudimos crear la reserva.");
+    return problemaAlReservar(e, "No pudimos crear la reserva.");
   }
   revalidatePath("/reservas");
   redirect(`/reservas/${reserva.codigo}`);

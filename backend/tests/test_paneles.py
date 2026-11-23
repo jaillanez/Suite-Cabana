@@ -18,6 +18,7 @@ def cuenta(cliente, db, email, *, operador=False, verificado=True):
             "nombre": "N",
             "apellido": "A",
             "acepta_terminos": True,
+            "telefono": "11 5555 0000",
         },
     )
     token = r.json()["token"]

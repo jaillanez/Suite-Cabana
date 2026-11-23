@@ -52,7 +52,7 @@ export default function Privacidad() {
           <h2>Para qué se usan</h2>
           <p>
             Para operar el servicio: crear la cuenta, mostrar y cobrar reservas, avisarte por
-            correo o WhatsApp lo que pasa con ellas, liquidar la comisión y atender reclamos.
+            correo lo que pasa con ellas, liquidar la comisión y atender reclamos.
             No se venden ni se ceden a terceros con fines publicitarios.
           </p>
         </section>
@@ -63,6 +63,10 @@ export default function Privacidad() {
             <li>
               <strong>Con el prestador</strong>, cuando reservás: tu nombre y las fechas. Su
               dirección exacta se te comparte al confirmar.
+            </li>
+            <li>
+              <strong>Tu WhatsApp</strong>, solo con la reserva confirmada: el prestador ve el
+              tuyo y vos el suyo, para coordinar la llegada. Antes de confirmar no lo ve nadie.
             </li>
             <li>
               <strong>Con la billetera</strong> que procesa el pago, lo necesario para cobrar.

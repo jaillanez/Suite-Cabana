@@ -2,9 +2,12 @@
 
 import { redirect } from "next/navigation";
 
+import { revalidatePath } from "next/cache";
+
 import {
   ApiError,
   altaPrestador,
+  cambiarTelefono,
   desvincularMercadoPago,
   vincularMercadoPago,
   ingresar,
@@ -125,6 +128,22 @@ export async function accionPedirVerificacion(): Promise<Estado> {
     return { aviso: r.detalle, enlace: r.enlace };
   } catch (e) {
     return { error: mensaje(e, "No pudimos generar el enlace.") };
+  }
+}
+
+/** El WhatsApp de la cuenta: lo normaliza el backend y vuelve como quedó guardado. */
+export async function accionCambiarTelefono(
+  _previo: Estado & { telefono?: string | null },
+  datos: FormData,
+): Promise<Estado & { telefono?: string | null }> {
+  const token = await tokenActual();
+  if (!token) return { error: "Tu sesión venció. Ingresá de nuevo." };
+  try {
+    const cuenta = await cambiarTelefono(token, texto(datos, "telefono"));
+    revalidatePath("/cuenta");
+    return { aviso: "Guardado.", telefono: cuenta.telefono };
+  } catch (e) {
+    return { error: mensaje(e, "No pudimos guardar el número.") };
   }
 }
 

@@ -16,6 +16,7 @@ import {
 } from "@/lib/formato";
 import Estado from "./EstadoReserva";
 import { Alerta } from "./Iconos";
+import BotonWhatsApp from "./BotonWhatsApp";
 import estilos from "./ReservasPrestador.module.css";
 
 export default function ReservasPrestador({ inicial }: { inicial: Reserva[] }) {
@@ -74,6 +75,8 @@ export default function ReservasPrestador({ inicial }: { inicial: Reserva[] }) {
                 </div>
                 <Estado estado={r.estado} />
               </div>
+
+              <BotonWhatsApp enlace={r.whatsapp} a="al viajero" />
 
               <dl className={estilos.plata}>
                 <div>

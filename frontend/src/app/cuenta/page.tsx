@@ -12,6 +12,7 @@ import { cuentaActual } from "@/lib/sesion";
 import Encabezado from "@/componentes/Encabezado";
 import FormularioAuth from "@/componentes/FormularioAuth";
 import { Alerta, Rayo } from "@/componentes/Iconos";
+import CambiarTelefono from "@/componentes/CambiarTelefono";
 import PedirVerificacion from "@/componentes/PedirVerificacion";
 import estilos from "./cuenta.module.css";
 
@@ -50,8 +51,10 @@ export default async function Cuenta() {
               <dd>{cuenta.email}</dd>
             </div>
             <div>
-              <dt>Teléfono</dt>
-              <dd>{cuenta.telefono ?? "Sin cargar"}</dd>
+              <dt>WhatsApp</dt>
+              <dd>
+                <CambiarTelefono actual={cuenta.telefono} />
+              </dd>
             </div>
             <div>
               <dt>Rol</dt>
@@ -88,10 +91,6 @@ export default async function Cuenta() {
               <PedirVerificacion />
             </>
           )}
-          <p className={estilos.nota}>
-            La verificación por teléfono queda pendiente: falta definir el proveedor de
-            WhatsApp.
-          </p>
         </section>
 
         <section>

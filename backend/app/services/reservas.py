@@ -1047,16 +1047,11 @@ def _avisar_al_viajero(
     if usuario is None:
         return
     datos = {**_datos_para_aviso(reserva), "nombre": usuario.nombre, **(extra or {})}
+    # Solo por correo: WhatsApp es el botón de la reserva (app.services.contacto).
     notificaciones.encolar(
         db, evento, CanalNotificacion.EMAIL, usuario.email, datos,
         usuario_id=usuario.id, reserva_id=reserva.id,
     )
-    if usuario.telefono:
-        # Queda registrada aunque todavía no haya proveedor de WhatsApp.
-        notificaciones.encolar(
-            db, evento, CanalNotificacion.WHATSAPP, usuario.telefono, datos,
-            usuario_id=usuario.id, reserva_id=reserva.id,
-        )
 
 
 def _avisar_al_prestador(
@@ -1078,11 +1073,6 @@ def _avisar_al_prestador(
         db, evento, CanalNotificacion.EMAIL, dueno.email, datos,
         usuario_id=dueno.id, reserva_id=reserva.id,
     )
-    if dueno.telefono:
-        notificaciones.encolar(
-            db, evento, CanalNotificacion.WHATSAPP, dueno.telefono, datos,
-            usuario_id=dueno.id, reserva_id=reserva.id,
-        )
 
 
 def traer(db: Session, codigo: str) -> Reserva | None:

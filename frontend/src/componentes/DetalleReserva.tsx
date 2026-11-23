@@ -18,6 +18,7 @@ import {
 } from "@/lib/formato";
 import Estado, { TEXTOS_RESERVA } from "./EstadoReserva";
 import { Alerta, Rayo } from "./Iconos";
+import BotonWhatsApp from "./BotonWhatsApp";
 import estilos from "./DetalleReserva.module.css";
 
 export default function DetalleReserva({
@@ -101,6 +102,8 @@ export default function DetalleReserva({
         <Estado estado={reserva.estado} />
         <p>{TEXTOS_RESERVA[reserva.estado].explica}</p>
       </div>
+
+      <BotonWhatsApp enlace={reserva.whatsapp} a="al anfitrión" />
 
       {reserva.motivo_cancelacion && (
         <p className={estilos.cancelada}>

@@ -192,6 +192,13 @@ export const Corazon = ({ relleno = false, ...p }: Props & { relleno?: boolean }
   </Svg>
 );
 
+/** Globo de conversación (genérico, no el logo de una marca). */
+export const Mensaje = (p: Props) => (
+  <Svg {...p}>
+    <path d="M3.5 15.8 4.6 12.6A6.6 6.6 0 1 1 7.3 15.3z" />
+  </Svg>
+);
+
 export const Ubicacion = (p: Props) => (
   <Svg {...p}>
     <path d="M10 17.4s5.6-4.7 5.6-9a5.6 5.6 0 1 0-11.2 0c0 4.3 5.6 9 5.6 9Z" />

@@ -27,7 +27,10 @@ export default function BotonReservar({
   etiqueta: string;
   deshabilitado?: boolean;
 }) {
-  const [estado, ejecutar, pendiente] = useActionState(accionReservar, {} as { error?: string });
+  const [estado, ejecutar, pendiente] = useActionState(
+    accionReservar,
+    {} as { error?: string; pedirTelefono?: boolean },
+  );
 
   return (
     <form action={ejecutar} className={estilos.formulario}>
@@ -44,6 +47,9 @@ export default function BotonReservar({
         </p>
       )}
 
+      {/* Solo si la cuenta no tiene WhatsApp: el backend responde 428 y se pide acá. */}
+      {estado?.pedirTelefono && <CampoWhatsApp />}
+
       <label className={estilos.terminos}>
         <input type="checkbox" name="acepta_terminos" required />
         <span>
@@ -56,5 +62,35 @@ export default function BotonReservar({
         {pendiente ? "Reservando…" : etiqueta}
       </button>
     </form>
+  );
+}
+
+export function CampoWhatsApp({
+  valor,
+  cambiar,
+}: {
+  valor?: string;
+  cambiar?: (v: string) => void;
+}) {
+  return (
+    <label className={estilos.telefono}>
+      <span>Tu WhatsApp</span>
+      <input
+        name="telefono"
+        type="tel"
+        autoComplete="tel"
+        inputMode="tel"
+        placeholder="264 412 3456"
+        required
+        autoFocus
+        {...(cambiar
+          ? { value: valor ?? "", onChange: (e) => cambiar(e.target.value) }
+          : {})}
+      />
+      <small>
+        Con la reserva confirmada, el anfitrión y vos se pueden escribir desde la reserva.
+        Queda guardado en tu cuenta.
+      </small>
+    </label>
   );
 }

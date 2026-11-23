@@ -27,6 +27,7 @@ def viajero(cliente, db):
             "password": "unaclavelarga",
             "nombre": "Ana",
             "apellido": "Pérez", "acepta_terminos": True,
+            "telefono": "0264 15 412-3456",
         },
     )
     token = r.json()["token"]

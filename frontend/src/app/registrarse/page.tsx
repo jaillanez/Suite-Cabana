@@ -44,11 +44,12 @@ export default async function Registrarse() {
             },
             {
               nombre: "telefono",
-              etiqueta: "Teléfono",
+              etiqueta: "WhatsApp",
               tipo: "tel",
               autoComplete: "tel",
               requerido: false,
-              ayuda: "Opcional. Lo usamos para avisarte de tus reservas.",
+              ayuda:
+                "Opcional ahora; se pide al reservar. Con la reserva confirmada, el anfitrión y vos se escriben por ahí.",
               ancho: "completo",
             },
             {

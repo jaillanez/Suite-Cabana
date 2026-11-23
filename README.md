@@ -298,7 +298,11 @@ Bloques **1 a 7 cerrados** del plan de Fase 1 (`docs/01 §8`):
 - Paneles: favoritos del viajero, cobros y comisiones del prestador, y control del operador
   con filtros y exportación a CSV.
 - Notificaciones: buzón de salida con correo (por consola en desarrollo, SMTP cuando esté
-  configurado) y WhatsApp previsto. Toda notificación se guarda antes de enviarse.
+  configurado). Toda notificación se guarda antes de enviarse.
+- WhatsApp sin proveedor: con la reserva confirmada, viajero y anfitrión tienen un botón
+  que abre la conversación con el mensaje escrito (`app/services/contacto.py`). El
+  teléfono se pide al reservar y para mandar una publicación a revisión, y se guarda
+  normalizado. No se verifica.
 - Términos y condiciones y política de privacidad, aceptados al registrarse y al reservar,
   con la versión guardada en cada caso.
 - Reservas y pagos: retención de fechas mientras se paga, snapshot de comisión por reserva,
@@ -322,7 +326,6 @@ afuera del código:
 | Credenciales de Mercado Pago y de las otras billeteras | Dirección |
 | `GOOGLE_CLIENT_ID` para el ingreso con Google | Técnica |
 | Servidor de correo (SMTP) | Técnica |
-| Proveedor de WhatsApp | Dirección (`docs/01 §9`) |
 | Revisión legal de términos y privacidad | Legal (`docs/00 §10`) |
 | Porcentajes de las políticas de cancelación | Dirección (`docs/01 §9`) |
 | Comisión por defecto y quién la paga | Dirección (`docs/01 §9`) |
@@ -333,9 +336,6 @@ como P1 y P2 en `docs/01 §5` y quedan fuera de la Fase 1.
 
 Pendientes conocidos dentro de lo ya construido:
 
-- **Verificación por teléfono**: falta decidir el proveedor de WhatsApp (`docs/01 §9`).
-- **WhatsApp**: los avisos se guardan en el buzón marcados como descartados, con el motivo.
-  El día que haya proveedor se pueden reenviar, en vez de haberse perdido.
 - **Comisión retenida en el pago**: con cobro directo (credencial propia del anfitrión)
   Mercado Pago no deja retenerla; se factura aparte. Retenerla requiere OAuth de
   marketplace (`docs/00 §8`).
