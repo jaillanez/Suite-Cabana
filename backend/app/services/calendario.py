@@ -32,7 +32,12 @@ TIEMPO_LIMITE = 20.0
 # pasada se toman pocos, los más atrasados primero: cada descarga puede tardar
 # hasta TIEMPO_LIMITE y la misma pasada libera las reservas vencidas.
 CADA = timedelta(hours=1)
+# Uno que falla (dirección vencida, portal caído) se reintenta más espaciado; el
+# anfitrión puede forzarlo con «Sincronizar ahora».
+CADA_CON_ERROR = timedelta(hours=6)
 LOTE = 10
+PRESUPUESTO_PASADA = 30.0  # segundos: la pasada corre cada 60
+MAX_POR_UNIDAD = 10  # Airbnb, Booking, Vrbo, Google… sobra
 registro = logging.getLogger("calendario")
 # Las cabeceras HTTP son ASCII: una tilde acá rompe cada sincronización.
 AGENTE = "SuiteCabana/0.1 (calendar sync)"
@@ -268,15 +273,24 @@ def sincronizar(
 
 
 def sincronizar_vencidos(
-    db: Session, ahora: datetime | None = None, lote: int = LOTE
+    db: Session,
+    ahora: datetime | None = None,
+    lote: int = LOTE,
+    presupuesto: float = PRESUPUESTO_PASADA,
 ) -> dict[str, int]:
     """Vuelve a traer los calendarios que llevan una hora o más sin intentarse.
 
-    Cada uno en su propio savepoint: uno caído o con la dirección vencida deja su
-    motivo en `ultimo_error` (lo ve el anfitrión) y no frena a los demás. Si dos
-    procesos corrieran a la vez, `skip_locked` evita que tomen el mismo.
+    Primero los reclama: anota el intento y confirma, así ninguna fila queda
+    bloqueada mientras se descarga y otro proceso no toma los mismos
+    (`skip_locked`). Después, cada uno en su propio savepoint y su commit: uno
+    caído deja su motivo en `ultimo_error` (lo ve el anfitrión) y no frena a los
+    demás. Si la pasada gasta su presupuesto de tiempo, lo que falta queda para la
+    próxima hora: la tarea también libera reservas vencidas y no puede esperar.
     """
+    from time import monotonic
+
     ahora = ahora or datetime.now(UTC)
+    limite = monotonic() + presupuesto
     pendientes = list(
         db.scalars(
             select(CalendarioExterno)
@@ -285,7 +299,9 @@ def sincronizar_vencidos(
                 Unidad.activa.is_(True),
                 or_(
                     CalendarioExterno.ultimo_intento.is_(None),
-                    CalendarioExterno.ultimo_intento <= ahora - CADA,
+                    (CalendarioExterno.ultimo_error.is_(None))
+                    & (CalendarioExterno.ultimo_intento <= ahora - CADA),
+                    CalendarioExterno.ultimo_intento <= ahora - CADA_CON_ERROR,
                 ),
             )
             .order_by(CalendarioExterno.ultimo_intento.asc().nulls_first())
@@ -293,8 +309,19 @@ def sincronizar_vencidos(
             .with_for_update(of=CalendarioExterno, skip_locked=True)
         )
     )
-    bien = mal = 0
+    anteriores = {c.id: c.ultimo_intento for c in pendientes}
     for calendario in pendientes:
+        calendario.ultimo_intento = ahora
+    db.commit()
+
+    bien = mal = 0
+    for i, calendario in enumerate(pendientes):
+        if monotonic() > limite:
+            # Los que no llegaron a intentarse vuelven a su lugar en la fila.
+            for salteado in pendientes[i:]:
+                salteado.ultimo_intento = anteriores[salteado.id]
+            db.commit()
+            break
         try:
             with db.begin_nested():
                 sincronizar(db, calendario)
@@ -310,7 +337,7 @@ def sincronizar_vencidos(
                 else motivo(e)
             )
             registro.warning("calendario %s: %s", calendario.id, calendario.ultimo_error)
-    db.flush()
+        db.commit()
     return {"calendarios_al_dia": bien, "calendarios_con_error": mal}
 
 

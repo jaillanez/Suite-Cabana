@@ -1295,6 +1295,20 @@ def agregar_calendario(
         red.validar_forma(datos.url)
     except red.DireccionNoPermitida as e:
         raise HTTPException(status.HTTP_422_UNPROCESSABLE_ENTITY, str(e)) from e
+    # Cada calendario se descarga solo cada hora: el tope evita que una cuenta
+    # use el servidor para pedirle a terceros cientos de direcciones.
+    from app.services import calendario as agenda_externa
+
+    ya_tiene = db.scalar(
+        select(func.count(CalendarioExterno.id)).where(
+            CalendarioExterno.unidad_id == unidad.id
+        )
+    )
+    if ya_tiene >= agenda_externa.MAX_POR_UNIDAD:
+        raise HTTPException(
+            status.HTTP_409_CONFLICT,
+            f"Una unidad puede tener hasta {agenda_externa.MAX_POR_UNIDAD} calendarios",
+        )
 
     db.add(
         CalendarioExterno(

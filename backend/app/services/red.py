@@ -17,6 +17,7 @@ from __future__ import annotations
 
 import ipaddress
 import socket
+import time
 from urllib.parse import urljoin, urlsplit, urlunsplit
 
 import httpx
@@ -73,11 +74,22 @@ def _ip_publica(host: str, puerto: int) -> str:
 def descargar_publica(url: str, *, agente: str, tiempo: float) -> bytes:
     """Descarga `url` solo si (ella y cada redirección) está en internet pública.
 
+    `tiempo` es el total de la descarga, redirecciones incluidas. El timeout de
+    httpx cuenta por lectura: un servidor que manda un byte cada pocos segundos lo
+    respetaría para siempre.
+
     Levanta `DireccionNoPermitida`, o los errores de httpx de siempre.
     """
     actual = url.strip()
+    limite = time.monotonic() + tiempo
+
+    def a_tiempo() -> None:
+        if time.monotonic() > limite:
+            raise httpx.ReadTimeout("Se agotó el tiempo de descarga", request=None)
+
     with httpx.Client(timeout=tiempo, follow_redirects=False, trust_env=False) as cliente:
         for _ in range(MAX_REDIRECCIONES + 1):
+            a_tiempo()
             validar_forma(actual)
             partes = urlsplit(actual)
             host = partes.hostname or ""
@@ -103,6 +115,7 @@ def descargar_publica(url: str, *, agente: str, tiempo: float) -> bytes:
                 respuesta.raise_for_status()
                 cuerpo = bytearray()
                 for trozo in respuesta.iter_bytes():
+                    a_tiempo()
                     cuerpo += trozo
                     if len(cuerpo) > MAX_BYTES:
                         raise DireccionNoPermitida("El calendario es demasiado grande")

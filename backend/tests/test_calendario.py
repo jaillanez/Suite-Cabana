@@ -349,3 +349,47 @@ def test_una_unidad_dada_de_baja_no_se_sincroniza(db, oferta, monkeypatch):
     oferta["u_cara"].activa = False
     db.flush()
     assert agenda.sincronizar_vencidos(db, ahora=datetime.now(UTC))["calendarios_al_dia"] == 0
+
+
+def test_uno_que_falla_se_reintenta_cada_seis_horas(db, oferta, monkeypatch):
+    from datetime import UTC, datetime
+
+    import httpx
+
+    def caido(url):
+        raise httpx.ConnectError("sin red", request=httpx.Request("GET", url))
+
+    monkeypatch.setattr(agenda, "descargar", caido)
+    c = _calendario(db, oferta["u_cara"])
+    ahora = datetime.now(UTC)
+    assert agenda.sincronizar_vencidos(db, ahora=ahora)["calendarios_con_error"] == 1
+    intento = c.ultimo_intento
+    assert agenda.sincronizar_vencidos(db, ahora=intento + timedelta(hours=2)) == {
+        "calendarios_al_dia": 0, "calendarios_con_error": 0,
+    }
+    assert agenda.sincronizar_vencidos(db, ahora=intento + timedelta(hours=6))[
+        "calendarios_con_error"
+    ] == 1
+
+
+def test_sin_tiempo_en_la_pasada_lo_que_falta_vuelve_a_la_fila(db, oferta, monkeypatch):
+    from datetime import UTC, datetime
+
+    monkeypatch.setattr(agenda, "descargar", lambda url: ics(("20261220", "20261227")))
+    c = _calendario(db, oferta["u_cara"])
+    r = agenda.sincronizar_vencidos(db, ahora=datetime.now(UTC), presupuesto=-1)
+    assert r == {"calendarios_al_dia": 0, "calendarios_con_error": 0}
+    assert c.ultimo_intento is None  # no se intentó: entra en la pasada siguiente
+    assert agenda.sincronizar_vencidos(db, ahora=datetime.now(UTC))["calendarios_al_dia"] == 1
+
+
+def test_la_descarga_tiene_un_tiempo_total(monkeypatch):
+    """httpx cuenta el timeout por lectura; un goteo lento no puede estirarla."""
+    import httpx
+
+    from app.services import red
+
+    relojes = iter([0.0, 100.0])
+    monkeypatch.setattr(red.time, "monotonic", lambda: next(relojes))
+    with pytest.raises(httpx.TimeoutException):
+        red.descargar_publica("https://airbnb.test/x.ics", agente="t", tiempo=20)

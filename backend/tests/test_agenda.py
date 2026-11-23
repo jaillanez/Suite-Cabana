@@ -193,3 +193,19 @@ def test_la_direccion_vencida_se_explica_en_castellano(cliente, oferta, anfitrio
         "resultados"
     ][0]["detalle"]
     assert "caduca" in detalle and "sacala de nuevo" in detalle.lower()
+
+
+def test_una_unidad_tiene_un_tope_de_calendarios(cliente, anfitrion, oferta):
+    """Cada uno se descarga solo cada hora: sin tope, una cuenta podría usar el
+    servidor para pedirle a terceros cientos de direcciones."""
+    from app.services import calendario as agenda
+
+    p, u = oferta["cara"], oferta["u_cara"]
+    for i in range(agenda.MAX_POR_UNIDAD):
+        conectar(cliente, anfitrion, p, u, f"Cal {i}", f"https://airbnb.test/{i}.ics")
+    r = cliente.post(
+        f"/api/v1/mis-publicaciones/{p.id}/unidades/{u.id}/calendarios",
+        headers=anfitrion,
+        json={"nombre": "Uno más", "url": "https://airbnb.test/extra.ics"},
+    )
+    assert r.status_code == 409
