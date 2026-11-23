@@ -88,21 +88,33 @@ def libre(
     return choque is None
 
 
+def vigentes(
+    db: Session, unidad_id, desde: datetime, hasta: datetime, ahora: datetime | None = None
+) -> list[BloqueoHorario]:
+    """Los bloqueos que ocupan algo de [desde, hasta), en orden. Para la agenda del
+    propietario, que necesita saber qué es cada uno."""
+    ahora = ahora or datetime.now(UTC)
+    return list(
+        db.scalars(
+            select(BloqueoHorario)
+            .where(
+                BloqueoHorario.unidad_id == unidad_id,
+                _vigente(ahora),
+                BloqueoHorario.rango.op("&&")(_rango(desde, hasta)),
+            )
+            .order_by(func.lower(BloqueoHorario.rango))
+        ).all()
+    )
+
+
 def ocupados(
     db: Session, unidad_id, desde: datetime, hasta: datetime, ahora: datetime | None = None
 ) -> list[Ocupado]:
     """Lo ocupado entre `desde` y `hasta`, en orden. Alimenta el calendario del día."""
-    ahora = ahora or datetime.now(UTC)
-    filas = db.scalars(
-        select(BloqueoHorario)
-        .where(
-            BloqueoHorario.unidad_id == unidad_id,
-            _vigente(ahora),
-            BloqueoHorario.rango.op("&&")(_rango(desde, hasta)),
-        )
-        .order_by(func.lower(BloqueoHorario.rango))
-    ).all()
-    return [Ocupado(b.rango.lower, b.rango.upper, b.origen) for b in filas]
+    return [
+        Ocupado(b.rango.lower, b.rango.upper, b.origen)
+        for b in vigentes(db, unidad_id, desde, hasta, ahora)
+    ]
 
 
 def ocupados_de(

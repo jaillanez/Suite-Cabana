@@ -1,0 +1,181 @@
+.agenda {
+  display: grid;
+  gap: 0.75rem;
+  padding-top: 0.5rem;
+}
+
+.navegacion {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  font-size: 0.8125rem;
+  font-weight: 600;
+}
+
+.navegacion button {
+  display: grid;
+  place-items: center;
+  width: 2rem;
+  height: 2rem;
+  border: 1px solid var(--borde-fuerte);
+  border-radius: var(--radio-s);
+  background: var(--fondo);
+  cursor: pointer;
+}
+
+.navegacion button:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+
+.navegacion svg {
+  width: 16px;
+  height: 16px;
+}
+
+.dias {
+  display: grid;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  border: 1px solid var(--borde);
+  border-radius: var(--radio-s);
+}
+
+.dias > li {
+  display: grid;
+  grid-template-columns: 11rem minmax(0, 1fr);
+  gap: 0.75rem;
+  align-items: start;
+  padding: 0.5rem 0.75rem;
+  font-size: 0.8125rem;
+}
+
+.dias > li + li {
+  border-top: 1px solid var(--borde);
+}
+
+.dia {
+  display: block;
+  font-weight: 600;
+}
+
+/* Solo la primera letra: "capitalize" ponía "28 De Diciembre". */
+.dia::first-letter {
+  text-transform: uppercase;
+}
+
+.libre {
+  color: var(--texto-3);
+}
+
+.tramos {
+  display: grid;
+  gap: 0.25rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.tramos li {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 0.625rem;
+  padding: 0.25rem 0.5rem;
+  border-radius: var(--radio-s);
+  background: var(--fondo-2);
+}
+
+.tramos li[data-origen="reserva"] {
+  background: var(--acento-tenue);
+}
+
+.tramos small {
+  color: var(--texto-3);
+}
+
+.tramos button {
+  display: grid;
+  place-items: center;
+  padding: 0.125rem;
+  border: 0;
+  background: none;
+  color: var(--texto-3);
+  cursor: pointer;
+}
+
+.tramos button svg {
+  width: 14px;
+  height: 14px;
+}
+
+.bloquear {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: 0.5rem;
+}
+
+.bloquear label {
+  display: grid;
+  gap: 0.1875rem;
+  flex: 1 1 110px;
+  min-width: 0;
+}
+
+.bloquear .notaCampo {
+  flex: 2 1 200px;
+}
+
+.bloquear span {
+  font-size: 0.6875rem;
+  font-weight: 600;
+  color: var(--texto-3);
+}
+
+.bloquear input {
+  width: 100%;
+  padding: 0.4375rem 0.625rem;
+  border: 1px solid var(--borde-fuerte);
+  border-radius: var(--radio-s);
+  background: var(--fondo);
+  font-size: 0.8125rem;
+}
+
+.bloquear button {
+  padding: 0.4375rem 0.875rem;
+  border: 1px solid var(--borde-fuerte);
+  border-radius: var(--radio-s);
+  background: var(--fondo);
+  font-size: 0.8125rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.error {
+  display: flex;
+  gap: 0.375rem;
+  font-size: 0.8125rem;
+  color: var(--alerta);
+}
+
+.icono {
+  flex: none;
+  width: 16px;
+  height: 16px;
+}
+
+.cargando,
+.nota {
+  font-size: 0.75rem;
+  color: var(--texto-3);
+}
+
+@media (max-width: 560px) {
+  .dias > li {
+    grid-template-columns: 1fr;
+    gap: 0.25rem;
+  }
+}

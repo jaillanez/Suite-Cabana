@@ -1,5 +1,7 @@
 "use client";
 
+import { useState } from "react";
+
 /* Los espacios de un salón y cómo se cobran (docs/04 §4): turnos fijos, precio
    por hora y adicionales. Acá solo se cargan datos: los precios, mínimos y
    choques los calcula y valida el backend. */
@@ -21,6 +23,7 @@ import type {
   UnidadEdicion,
 } from "@/lib/api";
 import { pesos } from "@/lib/formato";
+import AgendaSalon from "./AgendaSalon";
 import { Cruz } from "./Iconos";
 import estilos from "./EditorPublicacion.module.css";
 import propios from "./UnidadesSalon.module.css";
@@ -95,6 +98,7 @@ function Espacio({
   pendiente: boolean;
 }) {
   const th = u.tarifa_horaria;
+  const [agendaAbierta, setAgendaAbierta] = useState(false);
   const sinPrecio = u.franjas.length === 0 && !th;
 
   return (
@@ -417,6 +421,18 @@ function Espacio({
           </button>
         </form>
       </section>
+
+      {/* --- Agenda --- */}
+      {/* Se pide recién al abrirla: cerrada no tiene por qué ir a la API. */}
+      <details
+        className={estilos.agenda}
+        onToggle={(e) =>
+          setAgendaAbierta((e.currentTarget as HTMLDetailsElement).open)
+        }
+      >
+        <summary>Agenda y bloqueos por horas</summary>
+        {agendaAbierta && <AgendaSalon publicacionId={p.id} unidadId={u.id} />}
+      </details>
     </li>
   );
 }

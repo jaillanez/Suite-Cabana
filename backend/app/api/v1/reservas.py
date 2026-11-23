@@ -489,13 +489,20 @@ def _del_prestador(codigo: str, prestador: Prestador, db: Session) -> Reserva:
 def reservas_del_prestador(
     prestador: Prestador = Depends(prestador_actual), db: Session = Depends(get_db)
 ) -> list[ReservaOut]:
+    # Con un subselect y no DISTINCT + ORDER BY: PostgreSQL rechaza ordenar un
+    # SELECT DISTINCT por una columna que no está en la lista, y así esta lista
+    # fallaba siempre (la pantalla mostraba "todavía no recibiste reservas").
     codigos = list(
         db.scalars(
             select(Reserva.codigo)
-            .join(ItemReserva, ItemReserva.reserva_id == Reserva.id)
-            .where(ItemReserva.prestador_id == prestador.id)
-            .order_by(Reserva.creado_en.desc())
-            .distinct()
+            .where(
+                Reserva.id.in_(
+                    select(ItemReserva.reserva_id).where(
+                        ItemReserva.prestador_id == prestador.id
+                    )
+                )
+            )
+            .order_by(Reserva.creado_en.desc(), Reserva.codigo)
         )
     )
     return [_reserva_out(reservas.traer(db, c)) for c in codigos]

@@ -27,7 +27,7 @@ from app.core.database import get_db
 from app.models import CalendarioExterno, Prestador, Publicacion, ReservaExterna, Unidad
 from app.models.enums import EstadoPublicacion, EstadoReservaExterna, OrigenReservaExterna
 from app.services import calendario as agenda
-from app.services import canales
+from app.services import canales, tipos
 from app.services import reservas_externas as externas
 from app.services.correo import analisis
 
@@ -107,7 +107,14 @@ def _mis_unidades(db: Session, prestador: Prestador) -> list[Unidad]:
         db.scalars(
             select(Unidad)
             .join(Publicacion, Unidad.publicacion_id == Publicacion.id)
-            .where(Publicacion.prestador_id == prestador.id, Unidad.activa.is_(True))
+            .where(
+                Publicacion.prestador_id == prestador.id,
+                Unidad.activa.is_(True),
+                # Por días: un salón tiene su agenda por horas (docs/04, etapa 5).
+                # Acá saldría siempre libre y cargarle una reserva por fechas no
+                # lo ocuparía para la reserva por horario.
+                tipos.por_noches(),
+            )
             .options(selectinload(Unidad.publicacion))
             .order_by(Publicacion.titulo, Unidad.nombre)
         ).unique()

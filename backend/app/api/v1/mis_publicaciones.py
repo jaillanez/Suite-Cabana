@@ -9,7 +9,7 @@ pantalla para mostrar qué falta antes de intentar.
 from __future__ import annotations
 
 import uuid
-from datetime import date, datetime, time
+from datetime import date, datetime, time, timedelta
 from decimal import Decimal
 from typing import Annotated, Literal
 
@@ -39,10 +39,11 @@ from app.models import (
     Unidad,
     comodidad_tipo_servicio,
 )
-from app.models.enums import EstadoPublicacion, ModoReserva
+from app.models.enums import EstadoPublicacion, ModoReserva, OrigenBloqueo
 from app.services import calendario as agenda
-from app.services import edicion
+from app.services import edicion, horarios
 from app.services import fotos as almacen
+from app.services.precios_eventos import ZONA, en_hora
 
 router = APIRouter(prefix="/mis-publicaciones", tags=["mis publicaciones"])
 
@@ -993,11 +994,188 @@ def volver_a_borrador(
 
 
 def _mi_unidad(publicacion_id: uuid.UUID, unidad_id: uuid.UUID, prestador, db) -> Unidad:
+    """Unidad para el calendario por días (alojamiento)."""
     p = _mia(publicacion_id, prestador, db)
+    if p.tipo_servicio.modo_reserva is not ModoReserva.NOCHES:
+        # Un bloqueo por días en un salón no lo vería la reserva por horario.
+        raise HTTPException(
+            status.HTTP_409_CONFLICT, "Un salón usa la agenda por horas, no por días"
+        )
     unidad = db.scalar(select(Unidad).where(Unidad.id == unidad_id, Unidad.publicacion_id == p.id))
     if unidad is None:
         raise HTTPException(status.HTTP_404_NOT_FOUND, "No encontramos esa unidad")
     return unidad
+
+
+# --- Agenda por horas de un salón (docs/04, etapa 5) ---
+
+DIAS_AGENDA_MAX = 31
+
+
+class TramoHorarioOut(BaseModel):
+    id: uuid.UUID
+    inicio: datetime
+    fin: datetime
+    origen: str
+    etiqueta: str
+    nota: str | None
+    reserva: str | None = Field(description="Código de la reserva, si la hay")
+    editable: bool = Field(description="Solo los bloqueos a mano se pueden soltar")
+
+
+class AgendaHorariaOut(BaseModel):
+    unidad_id: uuid.UUID
+    unidad: str
+    desde: date
+    dias: int
+    preparacion_minutos: int
+    tramos: list[TramoHorarioOut]
+
+
+class NuevoBloqueoHorario(BaseModel):
+    dia: date
+    hora_desde: time
+    hora_hasta: time = Field(description="Si es menor o igual que la de inicio, al otro día")
+    nota: Annotated[str | None, Field(default=None, max_length=200)] = None
+
+
+ETIQUETAS_HORARIO = {
+    OrigenBloqueo.RESERVA: "Reserva",
+    OrigenBloqueo.RETENCION: "Esperando el pago",
+    OrigenBloqueo.MANUAL: "Bloqueado a mano",
+    OrigenBloqueo.EXTERNA: "Vendido por fuera",
+}
+
+
+def _mi_salon(publicacion_id: uuid.UUID, unidad_id: uuid.UUID, prestador, db) -> Unidad:
+    p = _mia(publicacion_id, prestador, db)
+    _de_salon(p)
+    return _unidad_de(db, p, unidad_id)
+
+
+def _agenda_horaria(db: Session, unidad: Unidad, desde: date, dias: int) -> AgendaHorariaOut:
+    from app.models import ItemReserva, Reserva
+
+    inicio = en_hora(desde, time(0, 0))
+    fin = inicio + timedelta(days=dias)
+    # Lo vigente: una retención vencida ya no ocupa, aunque la tarea no la haya soltado.
+    filas = horarios.vigentes(db, unidad.id, inicio, fin)
+    codigos = dict(
+        db.execute(
+            select(ItemReserva.id, Reserva.codigo)
+            .join(Reserva, ItemReserva.reserva_id == Reserva.id)
+            .where(ItemReserva.id.in_([b.item_reserva_id for b in filas if b.item_reserva_id]))
+        ).all()
+    )
+    return AgendaHorariaOut(
+        unidad_id=unidad.id,
+        unidad=unidad.nombre,
+        desde=desde,
+        dias=dias,
+        preparacion_minutos=unidad.preparacion_minutos or 0,
+        tramos=[
+            TramoHorarioOut(
+                id=b.id,
+                inicio=b.rango.lower,
+                fin=b.rango.upper,
+                origen=b.origen.value,
+                etiqueta=ETIQUETAS_HORARIO.get(b.origen, b.origen.value),
+                # La nota de una reserva la pone el sistema ("Reserva XXX") y
+                # repetiría el código: solo se muestra la que escribió el anfitrión.
+                nota=b.nota if b.origen is OrigenBloqueo.MANUAL else None,
+                reserva=codigos.get(b.item_reserva_id),
+                editable=b.origen is OrigenBloqueo.MANUAL,
+            )
+            for b in filas
+        ],
+    )
+
+
+@router.get(
+    "/{publicacion_id}/unidades/{unidad_id}/agenda-horaria", response_model=AgendaHorariaOut
+)
+def ver_agenda_horaria(
+    publicacion_id: uuid.UUID,
+    unidad_id: uuid.UUID,
+    desde: date | None = None,
+    dias: Annotated[int, Query(ge=1, le=DIAS_AGENDA_MAX)] = 7,
+    prestador: Prestador = Depends(prestador_actual),
+    db: Session = Depends(get_db),
+) -> AgendaHorariaOut:
+    """Lo tomado de un espacio, día por día: reservas, pagos en curso y bloqueos."""
+    unidad = _mi_salon(publicacion_id, unidad_id, prestador, db)
+    return _agenda_horaria(db, unidad, desde or date.today(), dias)
+
+
+@router.post(
+    "/{publicacion_id}/unidades/{unidad_id}/bloqueos-horarios",
+    response_model=AgendaHorariaOut,
+    status_code=201,
+)
+def bloquear_horas(
+    publicacion_id: uuid.UUID,
+    unidad_id: uuid.UUID,
+    datos: NuevoBloqueoHorario,
+    prestador: Prestador = Depends(prestador_actual),
+    db: Session = Depends(get_db),
+) -> AgendaHorariaOut:
+    """Toma horas a mano: un evento vendido por WhatsApp, un mantenimiento.
+
+    Pasa por la misma restricción de la base que las reservas: si choca con una
+    reserva o con otro bloqueo, se rechaza.
+    """
+    unidad = _mi_salon(publicacion_id, unidad_id, prestador, db)
+    if datos.dia < date.today():
+        raise HTTPException(status.HTTP_422_UNPROCESSABLE_ENTITY, "Ese día ya pasó")
+    inicio = en_hora(datos.dia, datos.hora_desde)
+    fin = en_hora(datos.dia, datos.hora_hasta)
+    if fin <= inicio:
+        fin += timedelta(days=1)
+    try:
+        horarios.bloquear(
+            db, unidad, inicio, fin, OrigenBloqueo.MANUAL,
+            nota=(datos.nota or "").strip() or None,
+        )
+    except horarios.HorarioOcupado as e:
+        raise HTTPException(
+            status.HTTP_409_CONFLICT,
+            "Ese horario se pisa con una reserva o con otro bloqueo",
+        ) from e
+    except horarios.HorarioInvalido as e:
+        raise HTTPException(status.HTTP_422_UNPROCESSABLE_ENTITY, str(e)) from e
+    db.commit()
+    return _agenda_horaria(db, unidad, datos.dia, 7)
+
+
+@router.delete(
+    "/{publicacion_id}/unidades/{unidad_id}/bloqueos-horarios/{bloqueo_id}",
+    response_model=AgendaHorariaOut,
+)
+def soltar_horas(
+    publicacion_id: uuid.UUID,
+    unidad_id: uuid.UUID,
+    bloqueo_id: uuid.UUID,
+    prestador: Prestador = Depends(prestador_actual),
+    db: Session = Depends(get_db),
+) -> AgendaHorariaOut:
+    unidad = _mi_salon(publicacion_id, unidad_id, prestador, db)
+    bloqueo = db.scalar(
+        select(BloqueoHorario).where(
+            BloqueoHorario.id == bloqueo_id, BloqueoHorario.unidad_id == unidad.id
+        )
+    )
+    if bloqueo is None:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "No encontramos ese bloqueo")
+    if bloqueo.origen is not OrigenBloqueo.MANUAL:
+        # Una reserva se cancela desde la reserva: soltarla acá dejaría al viajero
+        # con una reserva confirmada y el horario libre para otro.
+        raise HTTPException(
+            status.HTTP_409_CONFLICT, "Solo se pueden soltar los bloqueos hechos a mano"
+        )
+    dia = bloqueo.rango.lower.astimezone(ZONA).date()
+    db.delete(bloqueo)
+    db.commit()
+    return _agenda_horaria(db, unidad, dia, 7)
 
 
 def _agenda(db: Session, unidad: Unidad) -> AgendaOut:

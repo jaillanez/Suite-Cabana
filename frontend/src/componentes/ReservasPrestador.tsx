@@ -2,9 +2,18 @@
 
 import { useState, useTransition } from "react";
 
-import { accionAprobarReserva, accionRechazarReserva } from "@/lib/acciones-reservas";
+import {
+  accionAprobarReserva,
+  accionRechazarReserva,
+} from "@/lib/acciones-reservas";
 import type { Reserva } from "@/lib/api";
-import { pesos, pesosExactos, plural, rangoFechas } from "@/lib/formato";
+import {
+  horarioEvento,
+  pesos,
+  pesosExactos,
+  plural,
+  rangoFechas,
+} from "@/lib/formato";
 import Estado from "./EstadoReserva";
 import { Alerta } from "./Iconos";
 import estilos from "./ReservasPrestador.module.css";
@@ -39,12 +48,24 @@ export default function ReservasPrestador({ inicial }: { inicial: Reserva[] }) {
                 <div>
                   <strong>{item?.publicacion}</strong>
                   <span className={estilos.detalle}>
-                    {item?.unidad} · {item && rangoFechas(item.fecha_inicio, item.fecha_fin)} ·{" "}
-                    {item && plural(item.noches, "noche", "noches")}
+                    {item?.unidad} ·{" "}
+                    {item?.inicio_en && item.fin_en
+                      ? horarioEvento(item.inicio_en, item.fin_en)
+                      : item &&
+                        `${rangoFechas(item.fecha_inicio, item.fecha_fin)} · ${plural(
+                          item.noches,
+                          "noche",
+                          "noches",
+                        )}`}
                   </span>
                   <span className={estilos.detalle}>
-                    {item && plural(item.adultos + item.menores, "persona", "personas")} · código{" "}
-                    <span className="cifra">{r.codigo}</span>
+                    {item &&
+                      plural(
+                        item.adultos + item.menores,
+                        item.inicio_en ? "invitado" : "persona",
+                        item.inicio_en ? "invitados" : "personas",
+                      )}{" "}
+                    · código <span className="cifra">{r.codigo}</span>
                   </span>
                 </div>
                 <Estado estado={r.estado} />
@@ -58,7 +79,9 @@ export default function ReservasPrestador({ inicial }: { inicial: Reserva[] }) {
                 {comision && (
                   <div>
                     <dt>Comisión de la plataforma</dt>
-                    <dd className="cifra">−{pesosExactos(comision.descuento_prestador)}</dd>
+                    <dd className="cifra">
+                      −{pesosExactos(comision.descuento_prestador)}
+                    </dd>
                   </div>
                 )}
                 <div className={estilos.neto}>
@@ -70,8 +93,8 @@ export default function ReservasPrestador({ inicial }: { inicial: Reserva[] }) {
               {r.estado === "pendiente_aprobacion" && (
                 <div className={estilos.decision}>
                   <p className={estilos.aviso}>
-                    Ya pagó. Tenés un plazo para aceptar; si no respondés, se cancela y se le
-                    devuelve el dinero.
+                    Ya pagó. Tenés un plazo para aceptar; si no respondés, se
+                    cancela y se le devuelve el dinero.
                   </p>
                   <div className={estilos.botones}>
                     <button
@@ -97,7 +120,10 @@ export default function ReservasPrestador({ inicial }: { inicial: Reserva[] }) {
                         rows={2}
                         value={motivos[r.codigo] ?? ""}
                         onChange={(e) =>
-                          setMotivos((m) => ({ ...m, [r.codigo]: e.target.value }))
+                          setMotivos((m) => ({
+                            ...m,
+                            [r.codigo]: e.target.value,
+                          }))
                         }
                       />
                     </label>

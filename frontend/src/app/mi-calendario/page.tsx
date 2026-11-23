@@ -1,7 +1,9 @@
 import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 
-import { calendarioIntegrado, canales, porRevisar } from "@/lib/api";
+import Link from "next/link";
+
+import { calendarioIntegrado, canales, misPublicaciones, porRevisar } from "@/lib/api";
 import { cuentaActual, tokenActual } from "@/lib/sesion";
 import CalendarioGeneral from "@/componentes/CalendarioGeneral";
 import Encabezado from "@/componentes/Encabezado";
@@ -28,11 +30,14 @@ export default async function MiCalendario({ searchParams }: Props) {
     : 60;
 
   const token = await tokenActual();
-  const [agenda, plataformas, pendientes] = await Promise.all([
+  const [agenda, plataformas, pendientes, publicaciones] = await Promise.all([
     calendarioIntegrado(token!, new URLSearchParams({ dias: String(dias) })),
     canales(),
     porRevisar(token!).catch(() => []),
+    misPublicaciones(token!).catch(() => []),
   ]);
+  // Los salones van por horas: esta grilla es por días y no los muestra.
+  const salones = publicaciones.filter((p) => p.tipo === "salon_eventos");
 
   return (
     <>
@@ -58,6 +63,19 @@ export default async function MiCalendario({ searchParams }: Props) {
             ))}
           </nav>
         </div>
+
+        {salones.length > 0 && (
+          <p className={estilos.notaSalones}>
+            Tus salones se reservan por horas y tienen su propia agenda, en cada espacio:{" "}
+            {salones.map((s, i) => (
+              <span key={s.id}>
+                {i > 0 && ", "}
+                <Link href={`/mis-publicaciones/${s.id}`}>{s.titulo}</Link>
+              </span>
+            ))}
+            .
+          </p>
+        )}
 
         <CalendarioGeneral agenda={agenda} plataformas={plataformas} />
 

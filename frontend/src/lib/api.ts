@@ -1241,3 +1241,59 @@ export const reservarEvento = (
   pedido: PedidoEvento & { acepta_terminos: boolean },
 ) =>
   api<Reserva>("/salones/reservas", { method: "POST", token, body: JSON.stringify(pedido) });
+
+
+/* --- Agenda por horas de un salón (docs/04, etapa 5) --- */
+
+export type TramoHorario = {
+  id: string;
+  inicio: string;
+  fin: string;
+  origen: string;
+  etiqueta: string;
+  nota: string | null;
+  reserva: string | null;
+  editable: boolean;
+};
+
+export type AgendaHoraria = {
+  unidad_id: string;
+  unidad: string;
+  desde: string;
+  dias: number;
+  preparacion_minutos: number;
+  tramos: TramoHorario[];
+};
+
+const AGENDA_SALON = (id: string, unidadId: string) =>
+  `/mis-publicaciones/${id}/unidades/${unidadId}`;
+
+export const verAgendaHoraria = (
+  token: string,
+  id: string,
+  unidadId: string,
+  desde: string,
+  dias = 7,
+) =>
+  api<AgendaHoraria>(
+    `${AGENDA_SALON(id, unidadId)}/agenda-horaria?desde=${desde}&dias=${dias}`,
+    { token },
+  );
+
+export const bloquearHoras = (
+  token: string,
+  id: string,
+  unidadId: string,
+  datos: { dia: string; hora_desde: string; hora_hasta: string; nota?: string | null },
+) =>
+  api<AgendaHoraria>(`${AGENDA_SALON(id, unidadId)}/bloqueos-horarios`, {
+    method: "POST",
+    token,
+    body: JSON.stringify(datos),
+  });
+
+export const soltarHoras = (token: string, id: string, unidadId: string, bloqueoId: string) =>
+  api<AgendaHoraria>(`${AGENDA_SALON(id, unidadId)}/bloqueos-horarios/${bloqueoId}`, {
+    method: "DELETE",
+    token,
+  });

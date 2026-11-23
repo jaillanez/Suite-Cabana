@@ -109,7 +109,8 @@ viajero suma unidades del **mismo propietario**: una reserva, varios ítems
 Cada etapa se puede publicar por separado. Hechas (noviembre 2026): **1**, **2**
 (API de precio y reserva), **3** (el propietario carga su salón) y **4** (sección
 Salones, ficha, reserva con seña desde la web y el detalle de la reserva en
-lenguaje de evento).
+lenguaje de evento) y **5** (agenda por horas de cada espacio, bloqueos a mano,
+reservas recibidas con horario e invitados). Falta la **6**: el paquete.
 
 | Etapa | Contenido |
 |---|---|

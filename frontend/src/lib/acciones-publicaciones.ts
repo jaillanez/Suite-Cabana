@@ -6,7 +6,11 @@ import { redirect } from "next/navigation";
 import {
   ApiError,
   aprobarPublicacion,
+  bloquearHoras,
   borrarAdicional,
+  soltarHoras,
+  verAgendaHoraria,
+  type AgendaHoraria,
   borrarFoto,
   borrarFranja,
   borrarTarifa,
@@ -363,4 +367,46 @@ export async function accionCompletarExterna(
 export async function accionDescartarExterna(id: string): Promise<{ error?: string }> {
   const r = await conToken((t) => descartarReservaExterna(t, id), "No pudimos descartarla.");
   return r && "error" in r ? r : {};
+}
+
+/* --- Agenda por horas de un salón --- */
+
+export type ResultadoAgendaHoraria = { agenda: AgendaHoraria } | { error: string };
+
+async function conAgendaHoraria(
+  llamada: (token: string) => Promise<AgendaHoraria>,
+  porDefecto: string,
+): Promise<ResultadoAgendaHoraria> {
+  const token = await tokenActual();
+  if (!token) return { error: "Tu sesión venció. Ingresá de nuevo." };
+  try {
+    return { agenda: await llamada(token) };
+  } catch (e) {
+    return problema(e, porDefecto);
+  }
+}
+
+export async function accionAgendaHoraria(id: string, unidadId: string, desde: string) {
+  return conAgendaHoraria(
+    (t) => verAgendaHoraria(t, id, unidadId, desde),
+    "No pudimos traer la agenda.",
+  );
+}
+
+export async function accionBloquearHoras(
+  id: string,
+  unidadId: string,
+  datos: { dia: string; hora_desde: string; hora_hasta: string; nota?: string | null },
+) {
+  return conAgendaHoraria(
+    (t) => bloquearHoras(t, id, unidadId, datos),
+    "No pudimos bloquear ese horario.",
+  );
+}
+
+export async function accionSoltarHoras(id: string, unidadId: string, bloqueoId: string) {
+  return conAgendaHoraria(
+    (t) => soltarHoras(t, id, unidadId, bloqueoId),
+    "No pudimos liberar ese horario.",
+  );
 }
