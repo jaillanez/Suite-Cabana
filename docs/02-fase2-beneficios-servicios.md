@@ -132,7 +132,7 @@ Cada beneficio define **quién absorbe el costo** y en qué proporción:
 - [ ] El motor de comisiones aplica reglas por cada tipo y subtipo de servicio sin cambios estructurales.
 
 **Prestadores de servicios**
-- [ ] Alta con datos y habilitaciones propias de cada rubro (ej. registro de agencia o de transporte cuando corresponda).
+- [ ] Alta con los datos propios de cada rubro. La plataforma no pide habilitaciones ni seguros (decisión de Dirección, noviembre 2026).
 - [ ] Panel adaptado a turnos y cupos.
 
 ### 11. Requisitos P1
@@ -151,5 +151,3 @@ Cada beneficio define **quién absorbe el costo** y en qué proporción:
 | Valor del punto y vencimiento | Dirección | Sí |
 | Comisión sobre precio con o sin descuento | Dirección | Sí |
 | Tratamiento fiscal de los aportes de sponsors | Contable | Sí |
-| Habilitaciones exigidas a prestadores de excursiones y traslados | Legal | Sí |
-| Seguros exigidos para actividades | Legal | Sí |
