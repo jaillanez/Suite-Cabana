@@ -145,6 +145,7 @@ export default function CalendarioUnidad({
         <p className={estilos.ayuda}>
           Pegá acá la dirección del calendario que te da Booking o Airbnb, y pegá la de abajo
           allá. Así una fecha vendida en cualquiera de los dos lados queda tomada en el otro.
+          Se actualiza solo cada una hora; con «Sincronizar ahora» lo traés en el momento.
         </p>
 
         {agenda.calendarios.length > 0 && (

@@ -280,3 +280,72 @@ def test_el_calendario_importado_tampoco_se_corre(db, oferta):
         {"c": str(c.id)},
     ).one()
     assert (fila[0], fila[1]) == (date(2027, 3, 1), date(2027, 3, 5))
+
+
+# --- Sincronización automática (app.tareas) ---
+
+
+def test_cada_hora_se_vuelve_a_traer_cada_calendario(db, oferta, monkeypatch):
+    from datetime import UTC, datetime
+
+    traidos = []
+
+    def descargar(url):
+        traidos.append(url)
+        return ics(("20261220", "20261227"))
+
+    monkeypatch.setattr(agenda, "descargar", descargar)
+    c = _calendario(db, oferta["u_cara"])
+    ahora = datetime.now(UTC)
+
+    # Nunca se intentó: se trae en la primera pasada.
+    assert agenda.sincronizar_vencidos(db, ahora=ahora)["calendarios_al_dia"] == 1
+    assert [t.desde for t in agenda.ocupacion(db, oferta["u_cara"].id)
+            if t.origen is OrigenBloqueo.ICAL] == [date(2026, 12, 20)]
+    # A los 59 minutos todavía no; a la hora, sí.
+    assert agenda.sincronizar_vencidos(db, ahora=c.ultimo_intento + timedelta(minutes=59)) == {
+        "calendarios_al_dia": 0, "calendarios_con_error": 0,
+    }
+    assert agenda.sincronizar_vencidos(db, ahora=c.ultimo_intento + timedelta(hours=1))[
+        "calendarios_al_dia"
+    ] == 1
+    assert len(traidos) == 2
+
+
+def test_un_calendario_caido_no_frena_a_los_demas_ni_se_reintenta_cada_minuto(
+    db, oferta, monkeypatch
+):
+    from datetime import UTC, datetime
+
+    import httpx
+
+    caido = _calendario(db, oferta["u_cara"])
+    caido.url = "https://airbnb.test/vencido.ics"
+    sano = _calendario(db, oferta["u_chica"])
+
+    def descargar(url):
+        if "vencido" in url:
+            raise httpx.HTTPStatusError(
+                "403", request=httpx.Request("GET", url), response=httpx.Response(403)
+            )
+        return ics(("20261220", "20261227"))
+
+    monkeypatch.setattr(agenda, "descargar", descargar)
+    r = agenda.sincronizar_vencidos(db, ahora=datetime.now(UTC))
+    assert r == {"calendarios_al_dia": 1, "calendarios_con_error": 1}
+    # El anfitrión ve qué hacer, y la próxima pasada no lo vuelve a intentar.
+    assert "caduca" in caido.ultimo_error
+    assert caido.ultimo_intento is not None
+    assert sano.ultimo_error is None
+    r = agenda.sincronizar_vencidos(db, ahora=datetime.now(UTC) + timedelta(minutes=1))
+    assert r == {"calendarios_al_dia": 0, "calendarios_con_error": 0}
+
+
+def test_una_unidad_dada_de_baja_no_se_sincroniza(db, oferta, monkeypatch):
+    from datetime import UTC, datetime
+
+    monkeypatch.setattr(agenda, "descargar", lambda url: ics(("20261220", "20261227")))
+    _calendario(db, oferta["u_cara"])
+    oferta["u_cara"].activa = False
+    db.flush()
+    assert agenda.sincronizar_vencidos(db, ahora=datetime.now(UTC))["calendarios_al_dia"] == 0

@@ -173,6 +173,8 @@ class CalendarioExterno(IdMixin, Base):
     plataforma: Mapped[str] = mapped_column(String(30), default="otro")
     url: Mapped[str]
     ultima_sincronizacion: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    # Cada intento, salga bien o mal: es lo que mira la sincronización automática.
+    ultimo_intento: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     ultimo_error: Mapped[str | None]
 
 

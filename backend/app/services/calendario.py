@@ -13,9 +13,10 @@ Reglas que sostienen "cero dobles reservas":
 
 from __future__ import annotations
 
+import logging
 import uuid
 from dataclasses import dataclass
-from datetime import date, datetime
+from datetime import UTC, date, datetime, timedelta
 
 import httpx
 from sqlalchemy import delete, or_, select
@@ -27,6 +28,12 @@ from app.models.enums import OrigenBloqueo
 from app.services import ical, red
 
 TIEMPO_LIMITE = 20.0
+# Sincronización automática (app.tareas): cada calendario, una vez por hora. Por
+# pasada se toman pocos, los más atrasados primero: cada descarga puede tardar
+# hasta TIEMPO_LIMITE y la misma pasada libera las reservas vencidas.
+CADA = timedelta(hours=1)
+LOTE = 10
+registro = logging.getLogger("calendario")
 # Las cabeceras HTTP son ASCII: una tilde acá rompe cada sincronización.
 AGENTE = "SuiteCabana/0.1 (calendar sync)"
 
@@ -204,6 +211,7 @@ def sincronizar(
 
     `contenido` existe para los tests: en producción se descarga de la URL.
     """
+    calendario.ultimo_intento = datetime.now(UTC)
     if contenido is None:
         try:
             contenido = descargar(calendario.url)
@@ -245,7 +253,7 @@ def sincronizar(
         )
 
     descartados = len(ocupaciones) - len(libres)
-    calendario.ultima_sincronizacion = datetime.now()
+    calendario.ultima_sincronizacion = calendario.ultimo_intento
     calendario.ultimo_error = None
     db.flush()
 
@@ -257,6 +265,53 @@ def sincronizar(
     return ResultadoSincronizacion(
         importados=len(libres), descartados=descartados, detalle=detalle
     )
+
+
+def sincronizar_vencidos(
+    db: Session, ahora: datetime | None = None, lote: int = LOTE
+) -> dict[str, int]:
+    """Vuelve a traer los calendarios que llevan una hora o más sin intentarse.
+
+    Cada uno en su propio savepoint: uno caído o con la dirección vencida deja su
+    motivo en `ultimo_error` (lo ve el anfitrión) y no frena a los demás. Si dos
+    procesos corrieran a la vez, `skip_locked` evita que tomen el mismo.
+    """
+    ahora = ahora or datetime.now(UTC)
+    pendientes = list(
+        db.scalars(
+            select(CalendarioExterno)
+            .join(Unidad, Unidad.id == CalendarioExterno.unidad_id)
+            .where(
+                Unidad.activa.is_(True),
+                or_(
+                    CalendarioExterno.ultimo_intento.is_(None),
+                    CalendarioExterno.ultimo_intento <= ahora - CADA,
+                ),
+            )
+            .order_by(CalendarioExterno.ultimo_intento.asc().nulls_first())
+            .limit(lote)
+            .with_for_update(of=CalendarioExterno, skip_locked=True)
+        )
+    )
+    bien = mal = 0
+    for calendario in pendientes:
+        try:
+            with db.begin_nested():
+                sincronizar(db, calendario)
+            bien += 1
+        except Exception as e:  # noqa: BLE001 - red, formato o choque en la base
+            mal += 1
+            # El savepoint se deshizo, con el intento y el motivo adentro: se
+            # vuelven a anotar afuera para que no se reintente cada minuto.
+            calendario.ultimo_intento = datetime.now(UTC)
+            calendario.ultimo_error = (
+                f"El archivo no se entiende: {e}"
+                if isinstance(e, ical.CalendarioIlegible)
+                else motivo(e)
+            )
+            registro.warning("calendario %s: %s", calendario.id, calendario.ultimo_error)
+    db.flush()
+    return {"calendarios_al_dia": bien, "calendarios_con_error": mal}
 
 
 def exportar(db: Session, unidad: Unidad) -> bytes:

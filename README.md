@@ -339,16 +339,15 @@ Pendientes conocidos dentro de lo ya construido:
 - **Comisión retenida en el pago**: con cobro directo (credencial propia del anfitrión)
   Mercado Pago no deja retenerla; se factura aparte. Retenerla requiere OAuth de
   marketplace (`docs/00 §8`).
-- **Sincronización automática de calendarios**: hoy es a pedido, con un botón. Puede
-  sumarse a `app/tareas.py`, que ya corre cada minuto.
 - **Fotos**: se guardan en disco (`backend/media/`, servido por el backend y reenviado por
   Next). `docs/00 §9` prevé almacenamiento de objetos con CDN; cambia `app/services/fotos.py`
   y nada más, porque en la base se guarda la ruta relativa.
-- **Copias de seguridad** de la base de producción: sin configurar.
+- **Copias de seguridad**: las hace Contabo, con la copia automática del servidor.
+  Antes de cada migración se suma un `pg_dump` a mano en `/opt/suite-cabana/respaldos/`.
 
 Ya resueltos: envío de correos (verificación por SMTP), vinculación de Mercado Pago por
-el anfitrión, liberación de reservas vencidas y envío de notificaciones
-(`app/tareas.py`).
+el anfitrión, liberación de reservas vencidas, envío de notificaciones y
+sincronización de los calendarios externos cada una hora (`app/tareas.py`).
 
 Salones de eventos y paquete salón + cabañas: hechos
 ([`docs/04-salones-de-eventos.md`](docs/04-salones-de-eventos.md)). La etapa 7 deja el

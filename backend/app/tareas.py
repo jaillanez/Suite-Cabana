@@ -5,6 +5,7 @@
 
 - Libera las reservas que no se pagaron a tiempo (docs/01 §5 R5).
 - Vacía el buzón de notificaciones: confirmaciones, avisos al anfitrión.
+- Trae de nuevo los calendarios de Airbnb, Booking, etc. cada una hora.
 
 Una sola instancia: si corrieran dos, las dos tomarían los mismos pendientes.
 Cuando haya cola de trabajos (docs/00 §9) esto pasa a ser un par de tareas de ella.
@@ -17,7 +18,7 @@ import logging
 import time
 
 from app.core.database import SessionLocal
-from app.services import horarios, notificaciones, reservas
+from app.services import calendario, horarios, notificaciones, reservas
 
 INTERVALO = 60
 registro = logging.getLogger("tareas")
@@ -31,6 +32,10 @@ def una_pasada() -> dict[str, int]:
         db.commit()
     with SessionLocal() as db:
         resultado.update(notificaciones.enviar_pendientes(db))
+        db.commit()
+    # Al final: es lo único que sale a internet y puede tardar.
+    with SessionLocal() as db:
+        resultado.update(calendario.sincronizar_vencidos(db))
         db.commit()
     return resultado
 
