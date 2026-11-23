@@ -3,7 +3,8 @@
     python -m app.tareas            # corre para siempre, cada INTERVALO segundos
     python -m app.tareas --una-vez  # una pasada y sale
 
-- Libera las reservas que no se pagaron a tiempo (docs/01 §5 R5).
+- Libera las reservas que no se pagaron a tiempo (docs/01 §5 R5), y los lugares
+  de excursión retenidos que vencieron (docs/05).
 - Vacía el buzón de notificaciones: confirmaciones, avisos al anfitrión.
 - Trae de nuevo los calendarios de Airbnb, Booking, etc. cada una hora.
 
@@ -18,7 +19,7 @@ import logging
 import time
 
 from app.core.database import SessionLocal
-from app.services import calendario, horarios, notificaciones, reservas
+from app.services import calendario, horarios, notificaciones, reservas, salidas
 
 INTERVALO = 60
 registro = logging.getLogger("tareas")
@@ -29,6 +30,7 @@ def una_pasada() -> dict[str, int]:
     with SessionLocal() as db:
         resultado["liberadas"] = reservas.liberar_vencidas(db)
         resultado["horas_liberadas"] = horarios.soltar_vencidos(db)
+        resultado["lugares_liberados"] = salidas.soltar_vencidos(db)
         db.commit()
     with SessionLocal() as db:
         resultado.update(notificaciones.enviar_pendientes(db))

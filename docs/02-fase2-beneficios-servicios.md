@@ -115,8 +115,8 @@ Cada beneficio define **quién absorbe el costo** y en qué proporción:
 ### 10. Requisitos P0
 
 **Modelo de reserva por turno y cupo**
-- [ ] Turnos recurrentes (ej. martes y jueves a las 9) y excepciones.
-- [ ] Cupo por turno con descuento automático al reservar.
+- [x] Turnos recurrentes (ej. martes y jueves a las 9) y excepciones (docs/05, etapa 1).
+- [ ] Cupo por turno con descuento automático al reservar (docs/05: el cupo sin sobreventa está; falta la reserva, etapa 2).
 - [ ] Precios por tipo de pasajero (adulto, menor, jubilado).
 - [ ] Mínimo de participantes con cancelación automática si no se alcanza.
 

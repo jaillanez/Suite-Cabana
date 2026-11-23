@@ -8,6 +8,7 @@ from app.models.catalogo import (
     comodidad_tipo_servicio,
 )
 from app.models.comision import ComisionAplicada, ReglaComision, ReglaComisionHistorial
+from app.models.excursion import CupoTomado, SalidaExcursion, TurnoExcursion
 from app.models.notificacion import Favorito, Notificacion
 from app.models.politica import PoliticaCancelacion
 from app.models.prestador import Prestador
@@ -38,6 +39,7 @@ __all__ = [
     "BloqueoHorario",
     "CalendarioExterno",
     "ComisionAplicada",
+    "CupoTomado",
     "Favorito",
     "Comodidad",
     "comodidad_tipo_servicio",
@@ -56,9 +58,11 @@ __all__ = [
     "Resena",
     "Reserva",
     "ReservaExterna",
+    "SalidaExcursion",
     "SubtipoServicio",
     "Tarifa",
     "TipoServicio",
+    "TurnoExcursion",
     "Unidad",
     "Usuario",
     "Zona",

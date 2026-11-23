@@ -140,6 +140,12 @@ SUBTIPOS = [
     ("salon_eventos", "salon_eventos", "Salón"),
     ("salon_eventos", "quincho_eventos", "Quincho"),
     ("salon_eventos", "aire_libre", "Espacio al aire libre"),
+    # docs/05: excursiones y actividades, por turno y cupo.
+    ("excursion", "cabalgata", "Cabalgata"),
+    ("excursion", "trekking", "Trekking"),
+    ("excursion", "visita_bodega", "Visita a bodega"),
+    ("excursion", "paseo_guiado", "Paseo guiado"),
+    ("excursion", "aventura", "Aventura"),
 ]
 
 A = ("alojamiento",)

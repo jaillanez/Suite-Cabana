@@ -346,13 +346,18 @@ Pendientes conocidos dentro de lo ya construido:
   Antes de cada migración se suma un `pg_dump` a mano en `/opt/suite-cabana/respaldos/`.
 
 Ya resueltos: envío de correos (verificación por SMTP), vinculación de Mercado Pago por
-el anfitrión, liberación de reservas vencidas, envío de notificaciones y
+el anfitrión, liberación de reservas y lugares de excursión vencidos, envío de notificaciones y
 sincronización de los calendarios externos cada una hora (`app/tareas.py`).
 
 Salones de eventos y paquete salón + cabañas: hechos
 ([`docs/04-salones-de-eventos.md`](docs/04-salones-de-eventos.md)). La etapa 7 deja el
 salón de Los Búhos como borrador con sus fotos; capacidad, turnos, precios y seña
 los carga el propietario desde su panel (lista en `datos.PENDIENTES_SALON_LOS_BUHOS`).
+
+Excursiones y actividades (Fase 2, [`docs/05-excursiones.md`](docs/05-excursiones.md)):
+etapa 1 hecha, solo backend. Turnos que se repiten, salidas por día con suspensión,
+cambio de cupo y salidas especiales, y lugares sin sobreventa (`app/services/salidas.py`).
+Todavía no se publican ni se reservan desde la web.
 
 ## Producción (alojateaqui.com.ar)
 
