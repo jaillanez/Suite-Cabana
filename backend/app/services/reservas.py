@@ -38,6 +38,7 @@ from app.models import (
     BloqueoFecha,
     BloqueoHorario,
     ComisionAplicada,
+    CupoTomado,
     FranjaHoraria,
     ItemReserva,
     Localidad,
@@ -56,7 +57,15 @@ from app.models.enums import (
     OrigenBloqueo,
     TipoPago,
 )
-from app.services import busqueda, comisiones, horarios, notificaciones, precios
+from app.services import (
+    busqueda,
+    comisiones,
+    horarios,
+    notificaciones,
+    politicas,
+    precios,
+    salidas,
+)
 from app.services import precios_eventos as pe
 from app.services.pagos.base import EstadoPago
 
@@ -246,7 +255,7 @@ def crear(
         total=cotizacion.total_viajero,
         monto_sena=_sena(publicacion, cotizacion.total_viajero),
         vence_pago_en=datetime.now(UTC) + timedelta(minutes=s.minutos_retencion_pago),
-        politica_cancelacion=_politica_snapshot(publicacion.politica_cancelacion),
+        politica_cancelacion=politicas.snapshot(publicacion),
     )
     db.add(reserva)
     db.flush()
@@ -300,7 +309,7 @@ def _retener_estadia(
         mascotas=e.mascotas,
         desglose=cotizacion.precio.desglose(),
         subtotal=cotizacion.precio.subtotal,
-        politica_cancelacion=_politica_snapshot(publicacion.politica_cancelacion),
+        politica_cancelacion=politicas.snapshot(publicacion),
     )
     db.add(item)
     db.flush()
@@ -358,12 +367,6 @@ def reparto(reserva: Reserva) -> Reparto:
 
 def pagado(reserva: Reserva) -> Decimal:
     return _r(sum((p.monto for p in reserva.pagos if p.estado == "aprobado"), Decimal(0)))
-
-
-def _politica_snapshot(politica) -> dict | None:
-    if politica is None:
-        return None
-    return {"codigo": politica.codigo, "nombre": politica.nombre, "tramos": politica.tramos}
 
 
 def _guardar_comision(db: Session, item: ItemReserva, comision) -> None:
@@ -629,7 +632,7 @@ def crear_evento(
         total=paquete.total_viajero,
         monto_sena=paquete.sena,
         vence_pago_en=datetime.now(UTC) + timedelta(minutes=s.minutos_retencion_pago),
-        politica_cancelacion=_politica_snapshot(publicacion.politica_cancelacion),
+        politica_cancelacion=politicas.snapshot(publicacion),
     )
     db.add(reserva)
     db.flush()
@@ -647,7 +650,7 @@ def crear_evento(
         mascotas=0,
         desglose=cot.precio.desglose(),
         subtotal=cot.precio.subtotal,
-        politica_cancelacion=_politica_snapshot(publicacion.politica_cancelacion),
+        politica_cancelacion=politicas.snapshot(publicacion),
     )
     db.add(item)
     db.flush()
@@ -787,9 +790,21 @@ def _afirmar_bloqueos(db: Session, reserva: Reserva) -> bool:
             .execution_options(**releer)
         ),
     ]
+    # Las excursiones no bloquean un rango: toman lugares de una salida.
+    cupos = list(
+        db.scalars(
+            select(CupoTomado)
+            .where(CupoTomado.item_reserva_id.in_(ids))
+            .order_by(CupoTomado.creado_en)
+            .execution_options(**releer)
+        )
+    )
     # Cada ítem tiene que tener su bloqueo: si a uno le falta, ese lugar se soltó.
-    if {b.item_reserva_id for b in bloqueos} != set(ids):
+    if {b.item_reserva_id for b in bloqueos} | {c.item_reserva_id for c in cupos} != set(ids):
         return False
+    por_item: dict[uuid.UUID, list[CupoTomado]] = {}
+    for c in cupos:
+        por_item.setdefault(c.item_reserva_id, []).append(c)
     try:
         with db.begin_nested():
             for bloqueo in bloqueos:
@@ -797,8 +812,22 @@ def _afirmar_bloqueos(db: Session, reserva: Reserva) -> bool:
                 bloqueo.vence_en = None
                 bloqueo.activo = True
                 bloqueo.nota = f"Reserva {reserva.codigo}"
+            for item_id, tomados in por_item.items():
+                activos = [t for t in tomados if t.activo]
+                for t in activos:
+                    t.origen = OrigenBloqueo.RESERVA
+                    t.vence_en = None
+                    t.nota = f"Reserva {reserva.codigo}"
+                if not activos:
+                    # La retención venció y se soltó: se vuelve a pedir el lugar, y
+                    # si ya no hay (o la salida no va), no se confirma.
+                    ultimo = tomados[-1]
+                    salidas.tomar(
+                        db, ultimo.salida, ultimo.personas, OrigenBloqueo.RESERVA,
+                        item_reserva_id=item_id, nota=f"Reserva {reserva.codigo}",
+                    )
             db.flush()
-    except IntegrityError:
+    except (IntegrityError, salidas.SinCupo, salidas.SalidaInvalida):
         return False
     return True
 
@@ -862,6 +891,13 @@ def _liberar(db: Session, reserva: Reserva, motivo: str) -> None:
             *db.scalars(select(BloqueoHorario).where(BloqueoHorario.item_reserva_id == item.id)),
         ]:
             db.delete(bloqueo)
+        # Los lugares de una excursión vuelven a la salida; el registro queda.
+        for tomado in db.scalars(
+            select(CupoTomado).where(
+                CupoTomado.item_reserva_id == item.id, CupoTomado.activo.is_(True)
+            )
+        ).all():
+            salidas.soltar(db, tomado)
 
 
 @dataclass(frozen=True)
@@ -1013,7 +1049,12 @@ def _datos_para_aviso(reserva: Reserva) -> dict:
         # Un evento: "del 15/03/2027 21:00 al 16/03/2027 05:00 h", no dos fechas.
         desde = item.inicio_en.astimezone(pe.ZONA).strftime("%d/%m/%Y %H:%M")
         hasta = item.fin_en.astimezone(pe.ZONA).strftime("%d/%m/%Y %H:%M h")
-        quienes = f"{personas} invitado" + ("s" if personas != 1 else "")
+        palabra = (
+            "invitado"
+            if publicacion.tipo_servicio.modo_reserva is ModoReserva.HORAS
+            else "persona"
+        )
+        quienes = f"{personas} {palabra}" + ("s" if personas != 1 else "")
     else:
         desde = item.fecha_inicio.strftime("%d/%m/%Y")
         hasta = item.fecha_fin.strftime("%d/%m/%Y")

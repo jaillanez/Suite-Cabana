@@ -31,7 +31,7 @@ from app.core.config import get_settings
 from app.core.database import get_db
 from app.models import Localidad, Publicacion, Unidad, Usuario
 from app.models.enums import EstadoPublicacion, ModoReserva
-from app.services import busqueda, horarios, reservas
+from app.services import busqueda, horarios, politicas, reservas
 from app.services import precios_eventos as pe
 from app.services import salones as svc
 from app.services.privacidad import aproximar
@@ -421,7 +421,7 @@ def ficha(slug: str, db: Session = Depends(get_db)) -> SalonFichaOut:
     except svc.NoEncontrado as e:
         raise HTTPException(status.HTTP_404_NOT_FOUND, "No encontramos ese salón") from e
     lat, lon = busqueda.coordenadas(db, {p.id}).get(p.id, (None, None))
-    politica = p.politica_cancelacion
+    politica = politicas.vigente(p)
 
     def hora(t: time) -> str:
         return t.strftime("%H:%M")
@@ -451,8 +451,8 @@ def ficha(slug: str, db: Session = Depends(get_db)) -> SalonFichaOut:
         ),
         politica_cancelacion=(
             PoliticaOut(
-                codigo=politica.codigo, nombre=politica.nombre,
-                descripcion=politica.descripcion, tramos=politica.tramos,
+                codigo=politica["codigo"], nombre=politica["nombre"],
+                descripcion=politica["descripcion"], tramos=politica["tramos"],
             )
             if politica
             else None

@@ -51,6 +51,9 @@ class Publicacion(IdMixin, TiempoMixin, Base):
             "porcentaje_sena IS NULL OR porcentaje_sena BETWEEN 0 AND 100",
             name="porcentaje_sena_rango",
         ),
+        CheckConstraint(
+            "reintegro_si_no_sale BETWEEN 0 AND 100", name="reintegro_si_no_sale_rango"
+        ),
     )
 
     prestador_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("prestador.id"), index=True)
@@ -81,6 +84,12 @@ class Publicacion(IdMixin, TiempoMixin, Base):
     politica_cancelacion_id: Mapped[uuid.UUID | None] = mapped_column(
         ForeignKey("politica_cancelacion.id")
     )
+    #: Tramos propios del prestador ([{"dias_antes": 2, "porcentaje_reintegro": 100}]).
+    #: Si están, mandan sobre la plantilla `politica_cancelacion` (docs/05 §2).
+    tramos_cancelacion: Mapped[list[dict] | None] = mapped_column(JSONB)
+    #: Cuánto de lo pagado se devuelve si el servicio no sale por el prestador
+    #: (suspendió la salida, no se llegó al mínimo). Lo elige cada prestador.
+    reintegro_si_no_sale: Mapped[int] = mapped_column(SmallInteger, default=100)
     es_demo: Mapped[bool] = mapped_column(default=False)  # datos de ejemplo, nunca reales
     calificacion_promedio: Mapped[float | None]
     cantidad_resenas: Mapped[int] = mapped_column(default=0)

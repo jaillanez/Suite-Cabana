@@ -5,6 +5,8 @@
 
 - Libera las reservas que no se pagaron a tiempo (docs/01 §5 R5), y los lugares
   de excursión retenidos que vencieron (docs/05).
+- Confirma o cancela las salidas de excursión con mínimo de personas, a la hora
+  que eligió cada prestador.
 - Vacía el buzón de notificaciones: confirmaciones, avisos al anfitrión.
 - Trae de nuevo los calendarios de Airbnb, Booking, etc. cada una hora.
 
@@ -19,7 +21,14 @@ import logging
 import time
 
 from app.core.database import SessionLocal
-from app.services import calendario, horarios, notificaciones, reservas, salidas
+from app.services import (
+    calendario,
+    horarios,
+    notificaciones,
+    reservas,
+    reservas_excursion,
+    salidas,
+)
 
 INTERVALO = 60
 registro = logging.getLogger("tareas")
@@ -31,6 +40,7 @@ def una_pasada() -> dict[str, int]:
         resultado["liberadas"] = reservas.liberar_vencidas(db)
         resultado["horas_liberadas"] = horarios.soltar_vencidos(db)
         resultado["lugares_liberados"] = salidas.soltar_vencidos(db)
+        resultado.update(reservas_excursion.revisar_minimos(db))
         db.commit()
     with SessionLocal() as db:
         resultado.update(notificaciones.enviar_pendientes(db))

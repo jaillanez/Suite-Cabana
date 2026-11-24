@@ -6,6 +6,7 @@ from app.api.v1 import (
     auth,
     comisiones,
     correo,
+    excursiones,
     ical,
     mis_publicaciones,
     panel,
@@ -27,4 +28,5 @@ api_router.include_router(agenda.router)
 api_router.include_router(correo.router)
 api_router.include_router(reservas.router)
 api_router.include_router(salones.router)
+api_router.include_router(excursiones.router)
 api_router.include_router(panel.router)

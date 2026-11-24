@@ -36,6 +36,7 @@ DURACION_MINIMA_MINUTOS = 15
 #: Más que esto es un error de carga (un cero de más), no una excursión.
 CUPO_MAXIMO = 500
 DIAS = range(7)  # 0 = lunes
+AVISO_MAXIMO_HORAS = 720  # 30 días
 
 
 class SalidaInvalida(ValueError):
@@ -67,6 +68,7 @@ class Salida:
     cupo: int
     libres: int
     suspendida: bool
+    minimo_personas: int = 1
 
 
 def hoy() -> date:
@@ -87,6 +89,25 @@ def _validar(duracion_minutos: int, cupo: int) -> None:
         raise SalidaInvalida("La duración tiene que ir de 15 minutos a 14 días")
     if not 1 <= cupo <= CUPO_MAXIMO:
         raise SalidaInvalida(f"El cupo tiene que ir de 1 a {CUPO_MAXIMO} personas")
+
+
+def _validar_minimo(minimo_personas: int, aviso_minimo_horas: int, cupo: int) -> None:
+    if not 1 <= minimo_personas <= cupo:
+        raise SalidaInvalida("El mínimo de personas tiene que ir de 1 al cupo")
+    if not 0 <= aviso_minimo_horas <= AVISO_MAXIMO_HORAS:
+        raise SalidaInvalida("El aviso por el mínimo tiene que ir de 0 a 720 horas")
+
+
+def cerro_la_venta(
+    inicio: datetime, minimo: int, aviso_horas: int, confirmada: bool, ahora: datetime
+) -> bool:
+    """Pasó la hora de decidir por el mínimo y la salida no se confirmó: no se vende.
+
+    Sin mínimo (1) nunca cierra por esto. Con mínimo, a `aviso_horas` de la
+    salida o se confirmó (llegó al mínimo) o se cancela; anotar a alguien
+    después le vendería una salida que no va a salir.
+    """
+    return minimo > 1 and not confirmada and ahora >= inicio - timedelta(hours=aviso_horas)
 
 
 def _en_ventana(fecha: date) -> None:
@@ -110,6 +131,8 @@ def crear_turno(
     cupo: int,
     desde: date | None = None,
     hasta: date | None = None,
+    minimo_personas: int = 1,
+    aviso_minimo_horas: int = 24,
 ) -> TurnoExcursion:
     _exigir_excursion(unidad)
     dias = sorted(set(dias_semana))
@@ -118,6 +141,7 @@ def crear_turno(
     _validar(duracion_minutos, cupo)
     if desde and hasta and hasta < desde:
         raise SalidaInvalida("La temporada termina antes de empezar")
+    _validar_minimo(minimo_personas, aviso_minimo_horas, cupo)
     turno = TurnoExcursion(
         unidad_id=unidad.id,
         nombre=nombre.strip(),
@@ -127,6 +151,8 @@ def crear_turno(
         cupo=cupo,
         desde=desde,
         hasta=hasta,
+        minimo_personas=minimo_personas,
+        aviso_minimo_horas=aviso_minimo_horas,
     )
     db.add(turno)
     db.flush()
@@ -209,7 +235,10 @@ def salidas(
     # Las guardadas van siempre: son un compromiso concreto (tienen gente, o el
     # prestador las tocó), aunque después el turno haya cambiado.
     for s in guardadas:
-        if s.suspendida and not con_suspendidas:
+        cerrada = cerro_la_venta(
+            s.inicio_en, s.minimo_personas, s.aviso_minimo_horas, s.sale_confirmada, ahora
+        )
+        if (s.suspendida or cerrada) and not con_suspendidas:
             continue
         nombre = nombres.get(s.turno_id) or (s.turno.nombre if s.turno else "Salida especial")
         resultado.append(
@@ -223,6 +252,7 @@ def salidas(
                 cupo=s.cupo,
                 libres=s.cupo - s.ocupados + vencidos.get(s.id, 0),
                 suspendida=s.suspendida,
+                minimo_personas=s.minimo_personas,
             )
         )
     dia = desde
@@ -230,6 +260,9 @@ def salidas(
         for t in turnos:
             if sale_el(t, dia) and (t.id, dia) not in por_turno_dia:
                 inicio = _inicio(dia, t.hora_inicio)
+                # Nadie anotado y ya pasó la hora de decidir: no llega al mínimo.
+                if cerro_la_venta(inicio, t.minimo_personas, t.aviso_minimo_horas, False, ahora):
+                    continue
                 resultado.append(
                     Salida(
                         turno_id=t.id,
@@ -241,6 +274,7 @@ def salidas(
                         cupo=t.cupo,
                         libres=t.cupo,
                         suspendida=False,
+                        minimo_personas=t.minimo_personas,
                     )
                 )
         dia += timedelta(days=1)
@@ -279,6 +313,9 @@ def materializar(db: Session, turno: TurnoExcursion, fecha: date) -> SalidaExcur
             cupo=turno.cupo,
             ocupados=0,
             suspendida=False,
+            minimo_personas=turno.minimo_personas,
+            aviso_minimo_horas=turno.aviso_minimo_horas,
+            sale_confirmada=False,
         )
         .on_conflict_do_nothing(constraint="uq_salida_excursion_turno_fecha")
     )
@@ -298,10 +335,13 @@ def agregar_salida(
     duracion_minutos: int,
     cupo: int,
     nombre: str | None = None,
+    minimo_personas: int = 1,
+    aviso_minimo_horas: int = 24,
 ) -> SalidaExcursion:
     """Una salida extra, fuera de los turnos: un feriado largo, un grupo armado."""
     _exigir_excursion(unidad)
     _validar(duracion_minutos, cupo)
+    _validar_minimo(minimo_personas, aviso_minimo_horas, cupo)
     _en_ventana(fecha)
     inicio = _inicio(fecha, hora_inicio)
     if inicio <= datetime.now(UTC):
@@ -314,13 +354,15 @@ def agregar_salida(
         cupo=cupo,
         ocupados=0,
         motivo=(nombre or "").strip() or None,
+        minimo_personas=minimo_personas,
+        aviso_minimo_horas=aviso_minimo_horas,
     )
     db.add(salida)
     db.flush()
     return salida
 
 
-def _bloquear(db: Session, salida: SalidaExcursion) -> SalidaExcursion:
+def bloquear(db: Session, salida: SalidaExcursion) -> SalidaExcursion:
     """Bloquea la fila hasta el fin de la transacción y la trae al día."""
     return db.scalars(
         select(SalidaExcursion)
@@ -372,11 +414,16 @@ def tomar(
     ahora = ahora or datetime.now(UTC)
     if personas < 1:
         raise SalidaInvalida("Tiene que ir al menos una persona")
-    salida = _bloquear(db, salida)
+    salida = bloquear(db, salida)
     if salida.suspendida:
         raise SalidaInvalida("Esa salida está suspendida")
     if salida.inicio_en <= ahora:
         raise SalidaInvalida("Esa salida ya salió")
+    if cerro_la_venta(
+        salida.inicio_en, salida.minimo_personas, salida.aviso_minimo_horas,
+        salida.sale_confirmada, ahora,
+    ):
+        raise SalidaInvalida("Esa salida ya no recibe reservas")
     _soltar_vencidos_de(db, salida, ahora)
     libres = salida.cupo - salida.ocupados
     if personas > libres:
@@ -408,7 +455,7 @@ def tomar(
 
 def soltar(db: Session, tomado: CupoTomado) -> None:
     """Devuelve los lugares a la salida. Soltar dos veces no devuelve dos veces."""
-    salida = _bloquear(db, tomado.salida)
+    salida = bloquear(db, tomado.salida)
     db.refresh(tomado)
     if not tomado.activo:
         return
@@ -455,8 +502,9 @@ def _tomados(db: Session, salida: SalidaExcursion, ahora: datetime) -> int:
 def suspender(
     db: Session, salida: SalidaExcursion, motivo: str | None = None, ahora: datetime | None = None
 ) -> SalidaExcursion:
-    """El prestador no sale ese día. Con gente anotada, todavía no (etapa 2: reintegros)."""
-    salida = _bloquear(db, salida)
+    """Marca la salida como suspendida. Solo vacía: con gente anotada se usa
+    `reservas_excursion.no_sale`, que antes cancela las reservas con su reintegro."""
+    salida = bloquear(db, salida)
     ocupados = _tomados(db, salida, ahora or datetime.now(UTC))
     if ocupados:
         raise SalidaInvalida(
@@ -469,7 +517,7 @@ def suspender(
 
 
 def reanudar(db: Session, salida: SalidaExcursion) -> SalidaExcursion:
-    salida = _bloquear(db, salida)
+    salida = bloquear(db, salida)
     salida.suspendida = False
     db.flush()
     return salida
@@ -481,7 +529,7 @@ def cambiar_cupo(
     """Más o menos lugares para esa salida; nunca menos que los ya tomados."""
     if not 1 <= cupo <= CUPO_MAXIMO:
         raise SalidaInvalida(f"El cupo tiene que ir de 1 a {CUPO_MAXIMO} personas")
-    salida = _bloquear(db, salida)
+    salida = bloquear(db, salida)
     ocupados = _tomados(db, salida, ahora or datetime.now(UTC))
     if cupo < ocupados:
         raise SalidaInvalida(f"Ya hay {ocupados} lugares tomados: el cupo no puede ser menor")
@@ -489,3 +537,17 @@ def cambiar_cupo(
     db.flush()
     return salida
 
+
+
+def personas_firmes(db: Session, salida: SalidaExcursion) -> int:
+    """Personas con lugar firme: reservas pagadas y ventas del prestador, no las
+    retenciones de quien todavía está pagando."""
+    return int(
+        db.scalar(
+            select(func.coalesce(func.sum(CupoTomado.personas), 0)).where(
+                CupoTomado.salida_id == salida.id,
+                CupoTomado.activo.is_(True),
+                CupoTomado.origen != OrigenBloqueo.RETENCION,
+            )
+        )
+    )

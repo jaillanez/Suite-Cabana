@@ -116,9 +116,9 @@ Cada beneficio define **quién absorbe el costo** y en qué proporción:
 
 **Modelo de reserva por turno y cupo**
 - [x] Turnos recurrentes (ej. martes y jueves a las 9) y excepciones (docs/05, etapa 1).
-- [ ] Cupo por turno con descuento automático al reservar (docs/05: el cupo sin sobreventa está; falta la reserva, etapa 2).
-- [ ] Precios por tipo de pasajero (adulto, menor, jubilado).
-- [ ] Mínimo de participantes con cancelación automática si no se alcanza.
+- [x] Cupo por turno con descuento automático al reservar (docs/05).
+- [x] Precios por tipo de pasajero (adulto, menor, jubilado): los define cada prestador (docs/05).
+- [x] Mínimo de participantes con cancelación automática si no se alcanza: mínimo y aviso por turno (docs/05).
 
 **Traslados**
 - [ ] Tarifa por tramo, por kilómetro o por vehículo.

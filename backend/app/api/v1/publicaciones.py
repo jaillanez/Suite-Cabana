@@ -28,7 +28,7 @@ from app.models import (
     comodidad_tipo_servicio,
 )
 from app.models.enums import EstadoPublicacion, ModoReserva
-from app.services import busqueda, precios, tipos
+from app.services import busqueda, politicas, precios, tipos
 from app.services import publicaciones as fichas
 from app.services import salones as salones_svc
 from app.services.privacidad import aproximar, distancia_publica, radio_publico
@@ -560,7 +560,7 @@ def ficha(
         raise HTTPException(422, str(e)) from e
 
     p = f.publicacion
-    politica = p.politica_cancelacion
+    politica = politicas.vigente(p)
     return FichaOut(
         publicacion_id=p.id,
         slug=p.slug,
@@ -586,10 +586,10 @@ def ficha(
         ),
         politica_cancelacion=(
             PoliticaOut(
-                codigo=politica.codigo,
-                nombre=politica.nombre,
-                descripcion=politica.descripcion,
-                tramos=politica.tramos,
+                codigo=politica["codigo"],
+                nombre=politica["nombre"],
+                descripcion=politica["descripcion"],
+                tramos=politica["tramos"],
             )
             if politica
             else None

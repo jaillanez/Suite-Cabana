@@ -8,7 +8,7 @@ from app.models.catalogo import (
     comodidad_tipo_servicio,
 )
 from app.models.comision import ComisionAplicada, ReglaComision, ReglaComisionHistorial
-from app.models.excursion import CupoTomado, SalidaExcursion, TurnoExcursion
+from app.models.excursion import CupoTomado, PrecioPasajero, SalidaExcursion, TurnoExcursion
 from app.models.notificacion import Favorito, Notificacion
 from app.models.politica import PoliticaCancelacion
 from app.models.prestador import Prestador
@@ -50,6 +50,7 @@ __all__ = [
     "NotificacionPago",
     "Pago",
     "PoliticaCancelacion",
+    "PrecioPasajero",
     "Prestador",
     "Provincia",
     "Publicacion",

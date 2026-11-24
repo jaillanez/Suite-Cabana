@@ -34,7 +34,7 @@ from sqlalchemy import (
 from sqlalchemy.dialects.postgresql import ARRAY
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
-from app.models.base import Base, IdMixin, TiempoMixin, pg_enum
+from app.models.base import Base, Dinero, IdMixin, TiempoMixin, pg_enum
 from app.models.enums import OrigenBloqueo
 
 #: Ninguna salida dura más que esto (una travesía de varios días entra).
@@ -60,6 +60,8 @@ class TurnoExcursion(IdMixin, TiempoMixin, Base):
             name="dias_validos",
         ),
         CheckConstraint("hasta IS NULL OR desde IS NULL OR hasta >= desde", name="temporada"),
+        CheckConstraint("minimo_personas BETWEEN 1 AND cupo", name="minimo_rango"),
+        CheckConstraint("aviso_minimo_horas BETWEEN 0 AND 720", name="aviso_rango"),
     )
 
     unidad_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("unidad.id"), index=True)
@@ -70,6 +72,10 @@ class TurnoExcursion(IdMixin, TiempoMixin, Base):
     cupo: Mapped[int] = mapped_column(SmallInteger)
     desde: Mapped[date | None]
     hasta: Mapped[date | None]
+    #: Lo decide cada prestador (docs/05 §2): con menos personas anotadas que
+    #: esto, a `aviso_minimo_horas` de la salida se cancela sola. 1 = sin mínimo.
+    minimo_personas: Mapped[int] = mapped_column(SmallInteger, default=1)
+    aviso_minimo_horas: Mapped[int] = mapped_column(SmallInteger, default=24)
     activo: Mapped[bool] = mapped_column(default=True)
 
     unidad: Mapped[Unidad] = relationship()  # noqa: F821
@@ -84,6 +90,7 @@ class SalidaExcursion(IdMixin, TiempoMixin, Base):
         CheckConstraint("ocupados >= 0 AND ocupados <= cupo", name="cupo_no_se_pasa"),
         CheckConstraint("cupo > 0", name="cupo_positivo"),
         CheckConstraint("fin_en > inicio_en", name="horario_valido"),
+        CheckConstraint("minimo_personas >= 1", name="minimo_positivo"),
         # Un turno sale una vez por día. Las extras (turno nulo) no chocan entre sí.
         UniqueConstraint("turno_id", "fecha", name="uq_salida_excursion_turno_fecha"),
         Index("ix_salida_excursion_unidad_fecha", "unidad_id", "fecha"),
@@ -100,6 +107,12 @@ class SalidaExcursion(IdMixin, TiempoMixin, Base):
     #: Suspendida por el prestador (lluvia, feriado, sin guía): no se vende.
     suspendida: Mapped[bool] = mapped_column(default=False)
     motivo: Mapped[str | None] = mapped_column(String(200))
+    #: Copiados del turno al crear la salida: cambiar el turno no cambia el trato
+    #: con quien ya reservó.
+    minimo_personas: Mapped[int] = mapped_column(SmallInteger, default=1)
+    aviso_minimo_horas: Mapped[int] = mapped_column(SmallInteger, default=24)
+    #: Se llegó al mínimo a tiempo: la salida va, aunque después alguien cancele.
+    sale_confirmada: Mapped[bool] = mapped_column(default=False)
 
     turno: Mapped[TurnoExcursion | None] = relationship()
 
@@ -125,3 +138,31 @@ class CupoTomado(IdMixin, TiempoMixin, Base):
     nota: Mapped[str | None] = mapped_column(String(200))
 
     salida: Mapped[SalidaExcursion] = relationship()
+
+
+class PrecioPasajero(IdMixin, Base):
+    """Un precio por tipo de pasajero: "Adulto", "Menor de 3 a 12 años", "Jubilado".
+
+    Cada prestador define los suyos (docs/05 §2): la plataforma no fija edades ni
+    quién es jubilado. `edad_desde` y `edad_hasta` son informativas, para mostrar;
+    `ocupa_lugar` en False es para quien no usa cupo (un bebé en brazos).
+    """
+
+    __tablename__ = "precio_pasajero"
+    __table_args__ = (
+        CheckConstraint("precio >= 0", name="precio_no_negativo"),
+        CheckConstraint(
+            "edad_desde IS NULL OR edad_hasta IS NULL OR edad_hasta >= edad_desde",
+            name="edades",
+        ),
+    )
+
+    unidad_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("unidad.id"), index=True)
+    nombre: Mapped[str] = mapped_column(String(60))
+    descripcion: Mapped[str | None] = mapped_column(String(200))
+    edad_desde: Mapped[int | None] = mapped_column(SmallInteger)
+    edad_hasta: Mapped[int | None] = mapped_column(SmallInteger)
+    precio: Mapped[Dinero]
+    ocupa_lugar: Mapped[bool] = mapped_column(default=True)
+    orden: Mapped[int] = mapped_column(SmallInteger, default=0)
+    activo: Mapped[bool] = mapped_column(default=True)
