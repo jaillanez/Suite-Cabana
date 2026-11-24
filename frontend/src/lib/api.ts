@@ -187,6 +187,7 @@ export type Ficha = {
   noches: number | null;
   /** Salones del mismo anfitrión (docs/04): "también tiene salón". */
   salones_del_anfitrion?: { titulo: string; slug: string }[];
+  excursiones_cerca?: { titulo: string; slug: string }[];
   moneda: string;
 };
 
@@ -1537,3 +1538,158 @@ export const soltarHoras = (token: string, id: string, unidadId: string, bloqueo
     method: "DELETE",
     token,
   });
+
+/* --- Excursiones para el viajero (docs/05, etapa 4) --- */
+
+export type ExcursionResultado = {
+  slug: string;
+  titulo: string;
+  subtipo: string | null;
+  localidad: string;
+  provincia: string;
+  lat: number | null;
+  lon: number | null;
+  fotos: { url: string; descripcion: string | null }[];
+  comodidades: string[];
+  maximo_por_reserva: number;
+  precio_desde: { monto: string; detalle: string } | null;
+  proxima_salida: string | null;
+  salidas_del_dia: number;
+  confirmacion_inmediata: boolean;
+  es_demo: boolean;
+};
+
+export type BusquedaExcursiones = {
+  total: number;
+  pagina: number;
+  paginas: number;
+  resultados: ExcursionResultado[];
+};
+
+export type DestinoExcursion = {
+  nombre: string;
+  slug: string;
+  provincia: string;
+  excursiones: number;
+};
+
+export type PrecioPasajero = {
+  id: string;
+  nombre: string;
+  descripcion: string | null;
+  edad_desde: number | null;
+  edad_hasta: number | null;
+  precio: string;
+  ocupa_lugar: boolean;
+};
+
+export type ActividadFicha = {
+  id: string;
+  nombre: string;
+  maximo_por_reserva: number;
+  precios: PrecioPasajero[];
+  turnos: {
+    nombre: string;
+    dias_semana: number[];
+    hora_inicio: string;
+    duracion_minutos: number;
+    minimo_personas: number;
+  }[];
+};
+
+export type FichaExcursion = {
+  publicacion_id: string;
+  slug: string;
+  titulo: string;
+  descripcion: string;
+  para_tener_en_cuenta: string | null;
+  subtipo: string | null;
+  localidad: string;
+  localidad_slug: string;
+  provincia: string;
+  zona: string | null;
+  lat: number | null;
+  lon: number | null;
+  confirmacion_inmediata: boolean;
+  porcentaje_sena: number | null;
+  reintegro_si_no_sale: number;
+  es_demo: boolean;
+  prestador: { razon_social: string; verificado: boolean; publica_desde: number };
+  politica_cancelacion: {
+    codigo: string;
+    nombre: string;
+    descripcion: string | null;
+    tramos: { dias_antes: number; porcentaje_reintegro: number }[];
+  } | null;
+  fotos: { url: string; descripcion: string | null }[];
+  comodidades: { codigo: string; nombre: string }[];
+  actividades: ActividadFicha[];
+  alojamientos_del_anfitrion: { titulo: string; slug: string }[];
+  moneda: string;
+};
+
+export type SalidaPublica = {
+  turno_id: string | null;
+  salida_id: string | null;
+  fecha: string;
+  nombre: string;
+  inicio: string;
+  fin: string;
+  cupo: number;
+  libres: number;
+  minimo_personas: number;
+};
+
+export type SalidasExcursion = {
+  unidad_id: string;
+  maximo_por_reserva: number;
+  precios: PrecioPasajero[];
+  reintegro_si_no_sale: number;
+  salidas: SalidaPublica[];
+};
+
+export type PedidoExcursion = {
+  unidad_id: string;
+  fecha: string;
+  turno_id?: string | null;
+  salida_id?: string | null;
+  pasajeros: { categoria_id: string; cantidad: number }[];
+};
+
+export type CotizacionExcursion = {
+  salida: SalidaPublica;
+  lineas: { concepto: string; cantidad: number; precio_unitario: string; monto: string }[];
+  personas: number;
+  lugares: number;
+  subtotal: string;
+  cargo_servicio: string;
+  total: string;
+  sena: string | null;
+  a_pagar_ahora: string;
+  saldo_con_prestador: string | null;
+};
+
+export const buscarExcursiones = (params: URLSearchParams) =>
+  api<BusquedaExcursiones>(`/excursiones/buscar?${params}`);
+
+export const destinosExcursiones = () => api<DestinoExcursion[]>("/excursiones/destinos");
+
+export const fichaExcursion = (slug: string) =>
+  api<FichaExcursion>(`/excursiones/ficha/${encodeURIComponent(slug)}`);
+
+export const salidasExcursion = (unidadId: string, desde: string, hasta: string) =>
+  api<SalidasExcursion>(
+    `/excursiones/unidades/${unidadId}/salidas?${new URLSearchParams({ desde, hasta })}`,
+  );
+
+export const cotizarExcursion = (pedido: PedidoExcursion) =>
+  api<CotizacionExcursion>("/excursiones/cotizacion", {
+    method: "POST",
+    body: JSON.stringify(pedido),
+  });
+
+export const reservarExcursion = (
+  token: string,
+  pedido: PedidoExcursion & { acepta_terminos: boolean; telefono?: string },
+) =>
+  api<Reserva>("/excursiones/reservas", { method: "POST", token, body: JSON.stringify(pedido) });

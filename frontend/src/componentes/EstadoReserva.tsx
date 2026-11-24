@@ -4,7 +4,7 @@ import estilos from "./EstadoReserva.module.css";
 const TEXTOS: Record<EstadoReserva, { nombre: string; explica: string }> = {
   pendiente_pago: {
     nombre: "Esperando el pago",
-    explica: "Te guardamos las fechas un rato. Si no pagás, se liberan solas.",
+    explica: "Te guardamos el lugar un rato. Si no pagás, se libera solo.",
   },
   pendiente_aprobacion: {
     nombre: "Esperando al prestador",

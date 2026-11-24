@@ -126,7 +126,7 @@ Cada beneficio define **quién absorbe el costo** y en qué proporción:
 
 **Venta cruzada**
 - [ ] Al confirmar un alojamiento, sugerir servicios cercanos para esas fechas.
-- [ ] En la ficha del alojamiento, mostrar servicios de la zona.
+- [x] En la ficha del alojamiento, mostrar servicios de la zona (excursiones de la localidad, docs/05).
 
 **Comisiones**
 - [ ] El motor de comisiones aplica reglas por cada tipo y subtipo de servicio sin cambios estructurales.

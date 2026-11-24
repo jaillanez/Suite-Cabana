@@ -239,6 +239,22 @@ export default async function Ficha({ params, searchParams }: Params) {
               </section>
             )}
 
+            {f.excursiones_cerca && f.excursiones_cerca.length > 0 && (
+              <section>
+                <h2 className={estilos.subtitulo}>Qué hacer en {f.localidad}</h2>
+                <p className={estilos.descripcion}>
+                  Excursiones de la zona que podés reservar acá:{" "}
+                  {f.excursiones_cerca.map((x, i) => (
+                    <span key={x.slug}>
+                      {i > 0 && ", "}
+                      <Link href={`/excursion/${x.slug}`}>{x.titulo}</Link>
+                    </span>
+                  ))}
+                  .
+                </p>
+              </section>
+            )}
+
             {f.lat !== null && f.lon !== null && (
               <section>
                 <h2 className={estilos.subtitulo}>Dónde queda</h2>

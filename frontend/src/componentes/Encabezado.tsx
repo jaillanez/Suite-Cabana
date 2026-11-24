@@ -13,6 +13,7 @@ export default function Encabezado() {
         <nav>
           <Link href="/buscar">Buscar alojamiento</Link>
           <Link href="/salones">Salones</Link>
+          <Link href="/excursiones">Excursiones</Link>
           <Link href="/publicar" className={estilos.publicar}>
             Sumá tu alojamiento
           </Link>

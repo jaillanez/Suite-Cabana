@@ -355,12 +355,13 @@ salón de Los Búhos como borrador con sus fotos; capacidad, turnos, precios y s
 los carga el propietario desde su panel (lista en `datos.PENDIENTES_SALON_LOS_BUHOS`).
 
 Excursiones y actividades (Fase 2, [`docs/05-excursiones.md`](docs/05-excursiones.md)):
-etapas 1 a 3 hechas: el prestador ya publica su excursión, carga turnos, precios y
-sus reglas, y maneja sus salidas desde el editor. Turnos, salidas y lugares sin sobreventa
+las cuatro etapas hechas: el prestador publica su excursión, carga turnos, precios y
+sus reglas y maneja sus salidas; el viajero busca en `/excursiones`, elige la salida en
+la ficha y reserva. Turnos, salidas y lugares sin sobreventa
 (`app/services/salidas.py`); precio por tipo de pasajero, reserva y cancelación, y
 salidas que no van por suspensión o falta de mínimo (`app/services/reservas_excursion.py`,
 `/api/v1/excursiones`). Política, mínimo, reintegro y tipos de pasajero los decide
-cada prestador. Falta la etapa 4: que el viajero las vea y reserve desde la web.
+cada prestador.
 
 ## Producción (alojateaqui.com.ar)
 

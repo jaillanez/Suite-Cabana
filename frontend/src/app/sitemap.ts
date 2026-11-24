@@ -1,6 +1,6 @@
 import type { MetadataRoute } from "next";
 
-import { buscarSalones, destino, destinos } from "@/lib/api";
+import { buscarExcursiones, buscarSalones, destino, destinos } from "@/lib/api";
 
 const SITIO = process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000";
 
@@ -32,8 +32,23 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     .then((r) => r.resultados.map((s) => s.slug))
     .catch(() => [] as string[]);
 
+  // Las excursiones (docs/05): igual, la búsqueda sin fecha es estable.
+  const excursiones = await buscarExcursiones(new URLSearchParams({ por_pagina: "48" }))
+    .then((r) => r.resultados.map((x) => x.slug))
+    .catch(() => [] as string[]);
+
   return [
     ...fijas,
+    {
+      url: `${SITIO}/excursiones`,
+      changeFrequency: "daily" as const,
+      priority: 0.8,
+    },
+    ...excursiones.map((slug) => ({
+      url: `${SITIO}/excursion/${slug}`,
+      changeFrequency: "weekly" as const,
+      priority: 0.7,
+    })),
     {
       url: `${SITIO}/salones`,
       changeFrequency: "daily" as const,

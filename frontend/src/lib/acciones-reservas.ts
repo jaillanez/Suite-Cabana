@@ -11,8 +11,10 @@ import {
   pedirPago,
   rechazarReserva,
   reservarEvento,
+  reservarExcursion,
   simularPago,
   type PedidoEvento,
+  type PedidoExcursion,
   type Reserva,
 } from "./api";
 import { tokenActual } from "./sesion";
@@ -99,6 +101,32 @@ export async function accionReservarEvento(
   let reserva: Reserva;
   try {
     reserva = await reservarEvento(token, {
+      ...pedido,
+      acepta_terminos: true,
+      telefono: telefono || undefined,
+    });
+  } catch (e) {
+    if (e instanceof ApiError && e.status === 401) {
+      return { error: "Tu sesión venció. Ingresá de nuevo.", ingresar: true };
+    }
+    return problemaAlReservar(e, "No pudimos crear la reserva.");
+  }
+  revalidatePath("/reservas");
+  redirect(`/reservas/${reserva.codigo}`);
+}
+
+/** Reserva de lugares en una salida de excursión (docs/05). Igual que un salón:
+    sin sesión, el panel manda a ingresar y vuelve a la ficha. */
+export async function accionReservarExcursion(
+  pedido: PedidoExcursion,
+  telefono?: string,
+): Promise<{ error: string; ingresar?: boolean; pedirTelefono?: boolean } | never> {
+  const token = await tokenActual();
+  if (!token) return { error: "Ingresá para reservar.", ingresar: true };
+
+  let reserva: Reserva;
+  try {
+    reserva = await reservarExcursion(token, {
       ...pedido,
       acepta_terminos: true,
       telefono: telefono || undefined,

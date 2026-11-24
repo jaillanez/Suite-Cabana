@@ -42,7 +42,7 @@ export default function DetalleReserva({
   const evento = Boolean(item?.inicio_en && item?.fin_en);
   // Una excursión (docs/05) guarda sus pasajeros por tipo en el desglose.
   const pasajeros = Array.isArray(item?.desglose?.pasajeros)
-    ? (item.desglose.pasajeros as { concepto: string; cantidad: number }[])
+    ? (item.desglose.pasajeros as { concepto: string; cantidad: number; monto: string }[])
     : null;
   const lineasEvento = (
     item?.desglose as { lineas?: { concepto: string; monto: string }[] }
@@ -226,11 +226,22 @@ export default function DetalleReserva({
         )}
         {desglose && evento && (
           <dl className={estilos.desglose}>
-            <div>
-              <dt>Alquiler</dt>
-              <dd className="cifra">{pesosExactos(desglose.alquiler)}</dd>
-            </div>
-            {(lineasEvento ?? []).map((l) => (
+            {pasajeros ? (
+              pasajeros.map((x) => (
+                <div key={x.concepto}>
+                  <dt>
+                    {x.cantidad} × {x.concepto}
+                  </dt>
+                  <dd className="cifra">{pesosExactos(x.monto)}</dd>
+                </div>
+              ))
+            ) : (
+              <div>
+                <dt>Alquiler</dt>
+                <dd className="cifra">{pesosExactos(desglose.alquiler)}</dd>
+              </div>
+            )}
+            {(pasajeros ? [] : lineasEvento ?? []).map((l) => (
               <div key={l.concepto}>
                 <dt>{l.concepto}</dt>
                 <dd className="cifra">{pesosExactos(l.monto)}</dd>
@@ -261,7 +272,7 @@ export default function DetalleReserva({
               </>
             )}
             <div className={estilos.totalFila}>
-              <dt>{sumados.length > 0 ? "Total" : "Total del evento"}</dt>
+              <dt>{sumados.length > 0 || pasajeros ? "Total" : "Total del evento"}</dt>
               <dd className="cifra">{pesosExactos(reserva.total)}</dd>
             </div>
           </dl>

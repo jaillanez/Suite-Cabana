@@ -49,12 +49,17 @@
   }
 }
 
-/* Con "Salones" no entran cuatro enlaces en un celular: en el más chico se
-   guarda el de publicar, que sigue en el pie de página. Quien entra desde el
-   teléfono casi siempre viene a buscar, no a publicar. */
+/* Con "Salones" y "Excursiones" no entran todos los enlaces en un celular: en
+   el más chico se guarda el de publicar, que sigue en el pie de página, y los
+   que quedan se aprietan. Quien entra desde el teléfono casi siempre viene a
+   buscar, no a publicar. */
 @media (max-width: 460px) {
   .interna nav {
-    gap: 0.25rem;
+    gap: 0;
+    font-size: 0.8125rem;
+  }
+  .interna nav a {
+    padding: 0.5rem 0.4375rem;
   }
   .publicar {
     display: none;

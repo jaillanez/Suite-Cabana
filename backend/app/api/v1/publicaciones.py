@@ -29,6 +29,7 @@ from app.models import (
 )
 from app.models.enums import EstadoPublicacion, ModoReserva
 from app.services import busqueda, politicas, precios, tipos
+from app.services import excursiones as excursiones_svc
 from app.services import publicaciones as fichas
 from app.services import salones as salones_svc
 from app.services.privacidad import aproximar, distancia_publica, radio_publico
@@ -390,6 +391,9 @@ class FichaOut(BaseModel):
     salones_del_anfitrion: list[EnlaceOut] = Field(
         default_factory=list, description="Salones del mismo anfitrión (docs/04 §5 S10)"
     )
+    excursiones_cerca: list[EnlaceOut] = Field(
+        default_factory=list, description="Excursiones en la misma localidad (docs/05)"
+    )
 
 
 class ResumenDestinoOut(BaseModel):
@@ -601,6 +605,10 @@ def ficha(
         salones_del_anfitrion=[
             EnlaceOut(titulo=x.titulo, slug=x.slug)
             for x in salones_svc.del_mismo_anfitrion(db, p.prestador_id, ModoReserva.HORAS)
+        ],
+        excursiones_cerca=[
+            EnlaceOut(titulo=x.titulo, slug=x.slug)
+            for x in excursiones_svc.en_localidad(db, p.localidad_id)
         ],
     )
 

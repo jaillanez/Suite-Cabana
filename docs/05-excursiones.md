@@ -71,7 +71,7 @@ Como con las noches (CLAUDE.md §6), lo garantiza la base:
 
 ## 5. Etapas
 
-Cada etapa se puede publicar por separado. Hechas (noviembre 2026): **1**, **2** y **3**.
+Cada etapa se puede publicar por separado. Hechas (noviembre 2026): **1**, **2**, **3** y **4**.
 
 | Etapa | Contenido |
 |---|---|
@@ -114,7 +114,25 @@ Cómo quedó la etapa 3 (`/mis-publicaciones/.../turnos`, `/precios-pasajero`,
   qué porcentaje— y volver a ofrecerla, y salidas especiales.
 - Quitar un turno o un precio no toca lo vendido: las salidas guardadas siguen y
   cada reserva tiene su precio en el desglose.
-- Falta la etapa 4: el viajero todavía no ve las excursiones en la web.
+
+Cómo quedó la etapa 4 (`app/services/excursiones.py`, `/api/v1/excursiones/buscar`,
+`/destinos`, `/ficha/{slug}`; páginas `/excursiones` y `/excursion/[slug]`, panel
+`ReservaExcursion`):
+- **Búsqueda** por destino, día y personas. Con día, solo las que salen ese día con
+  lugar para todos; sin día, cada tarjeta muestra su próxima salida (60 días). Una
+  actividad sin precios no aparece.
+- El **"desde"** de la tarjeta es, en cada actividad, el primer precio que cargó el
+  prestador entre quienes pagan y ocupan lugar (suele ser el adulto): un menor a
+  mitad de precio no es el precio de la excursión.
+- **Ficha**: horarios y precios por tipo de pasajero, qué incluye, "para tener en
+  cuenta", la política con sus tramos y lo que se devuelve si la salida no va, y el
+  alojamiento del mismo prestador. El punto de encuentro exacto, con la reserva.
+- **Panel de reserva**: salidas con lugar de a dos semanas, pasajeros por tipo,
+  aviso del mínimo de personas, cotización del backend y reserva con el mismo
+  circuito de pago, términos y WhatsApp que un salón.
+- **Venta cruzada** (docs/02 §10): la ficha de un alojamiento ofrece las excursiones
+  de su localidad.
+- "Excursiones" en el encabezado y en el sitemap.
 
 ## 6. Preguntas abiertas
 
