@@ -121,8 +121,8 @@ Cada beneficio define **quién absorbe el costo** y en qué proporción:
 - [x] Mínimo de participantes con cancelación automática si no se alcanza: mínimo y aviso por turno (docs/05).
 
 **Traslados**
-- [ ] Tarifa por tramo, por kilómetro o por vehículo.
-- [ ] Capacidad del vehículo y equipaje.
+- [x] Tarifa por tramo, por kilómetro o por vehículo: la elige cada prestador (docs/06; se reserva desde la etapa 2).
+- [x] Capacidad del vehículo y equipaje (docs/06).
 
 **Venta cruzada**
 - [ ] Al confirmar un alojamiento, sugerir servicios cercanos para esas fechas.

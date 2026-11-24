@@ -27,6 +27,7 @@ from app.models.publicacion import (
     publicacion_comodidad,
 )
 from app.models.reserva import ItemReserva, NotificacionPago, Pago, Resena, Reserva
+from app.models.traslado import LugarTraslado, TarifaTraslado, TramoTraslado
 from app.models.ubicacion import Localidad, Provincia, Zona
 from app.models.usuario import Usuario
 
@@ -46,6 +47,7 @@ __all__ = [
     "Foto",
     "ItemReserva",
     "Localidad",
+    "LugarTraslado",
     "Notificacion",
     "NotificacionPago",
     "Pago",
@@ -62,6 +64,8 @@ __all__ = [
     "SalidaExcursion",
     "SubtipoServicio",
     "Tarifa",
+    "TarifaTraslado",
+    "TramoTraslado",
     "TipoServicio",
     "TurnoExcursion",
     "Unidad",

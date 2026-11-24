@@ -146,6 +146,10 @@ SUBTIPOS = [
     ("excursion", "visita_bodega", "Visita a bodega"),
     ("excursion", "paseo_guiado", "Paseo guiado"),
     ("excursion", "aventura", "Aventura"),
+    # docs/06: traslados, por vehículo entero.
+    ("traslado", "traslado_aeropuerto", "Aeropuerto y terminal"),
+    ("traslado", "traslado_regional", "Entre localidades"),
+    ("traslado", "traslado_urbano", "Dentro de la ciudad"),
 ]
 
 A = ("alojamiento",)

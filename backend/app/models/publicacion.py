@@ -131,6 +131,8 @@ class Unidad(IdMixin, TiempoMixin, Base):
     capacidad_sentados: Mapped[int | None] = mapped_column(SmallInteger)
     # Salones: minutos que quedan bloqueados después de cada evento (limpieza).
     preparacion_minutos: Mapped[int] = mapped_column(SmallInteger, default=0)
+    # Traslados (docs/06): valijas grandes que entran en el vehículo. Nulo: sin límite.
+    equipaje: Mapped[int | None] = mapped_column(SmallInteger)
     activa: Mapped[bool] = mapped_column(default=True)
 
     cargo_limpieza: Mapped[Dinero] = mapped_column(default=Decimal(0))

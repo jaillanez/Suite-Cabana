@@ -363,6 +363,12 @@ salidas que no van por suspensión o falta de mínimo (`app/services/reservas_ex
 `/api/v1/excursiones`). Política, mínimo, reintegro y tipos de pasajero los decide
 cada prestador.
 
+Traslados (Fase 2, [`docs/06-traslados.md`](docs/06-traslados.md)): etapa 1 hecha, solo
+backend. Vehículos con pasajeros y valijas, lugares, tramos fijos y tarifa por km con
+recargo nocturno (`app/services/precios_traslado.py`), y la ocupación de cada vehículo sin
+superposición, con la vuelta a la base (`app/services/traslados.py`). Todavía no se
+reservan ni se publican desde la web.
+
 ## Producción (alojateaqui.com.ar)
 
 Corre en el VPS compartido, en `/opt/suite-cabana`, con el repo clonado en

@@ -1,4 +1,5 @@
-"""Disponibilidad por rango de hora (salones de eventos, docs/04 §5 S2).
+"""Disponibilidad por rango de hora (salones de eventos, docs/04 §5 S2; vehículos
+de traslado, docs/06).
 
 Es la contraparte de los bloqueos por noche, con la misma regla de fondo
 (CLAUDE.md §6): el choque entre dos reservas lo detecta la base con una
@@ -46,7 +47,8 @@ class Ocupado:
 
 
 def _validar(unidad: Unidad, inicio: datetime, fin: datetime) -> None:
-    if unidad.publicacion.tipo_servicio.modo_reserva is not ModoReserva.HORAS:
+    # Salones (por horas) y vehículos de traslado (docs/06): los dos ocupan rangos.
+    if unidad.publicacion.tipo_servicio.modo_reserva not in (ModoReserva.HORAS, ModoReserva.TRAMO):
         raise HorarioInvalido("Esta unidad no se alquila por horario")
     if inicio.tzinfo is None or fin.tzinfo is None:
         # Sin zona, "21:00" puede ser de cualquier lugar: se rechaza en vez de adivinar.
