@@ -19,7 +19,7 @@ from typing import Annotated
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from pydantic import BaseModel, Field, model_validator
-from sqlalchemy import select
+from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
 from app.api.deps import prestador_actual
@@ -165,6 +165,12 @@ def _excursion(db: Session, publicacion_id, unidad_id, prestador, editable: bool
     return p, _unidad_de(db, p, unidad_id)
 
 
+def _bloquear_unidad(db: Session, unidad: Unidad) -> None:
+    """Serializa los altas de una misma actividad: sin esto, pedidos simultáneos
+    cuentan antes de que el otro inserte y pasan juntos el tope."""
+    db.execute(select(Unidad.id).where(Unidad.id == unidad.id).with_for_update())
+
+
 def _invalida(e: Exception) -> HTTPException:
     return HTTPException(status.HTTP_422_UNPROCESSABLE_ENTITY, str(e))
 
@@ -276,6 +282,7 @@ def crear_turno(
     db: Session = Depends(get_db),
 ) -> PublicacionOut:
     _, unidad = _excursion(db, publicacion_id, unidad_id, prestador, editable=True)
+    _bloquear_unidad(db, unidad)
     cantidad = len(
         db.scalars(
             select(TurnoExcursion.id).where(
@@ -326,6 +333,7 @@ def crear_precio(
     db: Session = Depends(get_db),
 ) -> PublicacionOut:
     _, unidad = _excursion(db, publicacion_id, unidad_id, prestador, editable=True)
+    _bloquear_unidad(db, unidad)
     activos = db.scalars(
         select(PrecioPasajero).where(
             PrecioPasajero.unidad_id == unidad.id, PrecioPasajero.activo.is_(True)
@@ -409,14 +417,15 @@ def agregar_salida(
 ) -> SalidaPanelOut:
     """Una salida especial, fuera de los turnos."""
     _, unidad = _excursion(db, publicacion_id, unidad_id, prestador, editable=False)
-    especiales = db.scalars(
-        select(SalidaExcursion.id).where(
+    _bloquear_unidad(db, unidad)
+    especiales = db.scalar(
+        select(func.count(SalidaExcursion.id)).where(
             SalidaExcursion.unidad_id == unidad.id,
             SalidaExcursion.turno_id.is_(None),
             SalidaExcursion.fecha >= salidas.hoy(),
         )
-    ).all()
-    if len(especiales) >= MAX_SALIDAS_ESPECIALES:
+    )
+    if especiales >= MAX_SALIDAS_ESPECIALES:
         raise HTTPException(
             status.HTTP_409_CONFLICT,
             f"Hasta {MAX_SALIDAS_ESPECIALES} salidas especiales por venir: "
