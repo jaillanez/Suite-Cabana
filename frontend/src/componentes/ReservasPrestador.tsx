@@ -60,8 +60,8 @@ export default function ReservasPrestador({ inicial }: { inicial: Reserva[] }) {
                     {item &&
                       plural(
                         item.adultos + item.menores,
-                        item.inicio_en ? "invitado" : "persona",
-                        item.inicio_en ? "invitados" : "personas",
+                        item.inicio_en && !item.desglose?.pasajeros ? "invitado" : "persona",
+                        item.inicio_en && !item.desglose?.pasajeros ? "invitados" : "personas",
                       )}{" "}
                     · código <span className="cifra">{r.codigo}</span>
                   </span>

@@ -81,10 +81,13 @@ export default async function Publicar() {
         {cuenta?.prestador ? (
           <p className={estilos.salida}>
             Ya cargaste tus datos de prestador:{" "}
-            <Link href="/mis-publicaciones/nueva">publicá un alojamiento</Link>{" "}
-            o{" "}
+            <Link href="/mis-publicaciones/nueva">publicá un alojamiento</Link>,{" "}
             <Link href="/mis-publicaciones/nueva?tipo=salon_eventos">
               un salón
+            </Link>{" "}
+            o{" "}
+            <Link href="/mis-publicaciones/nueva?tipo=excursion">
+              una excursión
             </Link>
             . Queda en borrador hasta que la mandes a revisión.
           </p>

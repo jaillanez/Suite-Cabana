@@ -30,18 +30,21 @@ from app.models import (
     FranjaHoraria,
     Localidad,
     PoliticaCancelacion,
+    PrecioPasajero,
     Prestador,
     Publicacion,
+    SalidaExcursion,
     SubtipoServicio,
     Tarifa,
     TarifaHoraria,
     TipoServicio,
+    TurnoExcursion,
     Unidad,
     comodidad_tipo_servicio,
 )
 from app.models.enums import EstadoPublicacion, ModoReserva, OrigenBloqueo
 from app.services import calendario as agenda
-from app.services import edicion, horarios
+from app.services import edicion, horarios, politicas
 from app.services import fotos as almacen
 from app.services.precios_eventos import ZONA, en_hora
 
@@ -55,7 +58,7 @@ class NuevaPublicacion(BaseModel):
     titulo: Annotated[str, Field(min_length=3, max_length=150)]
     localidad_id: uuid.UUID
     subtipo_servicio_id: uuid.UUID | None = None
-    tipo: Literal["alojamiento", "salon_eventos"] = "alojamiento"
+    tipo: Literal["alojamiento", "salon_eventos", "excursion"] = "alojamiento"
 
 
 class CambioPublicacion(BaseModel):
@@ -76,6 +79,11 @@ class CambioPublicacion(BaseModel):
     porcentaje_sena: Annotated[
         int | None, Field(default=None, ge=0, le=100, description="0: sin seña, se cobra todo")
     ] = None
+    tramos_cancelacion: list[dict] | None = Field(
+        default=None,
+        description="Tramos propios [{dias_antes, porcentaje_reintegro}]; vacío: la plantilla",
+    )
+    reintegro_si_no_sale: Annotated[int | None, Field(default=None, ge=0, le=100)] = None
 
 
 #: Una unidad de alojamiento no pasa de esto; un salón sí (docs/04 §5 S3).
@@ -175,6 +183,29 @@ class AdicionalOut(BaseModel):
     por_persona: bool
 
 
+class TurnoOut(BaseModel):
+    id: uuid.UUID
+    nombre: str
+    dias_semana: list[int]
+    hora_inicio: time
+    duracion_minutos: int
+    cupo: int
+    desde: date | None
+    hasta: date | None
+    minimo_personas: int
+    aviso_minimo_horas: int
+
+
+class PrecioPasajeroOut(BaseModel):
+    id: uuid.UUID
+    nombre: str
+    descripcion: str | None
+    edad_desde: int | None
+    edad_hasta: int | None
+    precio: Dinero
+    ocupa_lugar: bool
+
+
 class TarifaOut(BaseModel):
     id: uuid.UUID
     nombre: str
@@ -205,6 +236,9 @@ class UnidadOut(BaseModel):
     franjas: list[FranjaOut] = Field(default_factory=list)
     tarifa_horaria: TarifaHorariaOut | None = None
     adicionales: list[AdicionalOut] = Field(default_factory=list)
+    # Excursiones (docs/05)
+    turnos: list[TurnoOut] = Field(default_factory=list)
+    precios_pasajero: list[PrecioPasajeroOut] = Field(default_factory=list)
 
 
 class FotoOut(BaseModel):
@@ -237,6 +271,8 @@ class PublicacionOut(BaseModel):
     hora_salida: time | None
     confirmacion_inmediata: bool
     politica_cancelacion_id: uuid.UUID | None
+    tramos_cancelacion: list[dict] | None = None
+    reintegro_si_no_sale: int = 100
     comodidades: list[str]
     fotos: list[FotoOut]
     unidades: list[UnidadOut]
@@ -377,6 +413,8 @@ def _salida(db: Session, p: Publicacion) -> PublicacionOut:
         hora_salida=p.hora_salida,
         confirmacion_inmediata=p.confirmacion_inmediata,
         politica_cancelacion_id=p.politica_cancelacion_id,
+        tramos_cancelacion=p.tramos_cancelacion,
+        reintegro_si_no_sale=p.reintegro_si_no_sale,
         comodidades=sorted(c.codigo for c in p.comodidades),
         fotos=[
             FotoOut(id=f.id, url=f.url, orden=f.orden, descripcion=f.descripcion)
@@ -440,6 +478,7 @@ def _salida(db: Session, p: Publicacion) -> PublicacionOut:
                     for a in sorted(u.adicionales, key=lambda x: x.nombre)
                     if a.activo
                 ],
+                **_de_excursion(db, u),
             )
             for u in sorted(p.unidades, key=lambda x: (x.capacidad, x.nombre))
         ],
@@ -448,6 +487,39 @@ def _salida(db: Session, p: Publicacion) -> PublicacionOut:
 
 
 # --- Publicación ---
+
+
+def _de_excursion(db: Session, u: Unidad) -> dict:
+    """Turnos y precios por pasajero de una actividad; vacío en otros tipos."""
+    if u.publicacion.tipo_servicio.modo_reserva is not ModoReserva.TURNO_CUPO:
+        return {}
+    turnos = db.scalars(
+        select(TurnoExcursion)
+        .where(TurnoExcursion.unidad_id == u.id, TurnoExcursion.activo.is_(True))
+        .order_by(TurnoExcursion.hora_inicio, TurnoExcursion.nombre)
+    )
+    precios = db.scalars(
+        select(PrecioPasajero)
+        .where(PrecioPasajero.unidad_id == u.id, PrecioPasajero.activo.is_(True))
+        .order_by(PrecioPasajero.orden, PrecioPasajero.nombre)
+    )
+    return {
+        "turnos": [
+            TurnoOut(
+                id=t.id, nombre=t.nombre, dias_semana=t.dias_semana, hora_inicio=t.hora_inicio,
+                duracion_minutos=t.duracion_minutos, cupo=t.cupo, desde=t.desde, hasta=t.hasta,
+                minimo_personas=t.minimo_personas, aviso_minimo_horas=t.aviso_minimo_horas,
+            )
+            for t in turnos
+        ],
+        "precios_pasajero": [
+            PrecioPasajeroOut(
+                id=c.id, nombre=c.nombre, descripcion=c.descripcion, edad_desde=c.edad_desde,
+                edad_hasta=c.edad_hasta, precio=c.precio, ocupa_lugar=c.ocupa_lugar,
+            )
+            for c in precios
+        ],
+    }
 
 
 def _por_dia_out(precios: dict | None) -> dict[str, str] | None:
@@ -475,7 +547,7 @@ def _unidad_de(db: Session, p: Publicacion, unidad_id: uuid.UUID) -> Unidad:
 
 def _validar_unidad(p: Publicacion, datos: NuevaUnidad) -> None:
     if (
-        p.tipo_servicio.modo_reserva is not ModoReserva.HORAS
+        p.tipo_servicio.modo_reserva is ModoReserva.NOCHES
         and datos.capacidad > CAPACIDAD_MAXIMA_ALOJAMIENTO
     ):
         raise HTTPException(
@@ -607,6 +679,16 @@ def editar(
     if datos.get("porcentaje_sena") == 0:
         datos["porcentaje_sena"] = None  # 0: sin seña, se cobra el total
 
+    if "tramos_cancelacion" in datos:
+        # Los tramos los decide cada prestador (docs/05 §3). Vacío: vuelve a la plantilla.
+        tramos = datos.pop("tramos_cancelacion")
+        try:
+            p.tramos_cancelacion = politicas.validar_tramos(tramos) if tramos else None
+        except politicas.TramosInvalidos as e:
+            raise HTTPException(status.HTTP_422_UNPROCESSABLE_ENTITY, str(e)) from e
+    if datos.get("reintegro_si_no_sale", 0) is None:
+        datos.pop("reintegro_si_no_sale")
+
     for campo, valor in datos.items():
         setattr(p, campo, valor.strip() if isinstance(valor, str) else valor)
 
@@ -726,6 +808,7 @@ def borrar_unidad(
         db.scalar(select(ItemReserva.id).where(ItemReserva.unidad_id == unidad.id))
         or db.scalar(select(BloqueoFecha.id).where(BloqueoFecha.unidad_id == unidad.id))
         or db.scalar(select(BloqueoHorario.id).where(BloqueoHorario.unidad_id == unidad.id))
+        or db.scalar(select(SalidaExcursion.id).where(SalidaExcursion.unidad_id == unidad.id))
     )
     if con_historia:
         unidad.activa = False
@@ -733,6 +816,8 @@ def borrar_unidad(
         for hijo in [
             *unidad.tarifas, *unidad.franjas, *unidad.adicionales,
             *([unidad.tarifa_horaria] if unidad.tarifa_horaria else []),
+            *db.scalars(select(TurnoExcursion).where(TurnoExcursion.unidad_id == unidad.id)),
+            *db.scalars(select(PrecioPasajero).where(PrecioPasajero.unidad_id == unidad.id)),
         ]:
             db.delete(hijo)
         db.delete(unidad)
@@ -754,7 +839,7 @@ def crear_tarifa(
     if p.tipo_servicio.modo_reserva is not ModoReserva.NOCHES:
         raise HTTPException(
             status.HTTP_409_CONFLICT,
-            "Un salón no se cobra por noche: cargá turnos o precio por hora",
+            "Esto no se cobra por noche: cargá sus turnos y precios",
         )
     if datos.fecha_desde and datos.fecha_hasta and datos.fecha_hasta < datos.fecha_desde:
         raise HTTPException(

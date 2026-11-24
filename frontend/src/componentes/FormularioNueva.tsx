@@ -21,6 +21,12 @@ const TIPOS: { codigo: TipoServicioCodigo; nombre: string; detalle: string }[] =
       detalle:
         "Salón, quincho o espacio al aire libre. Se reserva por turno o por horas.",
     },
+    {
+      codigo: "excursion",
+      nombre: "Excursión o actividad",
+      detalle:
+        "Cabalgatas, trekking, visitas a bodegas. Se reserva por salida y cantidad de personas.",
+    },
   ];
 
 export default function FormularioNueva({
@@ -39,6 +45,7 @@ export default function FormularioNueva({
   const [tipo, setTipo] = useState<TipoServicioCodigo>(tipoInicial);
   const catalogo = catalogos[tipo];
   const esSalon = tipo === "salon_eventos";
+  const esExcursion = tipo === "excursion";
 
   return (
     <form action={ejecutar} className={estilos.formulario}>
@@ -70,13 +77,23 @@ export default function FormularioNueva({
 
       <div className={estilos.campos}>
         <label className={estilos.completo}>
-          <span>{esSalon ? "Nombre del salón" : "Nombre del alojamiento"}</span>
+          <span>
+            {esSalon
+              ? "Nombre del salón"
+              : esExcursion
+                ? "Nombre de la excursión"
+                : "Nombre del alojamiento"}
+          </span>
           <input
             name="titulo"
             required
             maxLength={150}
             placeholder={
-              esSalon ? "Quincho Los Algarrobos" : "Cabañas del Arroyo"
+              esSalon
+                ? "Quincho Los Algarrobos"
+                : esExcursion
+                  ? "Cabalgata al Dique"
+                  : "Cabañas del Arroyo"
             }
           />
         </label>
@@ -97,7 +114,9 @@ export default function FormularioNueva({
 
         {/* key: al cambiar de tipo, el subtipo elegido del otro tipo no puede quedar. */}
         <label className={estilos.medio} key={tipo}>
-          <span>{esSalon ? "Tipo de espacio" : "Tipo"}</span>
+          <span>
+            {esSalon ? "Tipo de espacio" : esExcursion ? "Tipo de actividad" : "Tipo"}
+          </span>
           <select name="subtipo_servicio_id" defaultValue="">
             <option value="">Elegir después</option>
             {catalogo.subtipos.map((s) => (

@@ -36,8 +36,8 @@ export default async function MiCalendario({ searchParams }: Props) {
     porRevisar(token!).catch(() => []),
     misPublicaciones(token!).catch(() => []),
   ]);
-  // Los salones van por horas: esta grilla es por días y no los muestra.
-  const salones = publicaciones.filter((p) => p.tipo === "salon_eventos");
+  // Salones y excursiones no van por noches: esta grilla es por días y no los muestra.
+  const salones = publicaciones.filter((p) => p.tipo !== "alojamiento");
 
   return (
     <>
@@ -66,7 +66,8 @@ export default async function MiCalendario({ searchParams }: Props) {
 
         {salones.length > 0 && (
           <p className={estilos.notaSalones}>
-            Tus salones se reservan por horas y tienen su propia agenda, en cada espacio:{" "}
+            Tus salones y excursiones no se reservan por noche: cada uno tiene su propia
+            agenda, en su publicación:{" "}
             {salones.map((s, i) => (
               <span key={s.id}>
                 {i > 0 && ", "}

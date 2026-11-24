@@ -19,7 +19,17 @@ from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
 from app.core.config import get_settings
-from app.models import Foto, FranjaHoraria, Publicacion, Tarifa, TarifaHoraria, Unidad
+from app.models import (
+    Foto,
+    FranjaHoraria,
+    PrecioPasajero,
+    Publicacion,
+    SalidaExcursion,
+    Tarifa,
+    TarifaHoraria,
+    TurnoExcursion,
+    Unidad,
+)
 from app.models.enums import EstadoPublicacion, ModoReserva
 
 TRANSICIONES: dict[EstadoPublicacion, set[EstadoPublicacion]] = {
@@ -58,19 +68,28 @@ def faltantes(db: Session, publicacion: Publicacion) -> list[str]:
         problemas.append("La descripción necesita al menos 40 caracteres")
     if publicacion.ubicacion is None:
         problemas.append("Falta marcar la ubicación en el mapa")
-    salon = publicacion.tipo_servicio.modo_reserva is ModoReserva.HORAS
+    modo = publicacion.tipo_servicio.modo_reserva
+    salon = modo is ModoReserva.HORAS
+    excursion = modo is ModoReserva.TURNO_CUPO
     if publicacion.subtipo_servicio_id is None:
         problemas.append(
-            "Falta elegir el tipo de espacio" if salon else "Falta elegir el tipo de alojamiento"
+            "Falta elegir el tipo de espacio"
+            if salon
+            else "Falta elegir el tipo de actividad"
+            if excursion
+            else "Falta elegir el tipo de alojamiento"
         )
-    if publicacion.politica_cancelacion_id is None:
+    # Una plantilla o tramos propios del prestador: cualquiera de las dos vale.
+    if publicacion.politica_cancelacion_id is None and not publicacion.tramos_cancelacion:
         problemas.append("Falta elegir una política de cancelación")
     # Con la reserva confirmada, el viajero le escribe por WhatsApp desde la reserva.
     if not publicacion.prestador.usuario.telefono:
         problemas.append("Falta tu WhatsApp: cargalo en Mi cuenta")
     # Un salón no tiene ingreso y salida: sus horarios son los turnos o el
     # horario de atención de cada unidad.
-    if not salon and (publicacion.hora_ingreso is None or publicacion.hora_salida is None):
+    if modo is ModoReserva.NOCHES and (
+        publicacion.hora_ingreso is None or publicacion.hora_salida is None
+    ):
         problemas.append("Faltan los horarios de ingreso y salida")
 
     fotos = db.scalar(
@@ -86,8 +105,14 @@ def faltantes(db: Session, publicacion: Publicacion) -> list[str]:
     )
     if not unidades:
         problemas.append(
-            "Falta cargar al menos un espacio" if salon else "Falta cargar al menos una unidad"
+            "Falta cargar al menos un espacio"
+            if salon
+            else "Falta cargar al menos una actividad"
+            if excursion
+            else "Falta cargar al menos una unidad"
         )
+    elif excursion:
+        problemas.extend(_faltantes_excursion(db, unidades))
     elif salon:
         # Un salón se puede reservar si tiene al menos un turno o precio por hora.
         sin_precio = [
@@ -196,3 +221,35 @@ def tarifa_se_superpone(db: Session, unidad_id, desde: date | None, hasta: date 
         if inicio_a <= fin_b and inicio_b <= fin_a:
             return True
     return False
+
+
+def _faltantes_excursion(db: Session, unidades: list[Unidad]) -> list[str]:
+    """Cada actividad necesita precios y algo que salga: un turno o una salida especial."""
+    sin_salidas, sin_precios = [], []
+    for u in unidades:
+        tiene_turno = db.scalar(
+            select(TurnoExcursion.id).where(
+                TurnoExcursion.unidad_id == u.id, TurnoExcursion.activo.is_(True)
+            )
+        )
+        tiene_especial = db.scalar(
+            select(SalidaExcursion.id).where(
+                SalidaExcursion.unidad_id == u.id,
+                SalidaExcursion.turno_id.is_(None),
+                SalidaExcursion.fecha >= date.today(),
+            )
+        )
+        if not tiene_turno and not tiene_especial:
+            sin_salidas.append(u.nombre)
+        if not db.scalar(
+            select(PrecioPasajero.id).where(
+                PrecioPasajero.unidad_id == u.id, PrecioPasajero.activo.is_(True)
+            )
+        ):
+            sin_precios.append(u.nombre)
+    problemas = []
+    if sin_salidas:
+        problemas.append(f"Sin turnos ni salidas: {', '.join(sin_salidas)}")
+    if sin_precios:
+        problemas.append(f"Sin precios por pasajero: {', '.join(sin_precios)}")
+    return problemas

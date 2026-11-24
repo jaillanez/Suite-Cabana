@@ -80,7 +80,11 @@ export default async function MisPublicaciones() {
                   <span className={estilos.datos}>
                     <strong>{p.titulo}</strong>
                     <span className={estilos.lugar}>
-                      {p.tipo === "salon_eventos" ? "Salón de eventos · " : ""}
+                      {p.tipo === "salon_eventos"
+                        ? "Salón de eventos · "
+                        : p.tipo === "excursion"
+                          ? "Excursión · "
+                          : ""}
                       {p.localidad} · {p.provincia}
                     </span>
                     <span className={estilos.numeros}>
@@ -90,7 +94,11 @@ export default async function MisPublicaciones() {
                         ? p.unidades.length === 1
                           ? "espacio"
                           : "espacios"
-                        : p.unidades.length === 1
+                        : p.tipo === "excursion"
+                          ? p.unidades.length === 1
+                            ? "actividad"
+                            : "actividades"
+                          : p.unidades.length === 1
                           ? "unidad"
                           : "unidades"}
                       {p.faltantes.length > 0 && (

@@ -44,6 +44,20 @@ import {
   type ReservaParticular,
   type ResultadoSincronizarTodo,
   type PublicacionEdicion,
+  agregarSalidaEspecial,
+  anotarEnSalida,
+  cambiarCupoSalida,
+  crearPrecioPasajero,
+  crearTurno,
+  quitarAnotado,
+  quitarPrecioPasajero,
+  quitarTurno,
+  reanudarSalida,
+  suspenderSalida,
+  verSalidasPanel,
+  type EleccionSalida,
+  type SalidaPanel,
+  type Suspension,
 } from "./api";
 import { tokenActual } from "./sesion";
 
@@ -90,7 +104,9 @@ export async function accionCrearPublicacion(_previo: unknown, datos: FormData) 
   const titulo = String(datos.get("titulo") ?? "").trim();
   const localidad_id = String(datos.get("localidad_id") ?? "");
   const subtipo = String(datos.get("subtipo_servicio_id") ?? "");
-  const tipo = datos.get("tipo") === "salon_eventos" ? "salon_eventos" : "alojamiento";
+  const pedido = datos.get("tipo");
+  const tipo =
+    pedido === "salon_eventos" || pedido === "excursion" ? pedido : "alojamiento";
   if (!titulo || !localidad_id) return { error: "Falta el nombre o la localidad" };
 
   let creada: PublicacionEdicion;
@@ -408,5 +424,121 @@ export async function accionSoltarHoras(id: string, unidadId: string, bloqueoId:
   return conAgendaHoraria(
     (t) => soltarHoras(t, id, unidadId, bloqueoId),
     "No pudimos liberar ese horario.",
+  );
+}
+
+/* --- Excursiones (docs/05, etapa 3) --- */
+
+export async function accionCrearTurno(id: string, unidadId: string, datos: unknown) {
+  return conSesion((t) => crearTurno(t, id, unidadId, datos), "No pudimos agregar el turno.");
+}
+
+export async function accionQuitarTurno(id: string, unidadId: string, turnoId: string) {
+  return conSesion((t) => quitarTurno(t, id, unidadId, turnoId), "No pudimos quitar el turno.");
+}
+
+export async function accionCrearPrecioPasajero(id: string, unidadId: string, datos: unknown) {
+  return conSesion(
+    (t) => crearPrecioPasajero(t, id, unidadId, datos),
+    "No pudimos agregar el precio.",
+  );
+}
+
+export async function accionQuitarPrecioPasajero(id: string, unidadId: string, precioId: string) {
+  return conSesion(
+    (t) => quitarPrecioPasajero(t, id, unidadId, precioId),
+    "No pudimos quitar el precio.",
+  );
+}
+
+export type ResultadoSalidas = { salidas: SalidaPanel[] } | { error: string };
+export type ResultadoSalida =
+  | { salida: SalidaPanel; suspension?: Omit<Suspension, "salida"> }
+  | { error: string };
+
+export async function accionSalidasPanel(
+  id: string,
+  unidadId: string,
+  desde: string,
+  hasta: string,
+): Promise<ResultadoSalidas> {
+  const token = await tokenActual();
+  if (!token) return { error: "Tu sesión venció. Ingresá de nuevo." };
+  try {
+    return { salidas: await verSalidasPanel(token, id, unidadId, desde, hasta) };
+  } catch (e) {
+    return problema(e, "No pudimos traer las salidas.");
+  }
+}
+
+async function conSalida(
+  llamada: (token: string) => Promise<SalidaPanel>,
+  porDefecto: string,
+): Promise<ResultadoSalida> {
+  const token = await tokenActual();
+  if (!token) return { error: "Tu sesión venció. Ingresá de nuevo." };
+  try {
+    return { salida: await llamada(token) };
+  } catch (e) {
+    return problema(e, porDefecto);
+  }
+}
+
+export async function accionSuspenderSalida(
+  id: string,
+  unidadId: string,
+  datos: EleccionSalida & { motivo: string },
+): Promise<ResultadoSalida> {
+  const token = await tokenActual();
+  if (!token) return { error: "Tu sesión venció. Ingresá de nuevo." };
+  try {
+    const { salida, ...suspension } = await suspenderSalida(token, id, unidadId, datos);
+    revalidatePath("/mis-reservas");
+    return { salida, suspension };
+  } catch (e) {
+    return problema(e, "No pudimos suspender la salida.");
+  }
+}
+
+export async function accionReanudarSalida(id: string, unidadId: string, datos: EleccionSalida) {
+  return conSalida(
+    (t) => reanudarSalida(t, id, unidadId, datos),
+    "No pudimos reanudar la salida.",
+  );
+}
+
+export async function accionCambiarCupoSalida(
+  id: string,
+  unidadId: string,
+  datos: EleccionSalida & { cupo: number },
+) {
+  return conSalida(
+    (t) => cambiarCupoSalida(t, id, unidadId, datos),
+    "No pudimos cambiar el cupo.",
+  );
+}
+
+export async function accionAnotarEnSalida(
+  id: string,
+  unidadId: string,
+  datos: EleccionSalida & { personas: number; nota?: string | null },
+) {
+  return conSalida(
+    (t) => anotarEnSalida(t, id, unidadId, datos),
+    "No pudimos anotar esos lugares.",
+  );
+}
+
+export async function accionQuitarAnotado(id: string, unidadId: string, tomadoId: string) {
+  return conSalida(
+    (t) => quitarAnotado(t, id, unidadId, tomadoId),
+    "No pudimos liberar esos lugares.",
+  );
+}
+
+export async function accionAgregarSalidaEspecial(id: string, unidadId: string, datos: unknown) {
+  return conSalida(
+    (t) => agregarSalidaEspecial(t, id, unidadId, datos),
+    "No pudimos agregar la salida.",
   );
 }

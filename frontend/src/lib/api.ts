@@ -344,7 +344,38 @@ export type UnidadEdicion = {
   franjas: FranjaEdicion[];
   tarifa_horaria: TarifaHorariaEdicion | null;
   adicionales: AdicionalEdicion[];
+  /* Excursiones (docs/05). En los otros tipos vienen vacíos. */
+  turnos?: TurnoEdicion[];
+  precios_pasajero?: PrecioPasajeroEdicion[];
 };
+
+/** Un turno que se repite: días (0 = lunes), hora, duración, cupo y mínimo. */
+export type TurnoEdicion = {
+  id: string;
+  nombre: string;
+  dias_semana: number[];
+  hora_inicio: string;
+  duracion_minutos: number;
+  cupo: number;
+  desde: string | null;
+  hasta: string | null;
+  minimo_personas: number;
+  aviso_minimo_horas: number;
+};
+
+/** Un precio por tipo de pasajero, con las edades que decida el prestador. */
+export type PrecioPasajeroEdicion = {
+  id: string;
+  nombre: string;
+  descripcion: string | null;
+  edad_desde: number | null;
+  edad_hasta: number | null;
+  precio: string;
+  ocupa_lugar: boolean;
+};
+
+/** Tramo de una política de cancelación propia del prestador. */
+export type TramoCancelacion = { dias_antes: number; porcentaje_reintegro: number };
 
 /** Precio por día de la semana: "0" es lunes, "6" domingo. */
 export type PreciosPorDia = Record<string, string> | null;
@@ -376,14 +407,14 @@ export type AdicionalEdicion = {
   por_persona: boolean;
 };
 
-export type TipoServicioCodigo = "alojamiento" | "salon_eventos";
+export type TipoServicioCodigo = "alojamiento" | "salon_eventos" | "excursion";
 
 export type FotoEdicion = { id: string; url: string; orden: number; descripcion: string | null };
 
 export type PublicacionEdicion = {
   id: string;
   tipo: TipoServicioCodigo;
-  modo_reserva: "noches" | "horas";
+  modo_reserva: "noches" | "horas" | "turno_cupo";
   porcentaje_sena: number | null;
   slug: string;
   titulo: string;
@@ -403,6 +434,8 @@ export type PublicacionEdicion = {
   hora_salida: string | null;
   confirmacion_inmediata: boolean;
   politica_cancelacion_id: string | null;
+  tramos_cancelacion?: TramoCancelacion[] | null;
+  reintegro_si_no_sale?: number;
   comodidades: string[];
   fotos: FotoEdicion[];
   unidades: UnidadEdicion[];
@@ -671,6 +704,154 @@ export const sincronizarCalendario = (
   api<Sincronizacion>(`${ruta(id, unidadId)}/calendarios/${calendarioId}/sincronizar`, {
     method: "POST",
     token,
+  });
+
+/* --- Excursiones del prestador (docs/05, etapa 3) --- */
+
+export const crearTurno = (token: string, id: string, unidadId: string, datos: unknown) =>
+  api<PublicacionEdicion>(`${ruta(id, unidadId)}/turnos`, {
+    method: "POST",
+    token,
+    body: JSON.stringify(datos),
+  });
+
+export const quitarTurno = (token: string, id: string, unidadId: string, turnoId: string) =>
+  api<PublicacionEdicion>(`${ruta(id, unidadId)}/turnos/${turnoId}`, { method: "DELETE", token });
+
+export const crearPrecioPasajero = (
+  token: string,
+  id: string,
+  unidadId: string,
+  datos: unknown,
+) =>
+  api<PublicacionEdicion>(`${ruta(id, unidadId)}/precios-pasajero`, {
+    method: "POST",
+    token,
+    body: JSON.stringify(datos),
+  });
+
+export const quitarPrecioPasajero = (
+  token: string,
+  id: string,
+  unidadId: string,
+  precioId: string,
+) =>
+  api<PublicacionEdicion>(`${ruta(id, unidadId)}/precios-pasajero/${precioId}`, {
+    method: "DELETE",
+    token,
+  });
+
+export type AnotadoSalida = {
+  id: string;
+  personas: number;
+  origen: "retencion" | "reserva" | "externa" | "manual" | "ical";
+  nota: string | null;
+  reserva: string | null;
+  viajero: string | null;
+  estado_reserva: EstadoReserva | null;
+  vence_en: string | null;
+};
+
+export type SalidaPanel = {
+  turno_id: string | null;
+  salida_id: string | null;
+  fecha: string;
+  nombre: string;
+  inicio: string;
+  fin: string;
+  cupo: number;
+  libres: number;
+  ocupados: number;
+  suspendida: boolean;
+  motivo: string | null;
+  minimo_personas: number;
+  sale_confirmada: boolean;
+  anotados: AnotadoSalida[];
+};
+
+/** Qué salida: la guardada, o la de un turno ese día (todavía sin guardar). */
+export type EleccionSalida = { fecha: string; turno_id?: string; salida_id?: string };
+
+export const eleccionDe = (s: SalidaPanel): EleccionSalida =>
+  s.salida_id
+    ? { fecha: s.fecha, salida_id: s.salida_id }
+    : { fecha: s.fecha, turno_id: s.turno_id ?? undefined };
+
+export const verSalidasPanel = (
+  token: string,
+  id: string,
+  unidadId: string,
+  desde: string,
+  hasta: string,
+) =>
+  api<SalidaPanel[]>(
+    `${ruta(id, unidadId)}/salidas?${new URLSearchParams({ desde, hasta })}`,
+    { token },
+  );
+
+const accionSalida = <T,>(
+  token: string,
+  id: string,
+  unidadId: string,
+  accion: "suspender" | "reanudar" | "cupo" | "anotar",
+  datos: unknown,
+) =>
+  api<T>(`${ruta(id, unidadId)}/salidas/${accion}`, {
+    method: "POST",
+    token,
+    body: JSON.stringify(datos),
+  });
+
+export type Suspension = {
+  salida: SalidaPanel;
+  reservas_canceladas: number;
+  a_devolver: string;
+};
+
+export const suspenderSalida = (
+  token: string,
+  id: string,
+  unidadId: string,
+  datos: EleccionSalida & { motivo: string },
+) => accionSalida<Suspension>(token, id, unidadId, "suspender", datos);
+
+export const reanudarSalida = (
+  token: string,
+  id: string,
+  unidadId: string,
+  datos: EleccionSalida,
+) => accionSalida<SalidaPanel>(token, id, unidadId, "reanudar", datos);
+
+export const cambiarCupoSalida = (
+  token: string,
+  id: string,
+  unidadId: string,
+  datos: EleccionSalida & { cupo: number },
+) => accionSalida<SalidaPanel>(token, id, unidadId, "cupo", datos);
+
+export const anotarEnSalida = (
+  token: string,
+  id: string,
+  unidadId: string,
+  datos: EleccionSalida & { personas: number; nota?: string | null },
+) => accionSalida<SalidaPanel>(token, id, unidadId, "anotar", datos);
+
+export const quitarAnotado = (token: string, id: string, unidadId: string, tomadoId: string) =>
+  api<SalidaPanel>(`${ruta(id, unidadId)}/salidas/anotados/${tomadoId}`, {
+    method: "DELETE",
+    token,
+  });
+
+export const agregarSalidaEspecial = (
+  token: string,
+  id: string,
+  unidadId: string,
+  datos: unknown,
+) =>
+  api<SalidaPanel>(`${ruta(id, unidadId)}/salidas`, {
+    method: "POST",
+    token,
+    body: JSON.stringify(datos),
   });
 
 /* --- Reservas y pagos --- */

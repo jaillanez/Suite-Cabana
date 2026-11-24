@@ -27,6 +27,8 @@ import {
 } from "./Iconos";
 import CalendarioUnidad from "./CalendarioUnidad";
 import MapaSelector from "./MapaSelector";
+import PoliticaPropia from "./PoliticaPropia";
+import UnidadesExcursion from "./UnidadesExcursion";
 import UnidadesSalon from "./UnidadesSalon";
 import estilos from "./EditorPublicacion.module.css";
 
@@ -50,6 +52,8 @@ export default function EditorPublicacion({
 
   const bloqueada = p.estado === "en_revision";
   const esSalon = p.tipo === "salon_eventos";
+  const esExcursion = p.tipo === "excursion";
+  const porNoches = !esSalon && !esExcursion;
 
   function aplicar(resultado: Resultado) {
     if ("publicacion" in resultado) {
@@ -76,8 +80,8 @@ export default function EditorPublicacion({
         politica_cancelacion_id: valor("politica_cancelacion_id") || null,
         direccion: valor("direccion") || null,
         confirmacion_inmediata: datos.get("confirmacion_inmediata") === "on",
-        // Un salón no tiene ingreso y salida: sus horarios son los turnos.
-        ...(esSalon
+        // Un salón o una excursión no tienen ingreso y salida: sus horarios son los turnos.
+        ...(!porNoches
           ? { porcentaje_sena: Number(valor("porcentaje_sena") || 0) }
           : {
               hora_ingreso: valor("hora_ingreso") || null,
@@ -130,10 +134,10 @@ export default function EditorPublicacion({
           )}
           {p.estado === "aprobada" && (
             <>
-              {/* La ficha pública de los salones llega con la etapa 4 (docs/04). */}
-              {!esSalon && (
+              {/* La ficha pública de las excursiones llega con su etapa 4 (docs/05). */}
+              {!esExcursion && (
                 <Link
-                  href={`/alojamiento/${p.slug}`}
+                  href={esSalon ? `/salon/${p.slug}` : `/alojamiento/${p.slug}`}
                   className={estilos.secundario}
                 >
                   Ver publicada
@@ -226,7 +230,13 @@ export default function EditorPublicacion({
       {guardado && <p className={estilos.guardado}>Guardado</p>}
 
       <fieldset className={estilos.bloque} disabled={bloqueada}>
-        <h2>{esSalon ? "Datos del salón" : "Datos del alojamiento"}</h2>
+        <h2>
+          {esSalon
+            ? "Datos del salón"
+            : esExcursion
+              ? "Datos de la excursión"
+              : "Datos del alojamiento"}
+        </h2>
         <form action={guardar} className={estilos.formulario}>
           <label className={estilos.completo}>
             <span>Nombre</span>
@@ -246,12 +256,16 @@ export default function EditorPublicacion({
               placeholder={
                 esSalon
                   ? "Contá cómo es el lugar, para qué eventos sirve y qué incluye el alquiler."
-                  : "Contá qué tiene, cómo es el entorno y a qué distancia está de lo que la gente busca."
+                  : esExcursion
+                    ? "Contá qué se hace, por dónde va, cuánta exigencia física tiene y dónde se encuentran."
+                    : "Contá qué tiene, cómo es el entorno y a qué distancia está de lo que la gente busca."
               }
             />
           </label>
           <label>
-            <span>{esSalon ? "Tipo de espacio" : "Tipo"}</span>
+            <span>
+              {esSalon ? "Tipo de espacio" : esExcursion ? "Tipo de actividad" : "Tipo"}
+            </span>
             <select
               name="subtipo_servicio_id"
               defaultValue={p.subtipo_servicio_id ?? ""}
@@ -278,7 +292,7 @@ export default function EditorPublicacion({
               ))}
             </select>
           </label>
-          {esSalon ? (
+          {!porNoches ? (
             <label>
               <span>Seña para reservar (%)</span>
               <input
@@ -315,7 +329,13 @@ export default function EditorPublicacion({
             </>
           )}
           <label className={estilos.completo}>
-            <span>{esSalon ? "Reglas del lugar" : "Reglas de la casa"}</span>
+            <span>
+              {esSalon
+                ? "Reglas del lugar"
+                : esExcursion
+                  ? "Para tener en cuenta"
+                  : "Reglas de la casa"}
+            </span>
             <textarea
               name="reglas_casa"
               defaultValue={p.reglas_casa ?? ""}
@@ -323,12 +343,14 @@ export default function EditorPublicacion({
               placeholder={
                 esSalon
                   ? "Música hasta las 4, se permite catering propio, sin pirotecnia…"
-                  : undefined
+                  : esExcursion
+                    ? "Qué llevar, edad mínima, si hace falta experiencia…"
+                    : undefined
               }
             />
           </label>
           <label className={estilos.completo}>
-            <span>Dirección</span>
+            <span>{esExcursion ? "Punto de encuentro" : "Dirección"}</span>
             <input
               name="direccion"
               defaultValue={p.direccion ?? ""}
@@ -461,13 +483,25 @@ export default function EditorPublicacion({
         </ul>
       </fieldset>
 
+      {esExcursion && (
+        <fieldset className={estilos.bloque} disabled={bloqueada}>
+          <PoliticaPropia p={p} correr={correr} pendiente={pendiente} />
+        </fieldset>
+      )}
+
       {esSalon && (
         <fieldset className={estilos.bloque} disabled={bloqueada}>
           <UnidadesSalon p={p} correr={correr} pendiente={pendiente} />
         </fieldset>
       )}
 
-      {!esSalon && (
+      {esExcursion && (
+        <fieldset className={estilos.bloque} disabled={bloqueada}>
+          <UnidadesExcursion p={p} correr={correr} pendiente={pendiente} />
+        </fieldset>
+      )}
+
+      {porNoches && (
         <fieldset className={estilos.bloque} disabled={bloqueada}>
           <h2>Unidades</h2>
           <p className={estilos.ayuda}>

@@ -40,6 +40,10 @@ export default function DetalleReserva({
   const sumados = reserva.items.slice(1);
   // Un salón (docs/04): horario e invitados en vez de noches y huéspedes.
   const evento = Boolean(item?.inicio_en && item?.fin_en);
+  // Una excursión (docs/05) guarda sus pasajeros por tipo en el desglose.
+  const pasajeros = Array.isArray(item?.desglose?.pasajeros)
+    ? (item.desglose.pasajeros as { concepto: string; cantidad: number }[])
+    : null;
   const lineasEvento = (
     item?.desglose as { lineas?: { concepto: string; monto: string }[] }
   )?.lineas;
@@ -120,7 +124,7 @@ export default function DetalleReserva({
       )}
 
       <section className={estilos.bloque}>
-        <h2>{evento ? "El evento" : "La estadía"}</h2>
+        <h2>{pasajeros ? "La salida" : evento ? "El evento" : "La estadía"}</h2>
         <dl className={estilos.datos}>
           {evento && item?.inicio_en && item.fin_en ? (
             <>
@@ -129,8 +133,12 @@ export default function DetalleReserva({
                 <dd>{horarioEvento(item.inicio_en, item.fin_en)}</dd>
               </div>
               <div>
-                <dt>Invitados</dt>
-                <dd>{plural(item.adultos, "persona", "personas")}</dd>
+                <dt>{pasajeros ? "Quiénes van" : "Invitados"}</dt>
+                <dd>
+                  {pasajeros
+                    ? pasajeros.map((x) => `${x.cantidad} ${x.concepto}`).join(", ")
+                    : plural(item.adultos, "persona", "personas")}
+                </dd>
               </div>
             </>
           ) : (
@@ -158,7 +166,7 @@ export default function DetalleReserva({
           )}
           {item && (item.direccion || item.lat !== null) && (
             <div>
-              <dt>Dirección</dt>
+              <dt>{pasajeros ? "Punto de encuentro" : "Dirección"}</dt>
               <dd>
                 {item.direccion ?? "El anfitrión todavía no la cargó"}
                 {item.lat !== null && item.lon !== null && (

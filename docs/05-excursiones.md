@@ -71,7 +71,7 @@ Como con las noches (CLAUDE.md §6), lo garantiza la base:
 
 ## 5. Etapas
 
-Cada etapa se puede publicar por separado. Hechas (noviembre 2026): **1** y **2** (solo backend).
+Cada etapa se puede publicar por separado. Hechas (noviembre 2026): **1**, **2** y **3**.
 
 | Etapa | Contenido |
 |---|---|
@@ -96,8 +96,25 @@ migración 0015):
   salida (llegó al mínimo) o la cancela. Cuentan las reservas pagadas y lo que
   anotó el prestador; quien está pagando, no. Una salida confirmada va aunque
   después alguien cancele. Pasada la hora, una salida sin confirmar ya no se vende.
-- Todavía no hay pantallas: un prestador no puede publicar una excursión ni
-  cargar estos parámetros (etapa 3), y el viajero no la ve en la web (etapa 4).
+
+Cómo quedó la etapa 3 (`/mis-publicaciones/.../turnos`, `/precios-pasajero`,
+`/salidas`; pantallas `UnidadesExcursion`, `PoliticaPropia`, `PanelSalidas`):
+- "Excursión o actividad" al publicar. El editor pide tipo de actividad, punto de
+  encuentro y "para tener en cuenta"; no pide ingreso y salida. Comodidades
+  propias (guía, traslado, equipo, refrigerio, apto para chicos, mascota).
+- Cada actividad lleva el máximo de personas por reserva, sus precios por tipo de
+  pasajero y sus turnos (días, hora, duración, cupo, temporada, mínimo y aviso).
+- **Cancelación y reintegros**: tramos propios (hasta 5) o la plantilla, y el
+  porcentaje que se devuelve si la salida no va. Con tramos propios no hace falta
+  elegir plantilla para mandarla a revisión.
+- **Panel de salidas** de cada actividad, de a dos semanas: ocupación, quiénes
+  van (el nombre del viajero solo con la reserva confirmada, como el WhatsApp),
+  anotar ventas por fuera, cambiar el cupo de un día (nunca menos que lo tomado
+  ni que el mínimo), suspender —avisa antes cuántas reservas se cancelan y con
+  qué porcentaje— y volver a ofrecerla, y salidas especiales.
+- Quitar un turno o un precio no toca lo vendido: las salidas guardadas siguen y
+  cada reserva tiene su precio en el desglose.
+- Falta la etapa 4: el viajero todavía no ve las excursiones en la web.
 
 ## 6. Preguntas abiertas
 

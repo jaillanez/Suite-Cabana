@@ -151,6 +151,7 @@ SUBTIPOS = [
 A = ("alojamiento",)
 S = ("salon_eventos",)
 AS = ("alojamiento", "salon_eventos")
+E = ("excursion",)
 
 # (código, nombre, ícono, tipos de servicio a los que aplica)
 COMODIDADES = [
@@ -165,7 +166,7 @@ COMODIDADES = [
     ("lavarropas", "Lavarropas", "lavarropas", A),
     ("tv", "TV por cable", "tv", A),
     ("ropa_blanca", "Ropa blanca incluida", "cama", A),
-    ("accesible", "Accesible en silla de ruedas", "accesible", AS),
+    ("accesible", "Accesible en silla de ruedas", "accesible", (*AS, *E)),
     # En una cabaña dicen "el complejo tiene salón / quincho"; el salón en sí se
     # publica aparte, como su propio tipo de servicio.
     ("salon", "Salón de eventos", "salon", A),
@@ -182,6 +183,13 @@ COMODIDADES = [
     ("grupo_electrogeno", "Grupo electrógeno", "energia", S),
     ("juegos_infantiles", "Juegos infantiles", "juegos", S),
     ("banos_accesibles", "Baños accesibles", "accesible", S),
+    # Propias de excursiones y actividades (docs/05).
+    ("guia", "Guía incluido", "guia", E),
+    ("traslado_incluido", "Traslado incluido", "auto", E),
+    ("equipo", "Equipo incluido", "equipo", E),
+    ("refrigerio", "Refrigerio incluido", "desayuno", E),
+    ("apto_chicos", "Apto para chicos", "juegos", E),
+    ("mascotas_excursion", "Se puede ir con mascota", "mascota", E),
 ]
 
 # Publicación destacada: un lugar REAL, cargado aparte de la oferta generada.
