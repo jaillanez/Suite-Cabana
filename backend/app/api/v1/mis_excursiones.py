@@ -47,6 +47,8 @@ router = APIRouter(prefix="/mis-publicaciones", tags=["mis excursiones"])
 DIAS_POR_CONSULTA = 62
 MAX_PRECIOS = 10
 MAX_TURNOS = 20
+#: Salidas especiales por venir, por actividad: más que esto es un turno.
+MAX_SALIDAS_ESPECIALES = 60
 
 
 # --- Formas ---
@@ -407,6 +409,19 @@ def agregar_salida(
 ) -> SalidaPanelOut:
     """Una salida especial, fuera de los turnos."""
     _, unidad = _excursion(db, publicacion_id, unidad_id, prestador, editable=False)
+    especiales = db.scalars(
+        select(SalidaExcursion.id).where(
+            SalidaExcursion.unidad_id == unidad.id,
+            SalidaExcursion.turno_id.is_(None),
+            SalidaExcursion.fecha >= salidas.hoy(),
+        )
+    ).all()
+    if len(especiales) >= MAX_SALIDAS_ESPECIALES:
+        raise HTTPException(
+            status.HTTP_409_CONFLICT,
+            f"Hasta {MAX_SALIDAS_ESPECIALES} salidas especiales por venir: "
+            "si se repiten, cargalas como turno",
+        )
     try:
         fila = salidas.agregar_salida(db, unidad, **datos.model_dump())
     except salidas.SalidaInvalida as e:

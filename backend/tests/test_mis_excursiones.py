@@ -345,3 +345,18 @@ def test_una_salida_especial_aparece_en_el_panel(cliente, prestador, actividad):
     assert r.status_code == 201, r.text
     assert (r.json()["nombre"], r.json()["cupo"]) == ("Salida especial", 6)
     assert _salidas(cliente, prestador, actividad, desde=lunes)[0]["fecha"] == lunes.isoformat()
+
+
+def test_las_salidas_especiales_tienen_tope(cliente, prestador, actividad, monkeypatch):  # noqa: F811
+    from app.api.v1 import mis_excursiones
+
+    monkeypatch.setattr(mis_excursiones, "MAX_SALIDAS_ESPECIALES", 2)
+    ruta = _url(actividad["pid"], actividad["uid"], "/salidas")
+    for n in range(3):
+        r = cliente.post(
+            ruta, headers=prestador,
+            json={"fecha": (_proximo(0) + timedelta(days=n)).isoformat(),
+                  "hora_inicio": "19:00", "duracion_minutos": 120, "cupo": 6},
+        )
+        assert r.status_code == (201 if n < 2 else 409), r.text
+    assert "cargalas como turno" in r.json()["detail"]
