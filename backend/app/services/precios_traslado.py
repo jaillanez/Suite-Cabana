@@ -24,6 +24,9 @@ from app.services.precios_eventos import ZONA
 RADIO_TIERRA_KM = 6371.0
 VENTANA_DIAS = 365
 DURACION_MINIMA = timedelta(minutes=15)
+#: Lo más que un viaje puede tener tomado el vehículo (viaje, vuelta y
+#: preparación). `horarios` usa el mismo tope: lo que se cotiza, se puede reservar.
+OCUPACION_MAXIMA = timedelta(hours=120)
 
 
 class TrasladoInvalido(ValueError):
@@ -152,10 +155,13 @@ def _armar(
         )
     llegada = inicio + duracion
     vuelta = duracion if reglas.vuelve_a_base else timedelta(0)
+    ocupado_hasta = llegada + vuelta + timedelta(minutes=vehiculo.preparacion_minutos)
+    if ocupado_hasta - inicio > OCUPACION_MAXIMA:
+        raise TrasladoInvalido("Ese viaje es demasiado largo para este vehículo")
     return PrecioTraslado(
         inicio=inicio,
         llegada=llegada,
-        ocupado_hasta=llegada + vuelta + timedelta(minutes=vehiculo.preparacion_minutos),
+        ocupado_hasta=ocupado_hasta,
         km=km,
         lineas=lineas,
         subtotal=_r(sum((ln.monto for ln in lineas), Decimal(0))),

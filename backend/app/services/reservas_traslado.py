@@ -308,6 +308,9 @@ def crear_traslado(
             raise reservas.FechasTomadas(
                 f"El vehículo ya está tomado para {que}. Probá con otro horario."
             ) from e
+        except pt.TrasladoInvalido as e:
+            db.rollback()
+            raise reservas.NoSePuedeReservar(str(e)) from e
 
     reservas._avisar_al_viajero(db, reserva, "reserva_creada")
     return reserva

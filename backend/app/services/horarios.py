@@ -24,6 +24,7 @@ from sqlalchemy.orm import Session
 from app.models import BloqueoHorario, Unidad
 from app.models.enums import ModoReserva, OrigenBloqueo
 from app.services.precios_eventos import ZONA  # noqa: F401  (hora de reloj argentina)
+from app.services.precios_traslado import OCUPACION_MAXIMA
 
 #: Ningún bloqueo de un salón dura más que esto: cortaría errores de carga (un
 #: fin con el año mal escrito tomaría el salón por meses).
@@ -32,7 +33,7 @@ DURACION_MINIMA = timedelta(minutes=30)
 #: Un viaje puede ser corto (15 min dentro de la ciudad, sin vuelta) o largo: un
 #: tramo de hasta 48 h, su vuelta a la base y la preparación.
 DURACION_MINIMA_VIAJE = timedelta(minutes=5)
-DURACION_MAXIMA_VIAJE = timedelta(hours=120)
+DURACION_MAXIMA_VIAJE = OCUPACION_MAXIMA
 
 
 class HorarioInvalido(ValueError):

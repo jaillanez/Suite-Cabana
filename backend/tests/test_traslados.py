@@ -247,7 +247,7 @@ def test_el_radio_se_mide_desde_la_base(db, traslado):
     # Con la base en el aeropuerto, el centro es el que queda lejos.
     t["aeropuerto"].es_base = True
     db.flush()
-    assert traslados.base_de(db, t["auto"]).lat == pytest.approx(AEROPUERTO[0])
+    assert traslados.base_de(db, t["auto"]).lat == round(AEROPUERTO[0], 2)  # redondeada
 
 
 def test_dos_viajes_del_mismo_vehiculo_no_se_pisan(db, traslado):

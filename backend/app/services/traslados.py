@@ -20,6 +20,7 @@ from app.models.enums import ModoReserva, OrigenBloqueo
 from app.services import horarios
 from app.services import precios_traslado as pt
 from app.services.busqueda import lat_lon
+from app.services.privacidad import aproximar
 
 
 class NoDisponible(Exception):
@@ -66,7 +67,12 @@ def punto(db: Session, lugar: LugarTraslado) -> pt.Punto:
 
 
 def base_de(db: Session, unidad: Unidad) -> pt.Punto | None:
-    """De dónde sale el vehículo: el lugar marcado como base, o la publicación."""
+    """De dónde sale el vehículo: el lugar marcado como base, o la publicación.
+
+    Redondeado como el punto público (~1 km): el radio se mide desde acá, y con el
+    punto exacto, probar direcciones hasta dar con el borde del radio revelaría
+    dónde está la base, que puede ser la casa del prestador.
+    """
     base = db.scalar(
         select(LugarTraslado).where(
             LugarTraslado.publicacion_id == unidad.publicacion_id,
@@ -75,13 +81,14 @@ def base_de(db: Session, unidad: Unidad) -> pt.Punto | None:
         )
     )
     if base is not None:
-        return punto(db, base)
+        p = punto(db, base)
+        return pt.Punto(lat=aproximar(p.lat), lon=aproximar(p.lon))
     fila = db.execute(
         select(*lat_lon(Publicacion.ubicacion)).where(
             Publicacion.id == unidad.publicacion_id, Publicacion.ubicacion.is_not(None)
         )
     ).first()
-    return pt.Punto(lat=fila[0], lon=fila[1]) if fila else None
+    return pt.Punto(lat=aproximar(fila[0]), lon=aproximar(fila[1])) if fila else None
 
 
 def tramo_entre(
@@ -146,3 +153,5 @@ def ocupar(
         return horarios.bloquear(db, unidad, precio.inicio, precio.ocupado_hasta, origen, **kw)
     except horarios.HorarioOcupado as e:
         raise NoDisponible("El vehículo ya tiene un viaje en ese horario") from e
+    except horarios.HorarioInvalido as e:
+        raise pt.TrasladoInvalido(str(e)) from e

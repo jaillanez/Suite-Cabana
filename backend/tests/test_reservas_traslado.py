@@ -395,3 +395,25 @@ def test_otro_viajero_no_cambia_los_datos_ajenos(cliente, db, traslado, viajero_
         json={"vuelo_ida": "AR1"},
     )
     assert r.status_code == 404
+
+
+# --- Revisión de seguridad ---
+
+
+def test_un_viaje_que_tomaria_el_vehiculo_mas_de_120_h_se_rechaza_al_cotizar():
+    """Sin radio, a 10 km/h: lo que la cotización acepta, la reserva tiene que poder
+    bloquearlo (antes la reserva fallaba con un error 500)."""
+    lejos = pt.Punto(-24.78, -65.41)  # Salta, a más de 1.800 km
+    reglas = pt.Reglas(precio_km=Decimal(900), velocidad_kmh=10)
+    vehiculo = pt.Vehiculo(pasajeros=4)
+    with pytest.raises(pt.TrasladoInvalido, match="demasiado largo"):
+        pt.por_km(HOTEL, lejos, None, vehiculo, reglas, _a_las(14), AHORA, 1)
+
+
+def test_el_radio_se_mide_desde_la_base_redondeada(db, traslado):  # noqa: F811
+    """Con el punto exacto, probar direcciones contra el borde del radio
+    triangularía la base, que puede ser la casa del prestador."""
+    from app.services import traslados
+
+    base = traslados.base_de(db, traslado["auto"])
+    assert (base.lat, base.lon) == (round(-41.1335, 2), round(-71.3103, 2))
