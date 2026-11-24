@@ -417,3 +417,29 @@ def test_el_radio_se_mide_desde_la_base_redondeada(db, traslado):  # noqa: F811
 
     base = traslados.base_de(db, traslado["auto"])
     assert (base.lat, base.lon) == (round(-41.1335, 2), round(-71.3103, 2))
+
+
+def test_el_radio_aplicado_nunca_es_mayor_que_el_del_prestador(db, traslado):  # noqa: F811
+    """Con la base redondeada, un punto a 4,9 km de la base exacta pero más cerca
+    de la redondeada no puede colarse en un radio de 5 km por el redondeo: se
+    descuenta el error máximo, y lo que entra, entra también desde la exacta."""
+    import math
+
+    from app.services import traslados
+
+    traslado["tarifa"].radio_km = 5
+    db.flush()
+    exacta = pt.Punto(-41.1335, -71.3103)
+    rng = __import__("random").Random(7)
+    for _ in range(300):
+        ang, km = rng.uniform(0, 2 * math.pi), rng.uniform(3, 6)
+        p = pt.Punto(
+            exacta.lat + km / 111.2 * math.sin(ang),
+            exacta.lon + km / (111.2 * math.cos(math.radians(exacta.lat))) * math.cos(ang),
+        )
+        try:
+            traslados.cotizar_km(db, traslado["auto"], exacta, p, _a_las(14), 1, ahora=AHORA)
+        except pt.TrasladoInvalido as e:
+            assert "hasta 5 km" in str(e)
+            continue
+        assert pt.distancia_km(exacta, p) <= 5

@@ -22,6 +22,10 @@ from app.services import precios_traslado as pt
 from app.services.busqueda import lat_lon
 from app.services.privacidad import aproximar
 
+#: Lo más que se corre un punto al redondearlo a dos decimales: medio centésimo de
+#: grado en cada eje (~0,56 km), en diagonal.
+ERROR_REDONDEO_KM = 0.8
+
 
 class NoDisponible(Exception):
     """El vehículo ya tiene un viaje (o un bloqueo) en ese horario."""
@@ -137,6 +141,7 @@ def cotizar_km(
     return pt.por_km(
         origen, destino, base_de(db, unidad), vehiculo(unidad), reglas(db, unidad),
         inicio, ahora or datetime.now(UTC), pasajeros, valijas,
+        margen_km=ERROR_REDONDEO_KM,
     )
 
 

@@ -187,13 +187,17 @@ def por_tramo(
 def por_km(
     origen: Punto, destino: Punto, base_vehiculo: Punto | None, vehiculo: Vehiculo,
     reglas: Reglas, inicio: datetime, ahora: datetime, pasajeros: int, valijas: int = 0,
+    margen_km: float = 0.0,
 ) -> PrecioTraslado:
+    """`margen_km`: cuánto puede estar corrida la base que se recibe (redondeada,
+    ver `traslados.base_de`). Se descuenta del radio para que el que se aplica
+    nunca sea más grande que el que eligió el prestador."""
     if reglas.precio_km is None:
         raise TrasladoInvalido("Este vehículo no cobra por kilómetro")
     _validar(vehiculo, reglas, pasajeros, valijas, inicio, ahora)
     if reglas.radio_km is not None and base_vehiculo is not None:
         for p in (origen, destino):
-            if distancia_km(base_vehiculo, p) > reglas.radio_km:
+            if distancia_km(base_vehiculo, p) > reglas.radio_km - margen_km:
                 raise TrasladoInvalido(
                     f"Este vehículo va hasta {reglas.radio_km} km de su base"
                 )
