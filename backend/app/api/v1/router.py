@@ -15,6 +15,7 @@ from app.api.v1 import (
     reservas,
     salones,
     salud,
+    traslados,
 )
 
 api_router = APIRouter(prefix="/api/v1")
@@ -31,4 +32,5 @@ api_router.include_router(correo.router)
 api_router.include_router(reservas.router)
 api_router.include_router(salones.router)
 api_router.include_router(excursiones.router)
+api_router.include_router(traslados.router)
 api_router.include_router(panel.router)

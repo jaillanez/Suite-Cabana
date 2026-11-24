@@ -67,6 +67,10 @@ class ItemReserva(IdMixin, Base):
     subtotal: Mapped[Dinero]  # precio del prestador
     # Snapshot de la política de este ítem: en un paquete cada uno cancela con la suya.
     politica_cancelacion: Mapped[dict | None] = mapped_column(JSONB)
+    # Lo que el viajero cuenta para que el servicio se haga: en un traslado, el
+    # vuelo, la dirección exacta y las notas (docs/06). El prestador lo ve recién
+    # con la reserva pagada; no es parte del precio, así que no va en `desglose`.
+    datos_servicio: Mapped[dict | None] = mapped_column(JSONB)
 
     reserva: Mapped[Reserva] = relationship(back_populates="items")
     unidad: Mapped["Unidad"] = relationship()  # noqa: F821

@@ -29,6 +29,10 @@ from app.services.precios_eventos import ZONA  # noqa: F401  (hora de reloj arge
 #: fin con el año mal escrito tomaría el salón por meses).
 DURACION_MAXIMA = timedelta(hours=48)
 DURACION_MINIMA = timedelta(minutes=30)
+#: Un viaje puede ser corto (15 min dentro de la ciudad, sin vuelta) o largo: un
+#: tramo de hasta 48 h, su vuelta a la base y la preparación.
+DURACION_MINIMA_VIAJE = timedelta(minutes=5)
+DURACION_MAXIMA_VIAJE = timedelta(hours=120)
 
 
 class HorarioInvalido(ValueError):
@@ -48,17 +52,23 @@ class Ocupado:
 
 def _validar(unidad: Unidad, inicio: datetime, fin: datetime) -> None:
     # Salones (por horas) y vehículos de traslado (docs/06): los dos ocupan rangos.
-    if unidad.publicacion.tipo_servicio.modo_reserva not in (ModoReserva.HORAS, ModoReserva.TRAMO):
+    modo = unidad.publicacion.tipo_servicio.modo_reserva
+    if modo not in (ModoReserva.HORAS, ModoReserva.TRAMO):
         raise HorarioInvalido("Esta unidad no se alquila por horario")
+    viaje = modo is ModoReserva.TRAMO
+    minima = DURACION_MINIMA_VIAJE if viaje else DURACION_MINIMA
+    maxima = DURACION_MAXIMA_VIAJE if viaje else DURACION_MAXIMA
     if inicio.tzinfo is None or fin.tzinfo is None:
         # Sin zona, "21:00" puede ser de cualquier lugar: se rechaza en vez de adivinar.
         raise HorarioInvalido("El horario tiene que venir con zona horaria")
     if fin <= inicio:
         raise HorarioInvalido("El fin tiene que ser posterior al inicio")
-    if fin - inicio < DURACION_MINIMA:
+    if fin - inicio < minima:
         raise HorarioInvalido("El rango es demasiado corto")
-    if fin - inicio > DURACION_MAXIMA:
-        raise HorarioInvalido("Un bloqueo no puede durar más de 48 horas")
+    if fin - inicio > maxima:
+        raise HorarioInvalido(
+            f"Un bloqueo no puede durar más de {int(maxima.total_seconds() // 3600)} horas"
+        )
 
 
 def _vigente(ahora: datetime):

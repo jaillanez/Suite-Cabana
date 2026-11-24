@@ -17,6 +17,15 @@ DECIMALES_PUBLICOS = 2
 #: Estados en los que el viajero ya tiene derecho a saber adónde va.
 ESTADOS_CON_DIRECCION = (EstadoReserva.CONFIRMADA, EstadoReserva.COMPLETADA)
 
+#: Estados en los que el prestador ve los datos que el viajero cargó para el
+#: servicio (la dirección donde lo buscan, su vuelo): ya pagó. Con una reserva a
+#: solicitud el prestador los necesita para decidir.
+ESTADOS_CON_DATOS = (
+    EstadoReserva.PENDIENTE_APROBACION,
+    EstadoReserva.CONFIRMADA,
+    EstadoReserva.COMPLETADA,
+)
+
 
 def aproximar(valor: float | None) -> float | None:
     return None if valor is None else round(valor, DECIMALES_PUBLICOS)

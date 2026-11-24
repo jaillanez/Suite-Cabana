@@ -53,7 +53,7 @@ Publicacion ──< LugarTraslado            (puntos con nombre; uno puede ser l
 
 ## 5. Etapas
 
-Cada etapa se puede publicar por separado. Hecha (noviembre 2026): **1**.
+Cada etapa se puede publicar por separado. Hechas (noviembre 2026): **1** y **2**.
 
 | Etapa | Contenido |
 |---|---|
@@ -64,6 +64,27 @@ Cada etapa se puede publicar por separado. Hecha (noviembre 2026): **1**.
 
 Cómo quedó la etapa 1 (`app/services/precios_traslado.py`, `app/services/traslados.py`,
 migración 0016): solo backend.
+
+Cómo quedó la etapa 2 (`app/services/reservas_traslado.py`, `app/api/v1/traslados.py`,
+migración 0017): solo backend y API.
+
+- Cada extremo es un **lugar** del prestador o un **punto del mapa con su dirección**
+  (obligatoria). De lugar a lugar con tramo cargado se cobra el tramo; si no, por km.
+- **Ida y vuelta**: dos ítems de la misma reserva, cada uno con su precio, su
+  recargo nocturno, su comisión y su retención. Se confirman, se cancelan y se
+  caen juntos: si la vuelta no tiene lugar, no se reserva la ida.
+- Si la vuelta sale antes de que el vehículo alcance a volver a la base, el chofer
+  **espera**: la ocupación de la ida termina donde empieza la vuelta.
+- La vuelta tiene que salir después de que llega la ida.
+- **Datos del viaje** (`item_reserva.datos_servicio`): vuelo de ida y de vuelta,
+  direcciones y notas. El viajero corrige el vuelo y las notas de los viajes que
+  no salieron (`PATCH /traslados/reservas/{codigo}/viaje`); las direcciones no,
+  porque el precio por km salió de ese punto. El prestador los ve recién con la
+  reserva pagada (o esperando su respuesta).
+- Política de cancelación: la de la publicación (plantilla o tramos propios), en
+  días, como las excursiones.
+- Los bloqueos de horario de un vehículo van de 5 minutos a 120 horas (un salón
+  sigue entre 30 minutos y 48 horas).
 
 ## 6. Fuera de alcance por ahora
 
@@ -79,3 +100,4 @@ migración 0016): solo backend.
 |---|---|---|
 | ¿Hace falta ofrecer traslados compartidos con horario fijo? | Dirección | No |
 | ¿Se contrata un proveedor de rutas para la distancia por calle? | Dirección / Técnica | No |
+| El vehículo se ocupa desde la salida del viaje: no se cuenta lo que tarda en llegar desde la base hasta el origen. Hoy el prestador lo cubre con la preparación. ¿Se calcula el acercamiento con la base y los puntos? | Técnica | No |

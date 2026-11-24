@@ -114,6 +114,9 @@ class ItemOut(BaseModel):
     # Eventos (docs/04): el horario exacto. En alojamiento, nulos.
     inicio_en: datetime | None = None
     fin_en: datetime | None = None
+    # Traslados (docs/06): vuelo, dirección exacta y notas. El viajero siempre ve
+    # los suyos; el prestador, desde que la reserva está pagada.
+    datos_servicio: dict | None = None
     # Solo con la reserva confirmada: antes es la casa de un desconocido.
     direccion: str | None = None
     lat: float | None = None
@@ -170,7 +173,9 @@ class PreferenciaOut(BaseModel):
 # --- Salidas ---
 
 
-def _item_out(item: ItemReserva, con_direccion: bool = False) -> ItemOut:
+def _item_out(
+    item: ItemReserva, con_direccion: bool = False, con_datos: bool = False
+) -> ItemOut:
     p = item.unidad.publicacion
     c = item.comision
     direccion, lat, lon = None, None, None
@@ -183,6 +188,7 @@ def _item_out(item: ItemReserva, con_direccion: bool = False) -> ItemOut:
     return ItemOut(
         inicio_en=item.inicio_en,
         fin_en=item.fin_en,
+        datos_servicio=item.datos_servicio if con_datos else None,
         direccion=direccion,
         lat=lat,
         lon=lon,
@@ -246,7 +252,12 @@ def _reserva_out(reserva: Reserva, para: contacto.Lado | None = None) -> Reserva
         politica_cancelacion=reserva.politica_cancelacion,
         creada_en=reserva.creado_en,
         items=[
-            _item_out(i, con_direccion=reserva.estado in privacidad.ESTADOS_CON_DIRECCION)
+            _item_out(
+                i,
+                con_direccion=reserva.estado in privacidad.ESTADOS_CON_DIRECCION,
+                con_datos=para == "viajero"
+                or (para == "anfitrion" and reserva.estado in privacidad.ESTADOS_CON_DATOS),
+            )
             for i in reservas.ordenados(reserva)
         ],
         pagos=[

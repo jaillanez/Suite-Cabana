@@ -1024,8 +1024,10 @@ def liberar_vencidas(db: Session, ahora: datetime | None = None) -> int:
 
 
 def principal(reserva: Reserva) -> ItemReserva:
-    """El ítem que da nombre a la reserva: el evento si hay, si no el primero."""
-    return next((i for i in reserva.items if i.inicio_en), reserva.items[0])
+    """El ítem que da nombre a la reserva: el evento si hay (en un traslado de ida
+    y vuelta, el primer viaje), si no el primero."""
+    con_hora = [i for i in reserva.items if i.inicio_en]
+    return min(con_hora, key=lambda i: i.inicio_en) if con_hora else reserva.items[0]
 
 
 def ordenados(reserva: Reserva) -> list[ItemReserva]:
@@ -1036,6 +1038,11 @@ def ordenados(reserva: Reserva) -> list[ItemReserva]:
         key=lambda i: (i.fecha_inicio, i.unidad.publicacion.titulo, i.unidad.nombre),
     )
     return [item, *resto]
+
+
+def _recorrido(item: ItemReserva) -> str:
+    d = item.desglose or {}
+    return f"{d.get('origen', '')} → {d.get('destino', '')}"
 
 
 def _datos_para_aviso(reserva: Reserva) -> dict:
@@ -1049,10 +1056,8 @@ def _datos_para_aviso(reserva: Reserva) -> dict:
         # Un evento: "del 15/03/2027 21:00 al 16/03/2027 05:00 h", no dos fechas.
         desde = item.inicio_en.astimezone(pe.ZONA).strftime("%d/%m/%Y %H:%M")
         hasta = item.fin_en.astimezone(pe.ZONA).strftime("%d/%m/%Y %H:%M h")
-        palabra = (
-            "invitado"
-            if publicacion.tipo_servicio.modo_reserva is ModoReserva.HORAS
-            else "persona"
+        palabra = {ModoReserva.HORAS: "invitado", ModoReserva.TRAMO: "pasajero"}.get(
+            publicacion.tipo_servicio.modo_reserva, "persona"
         )
         quienes = f"{personas} {palabra}" + ("s" if personas != 1 else "")
     else:
@@ -1061,7 +1066,13 @@ def _datos_para_aviso(reserva: Reserva) -> dict:
         quienes = f"{personas} persona" + ("s" if personas != 1 else "")
     unidad = item.unidad.nombre
     sumadas = ordenados(reserva)[1:]
-    if sumadas:
+    if publicacion.tipo_servicio.modo_reserva is ModoReserva.TRAMO:
+        # Un traslado: el recorrido, y la vuelta si la hay (docs/06).
+        unidad += f": {_recorrido(item)}"
+        for i in sumadas:
+            sale = i.inicio_en.astimezone(pe.ZONA)
+            unidad += f"; vuelta {_recorrido(i)} el {sale:%d/%m/%Y %H:%M} h"
+    elif sumadas:
         # Paquete: las plantillas hablan de una unidad; se nombran las demás ahí.
         unidad += "; además " + ", ".join(
             f"{i.unidad.nombre} de {i.unidad.publicacion.titulo} del "
