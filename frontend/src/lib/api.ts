@@ -348,6 +348,47 @@ export type UnidadEdicion = {
   /* Excursiones (docs/05). En los otros tipos vienen vacíos. */
   turnos?: TurnoEdicion[];
   precios_pasajero?: PrecioPasajeroEdicion[];
+  /* Traslados (docs/06): capacidad son los pasajeros; equipaje, las valijas. */
+  equipaje?: number | null;
+  tramos_traslado?: TramoTrasladoEdicion[];
+  tarifa_traslado?: TarifaTrasladoEdicion | null;
+};
+
+/** Un punto con nombre del prestador de traslados: "Aeropuerto", "Centro". */
+export type LugarTrasladoEdicion = {
+  id: string;
+  nombre: string;
+  lat: number | null;
+  lon: number | null;
+  es_base: boolean;
+};
+
+/** Un recorrido fijo de un vehículo con su precio. */
+export type TramoTrasladoEdicion = {
+  id: string;
+  origen_id: string;
+  origen: string;
+  destino_id: string;
+  destino: string;
+  precio: string;
+  por_persona: boolean;
+  duracion_minutos: number;
+  ambos_sentidos: boolean;
+};
+
+/** La tarifa por km y las reglas de un vehículo. */
+export type TarifaTrasladoEdicion = {
+  precio_km: string | null;
+  bajada: string;
+  minimo: string;
+  radio_km: number | null;
+  factor_ruta: string;
+  velocidad_kmh: number;
+  recargo_nocturno_desde: string | null;
+  recargo_nocturno_hasta: string | null;
+  recargo_nocturno_porcentaje: string;
+  vuelve_a_base: boolean;
+  anticipacion_minima_horas: number;
 };
 
 /** Un turno que se repite: días (0 = lunes), hora, duración, cupo y mínimo. */
@@ -408,14 +449,14 @@ export type AdicionalEdicion = {
   por_persona: boolean;
 };
 
-export type TipoServicioCodigo = "alojamiento" | "salon_eventos" | "excursion";
+export type TipoServicioCodigo = "alojamiento" | "salon_eventos" | "excursion" | "traslado";
 
 export type FotoEdicion = { id: string; url: string; orden: number; descripcion: string | null };
 
 export type PublicacionEdicion = {
   id: string;
   tipo: TipoServicioCodigo;
-  modo_reserva: "noches" | "horas" | "turno_cupo";
+  modo_reserva: "noches" | "horas" | "turno_cupo" | "tramo";
   porcentaje_sena: number | null;
   slug: string;
   titulo: string;
@@ -440,6 +481,7 @@ export type PublicacionEdicion = {
   comodidades: string[];
   fotos: FotoEdicion[];
   unidades: UnidadEdicion[];
+  lugares_traslado?: LugarTrasladoEdicion[];
   faltantes: string[];
 };
 
@@ -741,6 +783,49 @@ export const quitarPrecioPasajero = (
     method: "DELETE",
     token,
   });
+
+/* --- Traslados del prestador (docs/06, etapa 3) --- */
+
+const enviarJson = (token: string, url: string, method: string, datos?: unknown) =>
+  api<PublicacionEdicion>(url, {
+    method,
+    token,
+    ...(datos === undefined ? {} : { body: JSON.stringify(datos) }),
+  });
+
+export const crearLugarTraslado = (token: string, id: string, datos: unknown) =>
+  enviarJson(token, `${MIS}/${id}/lugares-traslado`, "POST", datos);
+
+export const editarLugarTraslado = (
+  token: string,
+  id: string,
+  lugarId: string,
+  datos: unknown,
+) => enviarJson(token, `${MIS}/${id}/lugares-traslado/${lugarId}`, "PATCH", datos);
+
+export const quitarLugarTraslado = (token: string, id: string, lugarId: string) =>
+  enviarJson(token, `${MIS}/${id}/lugares-traslado/${lugarId}`, "DELETE");
+
+export const crearTramoTraslado = (
+  token: string,
+  id: string,
+  unidadId: string,
+  datos: unknown,
+) => enviarJson(token, `${ruta(id, unidadId)}/tramos-traslado`, "POST", datos);
+
+export const quitarTramoTraslado = (
+  token: string,
+  id: string,
+  unidadId: string,
+  tramoId: string,
+) => enviarJson(token, `${ruta(id, unidadId)}/tramos-traslado/${tramoId}`, "DELETE");
+
+export const guardarTarifaTraslado = (
+  token: string,
+  id: string,
+  unidadId: string,
+  datos: unknown,
+) => enviarJson(token, `${ruta(id, unidadId)}/tarifa-traslado`, "PUT", datos);
 
 export type AnotadoSalida = {
   id: string;

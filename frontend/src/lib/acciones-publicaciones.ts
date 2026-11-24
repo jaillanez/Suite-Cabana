@@ -48,6 +48,12 @@ import {
   anotarEnSalida,
   cambiarCupoSalida,
   crearPrecioPasajero,
+  crearLugarTraslado,
+  editarLugarTraslado,
+  quitarLugarTraslado,
+  crearTramoTraslado,
+  quitarTramoTraslado,
+  guardarTarifaTraslado,
   crearTurno,
   quitarAnotado,
   quitarPrecioPasajero,
@@ -74,7 +80,8 @@ function problema(e: unknown, porDefecto: string): { error: string; faltantes?: 
     }
     if (Array.isArray(d)) {
       const primero = d[0] as { msg?: string } | undefined;
-      return { error: primero?.msg ?? porDefecto };
+      // Pydantic antepone "Value error, " a los mensajes de los validadores propios.
+      return { error: primero?.msg?.replace(/^Value error, /, "") ?? porDefecto };
     }
     return { error: e.message || porDefecto };
   }
@@ -106,7 +113,9 @@ export async function accionCrearPublicacion(_previo: unknown, datos: FormData) 
   const subtipo = String(datos.get("subtipo_servicio_id") ?? "");
   const pedido = datos.get("tipo");
   const tipo =
-    pedido === "salon_eventos" || pedido === "excursion" ? pedido : "alojamiento";
+    pedido === "salon_eventos" || pedido === "excursion" || pedido === "traslado"
+      ? pedido
+      : "alojamiento";
   if (!titulo || !localidad_id) return { error: "Falta el nombre o la localidad" };
 
   let creada: PublicacionEdicion;
@@ -448,6 +457,44 @@ export async function accionQuitarPrecioPasajero(id: string, unidadId: string, p
   return conSesion(
     (t) => quitarPrecioPasajero(t, id, unidadId, precioId),
     "No pudimos quitar el precio.",
+  );
+}
+
+/* --- Traslados (docs/06, etapa 3) --- */
+
+export async function accionCrearLugar(id: string, datos: unknown) {
+  return conSesion((t) => crearLugarTraslado(t, id, datos), "No pudimos agregar el lugar.");
+}
+
+export async function accionEditarLugar(id: string, lugarId: string, datos: unknown) {
+  return conSesion(
+    (t) => editarLugarTraslado(t, id, lugarId, datos),
+    "No pudimos guardar el lugar.",
+  );
+}
+
+export async function accionQuitarLugar(id: string, lugarId: string) {
+  return conSesion((t) => quitarLugarTraslado(t, id, lugarId), "No pudimos quitar el lugar.");
+}
+
+export async function accionCrearTramo(id: string, unidadId: string, datos: unknown) {
+  return conSesion(
+    (t) => crearTramoTraslado(t, id, unidadId, datos),
+    "No pudimos agregar el recorrido.",
+  );
+}
+
+export async function accionQuitarTramo(id: string, unidadId: string, tramoId: string) {
+  return conSesion(
+    (t) => quitarTramoTraslado(t, id, unidadId, tramoId),
+    "No pudimos quitar el recorrido.",
+  );
+}
+
+export async function accionGuardarTarifaTraslado(id: string, unidadId: string, datos: unknown) {
+  return conSesion(
+    (t) => guardarTarifaTraslado(t, id, unidadId, datos),
+    "No pudimos guardar la tarifa.",
   );
 }
 

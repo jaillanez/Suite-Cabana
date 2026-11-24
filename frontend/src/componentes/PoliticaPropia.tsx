@@ -125,6 +125,8 @@ export default function PoliticaPropia({
         </form>
       </section>
 
+      {/* Solo las excursiones tienen salidas que se suspenden por falta de gente. */}
+      {p.tipo === "excursion" && (
       <section className={propios.parte}>
         <h3>Si la salida no va</h3>
         <p className={estilos.ayuda}>
@@ -158,6 +160,7 @@ export default function PoliticaPropia({
           </button>
         </form>
       </section>
+      )}
     </>
   );
 }

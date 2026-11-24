@@ -29,6 +29,7 @@ from app.models import (
     Foto,
     FranjaHoraria,
     Localidad,
+    LugarTraslado,
     PoliticaCancelacion,
     PrecioPasajero,
     Prestador,
@@ -37,7 +38,9 @@ from app.models import (
     SubtipoServicio,
     Tarifa,
     TarifaHoraria,
+    TarifaTraslado,
     TipoServicio,
+    TramoTraslado,
     TurnoExcursion,
     Unidad,
     comodidad_tipo_servicio,
@@ -46,6 +49,7 @@ from app.models.enums import EstadoPublicacion, ModoReserva, OrigenBloqueo
 from app.services import calendario as agenda
 from app.services import edicion, horarios, politicas
 from app.services import fotos as almacen
+from app.services.busqueda import lat_lon
 from app.services.precios_eventos import ZONA, en_hora
 
 router = APIRouter(prefix="/mis-publicaciones", tags=["mis publicaciones"])
@@ -58,7 +62,7 @@ class NuevaPublicacion(BaseModel):
     titulo: Annotated[str, Field(min_length=3, max_length=150)]
     localidad_id: uuid.UUID
     subtipo_servicio_id: uuid.UUID | None = None
-    tipo: Literal["alojamiento", "salon_eventos", "excursion"] = "alojamiento"
+    tipo: Literal["alojamiento", "salon_eventos", "excursion", "traslado"] = "alojamiento"
 
 
 class CambioPublicacion(BaseModel):
@@ -88,6 +92,8 @@ class CambioPublicacion(BaseModel):
 
 #: Una unidad de alojamiento no pasa de esto; un salón sí (docs/04 §5 S3).
 CAPACIDAD_MAXIMA_ALOJAMIENTO = 30
+#: Pasajeros de un vehículo de traslado: hasta un micro de dos pisos (docs/06).
+CAPACIDAD_MAXIMA_VEHICULO = 80
 
 
 class NuevaUnidad(BaseModel):
@@ -96,6 +102,8 @@ class NuevaUnidad(BaseModel):
     capacidad_base: Annotated[int | None, Field(default=None, ge=1, le=5000)] = None
     capacidad_sentados: Annotated[int | None, Field(default=None, ge=1, le=5000)] = None
     preparacion_minutos: Annotated[int, Field(default=0, ge=0, le=720)] = 0
+    #: Traslados: cuántas valijas entran. Vacío: sin límite.
+    equipaje: Annotated[int | None, Field(default=None, ge=0, le=200)] = None
     cargo_limpieza: Decimal = Decimal(0)
     cargo_persona_extra: Decimal = Decimal(0)
     cargo_mascota: Decimal = Decimal(0)
@@ -206,6 +214,40 @@ class PrecioPasajeroOut(BaseModel):
     ocupa_lugar: bool
 
 
+class LugarTrasladoOut(BaseModel):
+    id: uuid.UUID
+    nombre: str
+    lat: float | None
+    lon: float | None
+    es_base: bool
+
+
+class TramoTrasladoOut(BaseModel):
+    id: uuid.UUID
+    origen_id: uuid.UUID
+    origen: str
+    destino_id: uuid.UUID
+    destino: str
+    precio: Dinero
+    por_persona: bool
+    duracion_minutos: int
+    ambos_sentidos: bool
+
+
+class TarifaTrasladoOut(BaseModel):
+    precio_km: Dinero | None
+    bajada: Dinero
+    minimo: Dinero
+    radio_km: int | None
+    factor_ruta: Decimal
+    velocidad_kmh: int
+    recargo_nocturno_desde: time | None
+    recargo_nocturno_hasta: time | None
+    recargo_nocturno_porcentaje: Decimal
+    vuelve_a_base: bool
+    anticipacion_minima_horas: int
+
+
 class TarifaOut(BaseModel):
     id: uuid.UUID
     nombre: str
@@ -239,6 +281,10 @@ class UnidadOut(BaseModel):
     # Excursiones (docs/05)
     turnos: list[TurnoOut] = Field(default_factory=list)
     precios_pasajero: list[PrecioPasajeroOut] = Field(default_factory=list)
+    # Traslados (docs/06)
+    equipaje: int | None = None
+    tramos_traslado: list[TramoTrasladoOut] = Field(default_factory=list)
+    tarifa_traslado: TarifaTrasladoOut | None = None
 
 
 class FotoOut(BaseModel):
@@ -276,6 +322,8 @@ class PublicacionOut(BaseModel):
     comodidades: list[str]
     fotos: list[FotoOut]
     unidades: list[UnidadOut]
+    #: Traslados: los puntos con nombre de donde sale y adonde llega cada viaje.
+    lugares_traslado: list[LugarTrasladoOut] = Field(default_factory=list)
     faltantes: list[str]
 
 
@@ -479,9 +527,11 @@ def _salida(db: Session, p: Publicacion) -> PublicacionOut:
                     if a.activo
                 ],
                 **_de_excursion(db, u),
+                **_de_traslado(db, u),
             )
             for u in sorted(p.unidades, key=lambda x: (x.capacidad, x.nombre))
         ],
+        lugares_traslado=_lugares_traslado(db, p),
         faltantes=edicion.faltantes(db, p),
     )
 
@@ -522,6 +572,61 @@ def _de_excursion(db: Session, u: Unidad) -> dict:
     }
 
 
+def _es_traslado(p: Publicacion) -> bool:
+    return p.tipo_servicio.modo_reserva is ModoReserva.TRAMO
+
+
+def _lugares_traslado(db: Session, p: Publicacion) -> list[LugarTrasladoOut]:
+    if not _es_traslado(p):
+        return []
+    filas = db.execute(
+        select(LugarTraslado, *lat_lon(LugarTraslado.ubicacion))
+        .where(LugarTraslado.publicacion_id == p.id, LugarTraslado.activo.is_(True))
+        .order_by(LugarTraslado.es_base.desc(), LugarTraslado.nombre)
+    ).all()
+    return [
+        LugarTrasladoOut(id=lg.id, nombre=lg.nombre, lat=lat, lon=lon, es_base=lg.es_base)
+        for lg, lat, lon in filas
+    ]
+
+
+def _de_traslado(db: Session, u: Unidad) -> dict:
+    """Valijas, tramos y tarifa de un vehículo; vacío en otros tipos."""
+    if not _es_traslado(u.publicacion):
+        return {}
+    tramos = db.scalars(
+        select(TramoTraslado)
+        .where(TramoTraslado.unidad_id == u.id, TramoTraslado.activo.is_(True))
+        .options(selectinload(TramoTraslado.origen), selectinload(TramoTraslado.destino))
+    ).all()
+    t = db.scalar(select(TarifaTraslado).where(TarifaTraslado.unidad_id == u.id))
+    return {
+        "equipaje": u.equipaje,
+        "tramos_traslado": [
+            TramoTrasladoOut(
+                id=x.id, origen_id=x.origen_id, origen=x.origen.nombre,
+                destino_id=x.destino_id, destino=x.destino.nombre, precio=x.precio,
+                por_persona=x.por_persona, duracion_minutos=x.duracion_minutos,
+                ambos_sentidos=x.ambos_sentidos,
+            )
+            for x in sorted(tramos, key=lambda x: (x.origen.nombre, x.destino.nombre))
+        ],
+        "tarifa_traslado": (
+            TarifaTrasladoOut(
+                precio_km=t.precio_km, bajada=t.bajada, minimo=t.minimo, radio_km=t.radio_km,
+                factor_ruta=t.factor_ruta, velocidad_kmh=t.velocidad_kmh,
+                recargo_nocturno_desde=t.recargo_nocturno_desde,
+                recargo_nocturno_hasta=t.recargo_nocturno_hasta,
+                recargo_nocturno_porcentaje=t.recargo_nocturno_porcentaje,
+                vuelve_a_base=t.vuelve_a_base,
+                anticipacion_minima_horas=t.anticipacion_minima_horas,
+            )
+            if t
+            else None
+        ),
+    }
+
+
 def _por_dia_out(precios: dict | None) -> dict[str, str] | None:
     return {k: str(v) for k, v in precios.items()} if precios else None
 
@@ -546,6 +651,11 @@ def _unidad_de(db: Session, p: Publicacion, unidad_id: uuid.UUID) -> Unidad:
 
 
 def _validar_unidad(p: Publicacion, datos: NuevaUnidad) -> None:
+    if _es_traslado(p) and datos.capacidad > CAPACIDAD_MAXIMA_VEHICULO:
+        raise HTTPException(
+            status.HTTP_422_UNPROCESSABLE_ENTITY,
+            f"Un vehículo lleva hasta {CAPACIDAD_MAXIMA_VEHICULO} pasajeros",
+        )
     if (
         p.tipo_servicio.modo_reserva is ModoReserva.NOCHES
         and datos.capacidad > CAPACIDAD_MAXIMA_ALOJAMIENTO
@@ -818,6 +928,8 @@ def borrar_unidad(
             *([unidad.tarifa_horaria] if unidad.tarifa_horaria else []),
             *db.scalars(select(TurnoExcursion).where(TurnoExcursion.unidad_id == unidad.id)),
             *db.scalars(select(PrecioPasajero).where(PrecioPasajero.unidad_id == unidad.id)),
+            *db.scalars(select(TramoTraslado).where(TramoTraslado.unidad_id == unidad.id)),
+            *db.scalars(select(TarifaTraslado).where(TarifaTraslado.unidad_id == unidad.id)),
         ]:
             db.delete(hijo)
         db.delete(unidad)
@@ -1139,8 +1251,10 @@ ETIQUETAS_HORARIO = {
 
 
 def _mi_salon(publicacion_id: uuid.UUID, unidad_id: uuid.UUID, prestador, db) -> Unidad:
+    """Un espacio de un salón o un vehículo de traslados: los dos se toman por horario."""
     p = _mia(publicacion_id, prestador, db)
-    _de_salon(p)
+    if not _es_traslado(p):
+        _de_salon(p)
     return _unidad_de(db, p, unidad_id)
 
 

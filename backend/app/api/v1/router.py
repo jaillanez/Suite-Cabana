@@ -10,6 +10,7 @@ from app.api.v1 import (
     ical,
     mis_excursiones,
     mis_publicaciones,
+    mis_traslados,
     panel,
     publicaciones,
     reservas,
@@ -25,6 +26,7 @@ api_router.include_router(comisiones.router)
 api_router.include_router(publicaciones.router)
 api_router.include_router(mis_publicaciones.router)
 api_router.include_router(mis_excursiones.router)
+api_router.include_router(mis_traslados.router)
 api_router.include_router(admin.router)
 api_router.include_router(ical.router)
 api_router.include_router(agenda.router)

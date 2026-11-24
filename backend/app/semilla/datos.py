@@ -156,6 +156,7 @@ A = ("alojamiento",)
 S = ("salon_eventos",)
 AS = ("alojamiento", "salon_eventos")
 E = ("excursion",)
+T = ("traslado",)
 
 # (código, nombre, ícono, tipos de servicio a los que aplica)
 COMODIDADES = [
@@ -164,13 +165,13 @@ COMODIDADES = [
     ("mascotas", "Acepta mascotas", "mascota", A),
     ("cochera", "Cochera", "auto", A),
     ("parrilla", "Parrilla", "parrilla", AS),
-    ("aire", "Aire acondicionado", "aire", AS),
+    ("aire", "Aire acondicionado", "aire", (*AS, *T)),
     ("calefaccion", "Calefacción", "calefaccion", AS),
     ("desayuno", "Desayuno incluido", "desayuno", A),
     ("lavarropas", "Lavarropas", "lavarropas", A),
     ("tv", "TV por cable", "tv", A),
     ("ropa_blanca", "Ropa blanca incluida", "cama", A),
-    ("accesible", "Accesible en silla de ruedas", "accesible", (*AS, *E)),
+    ("accesible", "Accesible en silla de ruedas", "accesible", (*AS, *E, *T)),
     # En una cabaña dicen "el complejo tiene salón / quincho"; el salón en sí se
     # publica aparte, como su propio tipo de servicio.
     ("salon", "Salón de eventos", "salon", A),
@@ -194,6 +195,12 @@ COMODIDADES = [
     ("refrigerio", "Refrigerio incluido", "desayuno", E),
     ("apto_chicos", "Apto para chicos", "juegos", E),
     ("mascotas_excursion", "Se puede ir con mascota", "mascota", E),
+    # Propias de traslados (docs/06).
+    ("cartel_bienvenida", "Te esperan con cartel", "guia", T),
+    ("espera_demora", "Esperan si el vuelo se demora", "reloj", T),
+    ("silla_bebe", "Silla para bebé", "juegos", T),
+    ("mascotas_traslado", "Viaja con mascota", "mascota", T),
+    ("factura", "Emite factura", "documento", T),
 ]
 
 # Publicación destacada: un lugar REAL, cargado aparte de la oferta generada.

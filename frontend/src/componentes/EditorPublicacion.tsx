@@ -30,6 +30,7 @@ import MapaSelector from "./MapaSelector";
 import PoliticaPropia from "./PoliticaPropia";
 import UnidadesExcursion from "./UnidadesExcursion";
 import UnidadesSalon from "./UnidadesSalon";
+import UnidadesTraslado from "./UnidadesTraslado";
 import estilos from "./EditorPublicacion.module.css";
 
 export default function EditorPublicacion({
@@ -53,7 +54,18 @@ export default function EditorPublicacion({
   const bloqueada = p.estado === "en_revision";
   const esSalon = p.tipo === "salon_eventos";
   const esExcursion = p.tipo === "excursion";
-  const porNoches = !esSalon && !esExcursion;
+  const esTraslado = p.tipo === "traslado";
+  const porNoches = !esSalon && !esExcursion && !esTraslado;
+  /* Lo que cambia según qué se publica: un texto por tipo, el de alojamiento por defecto. */
+  const segun = <T,>(t: { salon: T; excursion: T; traslado: T; alojamiento: T }): T =>
+    esSalon ? t.salon : esExcursion ? t.excursion : esTraslado ? t.traslado : t.alojamiento;
+  const fichaPublica = esSalon
+    ? `/salon/${p.slug}`
+    : esExcursion
+      ? `/excursion/${p.slug}`
+      : porNoches
+        ? `/alojamiento/${p.slug}`
+        : null; // La ficha de un traslado llega con su etapa 4 (docs/06).
 
   function aplicar(resultado: Resultado) {
     if ("publicacion" in resultado) {
@@ -134,12 +146,8 @@ export default function EditorPublicacion({
           )}
           {p.estado === "aprobada" && (
             <>
-              {/* La ficha pública de las excursiones llega con su etapa 4 (docs/05). */}
-              {!esExcursion && (
-                <Link
-                  href={esSalon ? `/salon/${p.slug}` : `/alojamiento/${p.slug}`}
-                  className={estilos.secundario}
-                >
+              {fichaPublica && (
+                <Link href={fichaPublica} className={estilos.secundario}>
                   Ver publicada
                 </Link>
               )}
@@ -231,11 +239,12 @@ export default function EditorPublicacion({
 
       <fieldset className={estilos.bloque} disabled={bloqueada}>
         <h2>
-          {esSalon
-            ? "Datos del salón"
-            : esExcursion
-              ? "Datos de la excursión"
-              : "Datos del alojamiento"}
+          {segun({
+            salon: "Datos del salón",
+            excursion: "Datos de la excursión",
+            traslado: "Datos del traslado",
+            alojamiento: "Datos del alojamiento",
+          })}
         </h2>
         <form action={guardar} className={estilos.formulario}>
           <label className={estilos.completo}>
@@ -253,18 +262,26 @@ export default function EditorPublicacion({
               name="descripcion"
               defaultValue={p.descripcion}
               rows={5}
-              placeholder={
-                esSalon
-                  ? "Contá cómo es el lugar, para qué eventos sirve y qué incluye el alquiler."
-                  : esExcursion
-                    ? "Contá qué se hace, por dónde va, cuánta exigencia física tiene y dónde se encuentran."
-                    : "Contá qué tiene, cómo es el entorno y a qué distancia está de lo que la gente busca."
-              }
+              placeholder={segun({
+                salon:
+                  "Contá cómo es el lugar, para qué eventos sirve y qué incluye el alquiler.",
+                excursion:
+                  "Contá qué se hace, por dónde va, cuánta exigencia física tiene y dónde se encuentran.",
+                traslado:
+                  "Contá qué recorridos hacés, cómo son los vehículos y cómo te encuentran en el aeropuerto o la terminal.",
+                alojamiento:
+                  "Contá qué tiene, cómo es el entorno y a qué distancia está de lo que la gente busca.",
+              })}
             />
           </label>
           <label>
             <span>
-              {esSalon ? "Tipo de espacio" : esExcursion ? "Tipo de actividad" : "Tipo"}
+              {segun({
+                salon: "Tipo de espacio",
+                excursion: "Tipo de actividad",
+                traslado: "Tipo de traslado",
+                alojamiento: "Tipo",
+              })}
             </span>
             <select
               name="subtipo_servicio_id"
@@ -330,27 +347,34 @@ export default function EditorPublicacion({
           )}
           <label className={estilos.completo}>
             <span>
-              {esSalon
-                ? "Reglas del lugar"
-                : esExcursion
-                  ? "Para tener en cuenta"
-                  : "Reglas de la casa"}
+              {segun({
+                salon: "Reglas del lugar",
+                excursion: "Para tener en cuenta",
+                traslado: "Para tener en cuenta",
+                alojamiento: "Reglas de la casa",
+              })}
             </span>
             <textarea
               name="reglas_casa"
               defaultValue={p.reglas_casa ?? ""}
               rows={2}
-              placeholder={
-                esSalon
-                  ? "Música hasta las 4, se permite catering propio, sin pirotecnia…"
-                  : esExcursion
-                    ? "Qué llevar, edad mínima, si hace falta experiencia…"
-                    : undefined
-              }
+              placeholder={segun({
+                salon: "Música hasta las 4, se permite catering propio, sin pirotecnia…",
+                excursion: "Qué llevar, edad mínima, si hace falta experiencia…",
+                traslado: "Cuánto esperan si el vuelo se demora, si se puede viajar con mascota…",
+                alojamiento: undefined,
+              })}
             />
           </label>
           <label className={estilos.completo}>
-            <span>{esExcursion ? "Punto de encuentro" : "Dirección"}</span>
+            <span>
+              {segun({
+                salon: "Dirección",
+                excursion: "Punto de encuentro",
+                traslado: "Dirección de la oficina o la base",
+                alojamiento: "Dirección",
+              })}
+            </span>
             <input
               name="direccion"
               defaultValue={p.direccion ?? ""}
@@ -383,10 +407,14 @@ export default function EditorPublicacion({
       </fieldset>
 
       <fieldset className={estilos.bloque} disabled={bloqueada}>
-        <h2>Dónde queda</h2>
+        <h2>{esTraslado ? "Desde dónde trabajás" : "Dónde queda"}</h2>
         <MapaSelector
           lat={p.lat}
           lon={p.lon}
+          {...(esTraslado && {
+            ayuda:
+              "Tocá el mapa donde está tu base. En público se muestra aproximado, a 1 km.",
+          })}
           onMover={(lat, lon) =>
             correr(() => accionGuardarDatos(p.id, { lat, lon }))
           }
@@ -483,7 +511,7 @@ export default function EditorPublicacion({
         </ul>
       </fieldset>
 
-      {esExcursion && (
+      {(esExcursion || esTraslado) && (
         <fieldset className={estilos.bloque} disabled={bloqueada}>
           <PoliticaPropia p={p} correr={correr} pendiente={pendiente} />
         </fieldset>
@@ -498,6 +526,12 @@ export default function EditorPublicacion({
       {esExcursion && (
         <fieldset className={estilos.bloque} disabled={bloqueada}>
           <UnidadesExcursion p={p} correr={correr} pendiente={pendiente} />
+        </fieldset>
+      )}
+
+      {esTraslado && (
+        <fieldset className={estilos.bloque} disabled={bloqueada}>
+          <UnidadesTraslado p={p} correr={correr} pendiente={pendiente} />
         </fieldset>
       )}
 

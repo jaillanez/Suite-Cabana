@@ -22,10 +22,11 @@ export default async function Nueva({
   if (!cuenta.prestador) redirect("/cuenta");
 
   const { tipo } = await searchParams;
-  const [alojamiento, salon, excursion] = await Promise.all([
+  const [alojamiento, salon, excursion, traslado] = await Promise.all([
     catalogoAlta("alojamiento"),
     catalogoAlta("salon_eventos"),
     catalogoAlta("excursion"),
+    catalogoAlta("traslado"),
   ]);
 
   return (
@@ -38,9 +39,11 @@ export default async function Nueva({
           se guarda como borrador hasta que la mandes a revisión.
         </p>
         <FormularioNueva
-          catalogos={{ alojamiento, salon_eventos: salon, excursion }}
+          catalogos={{ alojamiento, salon_eventos: salon, excursion, traslado }}
           tipoInicial={
-            tipo === "salon_eventos" || tipo === "excursion" ? tipo : "alojamiento"
+            tipo === "salon_eventos" || tipo === "excursion" || tipo === "traslado"
+              ? tipo
+              : "alojamiento"
           }
         />
       </main>

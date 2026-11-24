@@ -53,7 +53,7 @@ Publicacion ──< LugarTraslado            (puntos con nombre; uno puede ser l
 
 ## 5. Etapas
 
-Cada etapa se puede publicar por separado. Hechas (noviembre 2026): **1** y **2**.
+Cada etapa se puede publicar por separado. Hechas (noviembre 2026): **1**, **2** y **3**.
 
 | Etapa | Contenido |
 |---|---|
@@ -85,6 +85,26 @@ migración 0017): solo backend y API.
   días, como las excursiones.
 - Los bloqueos de horario de un vehículo van de 5 minutos a 120 horas (un salón
   sigue entre 30 minutos y 48 horas).
+
+Cómo quedó la etapa 3 (`app/api/v1/mis_traslados.py`, `UnidadesTraslado.tsx`):
+
+- "Traslados" al crear una publicación, con sus tres subtipos y comodidades
+  propias (cartel de bienvenida, espera si el vuelo se demora, silla para bebé,
+  mascota, factura).
+- **Lugares** de la publicación: nombre y punto en el mapa; uno puede ser la base
+  (solo uno). Quitar un lugar quita los tramos que salen o llegan ahí; volver a
+  cargar el mismo nombre lo reactiva. Hasta 40.
+- **Vehículos**: pasajeros (hasta 80), valijas, minutos entre viajes. Cada uno con
+  sus **recorridos de precio fijo** (hasta 60; uno por sentido, por vehículo o
+  por persona, si vale a la vuelta) y sus **reglas** (precio por km, bajada,
+  mínimo, radio, factor de ruta, velocidad, recargo nocturno, vuelta a la base,
+  anticipación), que se guardan todas juntas.
+- Para mandarla a revisión, cada vehículo necesita un recorrido fijo entre dos
+  lugares activos o un precio por km.
+- La **agenda** de cada vehículo es la de los salones: viajes, pagos en curso y
+  bloqueos a mano.
+- La política de cancelación es la plantilla o tramos propios, como las
+  excursiones.
 
 ## 6. Fuera de alcance por ahora
 

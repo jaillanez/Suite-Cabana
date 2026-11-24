@@ -26,10 +26,12 @@ export default function MapaSelector({
   lat,
   lon,
   onMover,
+  ayuda = "Tocá el mapa o arrastrá el pin hasta la puerta del alojamiento.",
 }: {
   lat: number | null;
   lon: number | null;
   onMover: (lat: number, lon: number) => void;
+  ayuda?: string;
 }) {
   const contenedor = useRef<HTMLDivElement>(null);
   const mapa = useRef<MapaGL | null>(null);
@@ -75,7 +77,7 @@ export default function MapaSelector({
     <div className={estilos.marco}>
       <div ref={contenedor} className={estilos.mapa} />
       <p className={estilos.ayuda}>
-        Tocá el mapa o arrastrá el pin hasta la puerta del alojamiento.
+        {ayuda}
         {lat !== null && lon !== null && (
           <span className="cifra">
             {" "}

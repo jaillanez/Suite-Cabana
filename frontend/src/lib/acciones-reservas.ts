@@ -37,7 +37,8 @@ function problema(e: unknown, porDefecto: string): { error: string } {
     const d = e.detalle;
     if (Array.isArray(d)) {
       const primero = d[0] as { msg?: string } | undefined;
-      return { error: primero?.msg ?? porDefecto };
+      // Pydantic antepone "Value error, " a los mensajes de los validadores propios.
+      return { error: primero?.msg?.replace(/^Value error, /, "") ?? porDefecto };
     }
     return { error: e.message || porDefecto };
   }

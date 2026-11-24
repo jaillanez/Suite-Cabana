@@ -27,6 +27,12 @@ const TIPOS: { codigo: TipoServicioCodigo; nombre: string; detalle: string }[] =
       detalle:
         "Cabalgatas, trekking, visitas a bodegas. Se reserva por salida y cantidad de personas.",
     },
+    {
+      codigo: "traslado",
+      nombre: "Traslados",
+      detalle:
+        "Aeropuerto, terminal, entre localidades. Se reserva el vehículo entero, con chofer, por viaje.",
+    },
   ];
 
 export default function FormularioNueva({
@@ -46,6 +52,7 @@ export default function FormularioNueva({
   const catalogo = catalogos[tipo];
   const esSalon = tipo === "salon_eventos";
   const esExcursion = tipo === "excursion";
+  const esTraslado = tipo === "traslado";
 
   return (
     <form action={ejecutar} className={estilos.formulario}>
@@ -82,7 +89,9 @@ export default function FormularioNueva({
               ? "Nombre del salón"
               : esExcursion
                 ? "Nombre de la excursión"
-                : "Nombre del alojamiento"}
+                : esTraslado
+                  ? "Nombre de tu servicio de traslados"
+                  : "Nombre del alojamiento"}
           </span>
           <input
             name="titulo"
@@ -93,7 +102,9 @@ export default function FormularioNueva({
                 ? "Quincho Los Algarrobos"
                 : esExcursion
                   ? "Cabalgata al Dique"
-                  : "Cabañas del Arroyo"
+                  : esTraslado
+                    ? "Traslados del Valle"
+                    : "Cabañas del Arroyo"
             }
           />
         </label>
@@ -115,7 +126,13 @@ export default function FormularioNueva({
         {/* key: al cambiar de tipo, el subtipo elegido del otro tipo no puede quedar. */}
         <label className={estilos.medio} key={tipo}>
           <span>
-            {esSalon ? "Tipo de espacio" : esExcursion ? "Tipo de actividad" : "Tipo"}
+            {esSalon
+              ? "Tipo de espacio"
+              : esExcursion
+                ? "Tipo de actividad"
+                : esTraslado
+                  ? "Tipo de traslado"
+                  : "Tipo"}
           </span>
           <select name="subtipo_servicio_id" defaultValue="">
             <option value="">Elegir después</option>

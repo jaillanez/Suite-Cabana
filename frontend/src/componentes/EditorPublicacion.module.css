@@ -511,7 +511,8 @@
   align-items: center;
 }
 
-.filaForm input {
+.filaForm input,
+.filaForm select {
   flex: 1 1 130px;
   min-width: 0;
   padding: 0.4375rem 0.625rem;
@@ -545,7 +546,8 @@
   .formulario {
     grid-template-columns: 1fr;
   }
-  .filaForm input {
+  .filaForm input,
+  .filaForm select {
     flex: 1 1 100%;
   }
 }

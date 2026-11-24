@@ -16,17 +16,20 @@ from __future__ import annotations
 from datetime import date
 
 from sqlalchemy import func, select
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, aliased
 
 from app.core.config import get_settings
 from app.models import (
     Foto,
     FranjaHoraria,
+    LugarTraslado,
     PrecioPasajero,
     Publicacion,
     SalidaExcursion,
     Tarifa,
     TarifaHoraria,
+    TarifaTraslado,
+    TramoTraslado,
     TurnoExcursion,
     Unidad,
 )
@@ -71,12 +74,15 @@ def faltantes(db: Session, publicacion: Publicacion) -> list[str]:
     modo = publicacion.tipo_servicio.modo_reserva
     salon = modo is ModoReserva.HORAS
     excursion = modo is ModoReserva.TURNO_CUPO
+    traslado = modo is ModoReserva.TRAMO
     if publicacion.subtipo_servicio_id is None:
         problemas.append(
             "Falta elegir el tipo de espacio"
             if salon
             else "Falta elegir el tipo de actividad"
             if excursion
+            else "Falta elegir el tipo de traslado"
+            if traslado
             else "Falta elegir el tipo de alojamiento"
         )
     # Una plantilla o tramos propios del prestador: cualquiera de las dos vale.
@@ -109,10 +115,14 @@ def faltantes(db: Session, publicacion: Publicacion) -> list[str]:
             if salon
             else "Falta cargar al menos una actividad"
             if excursion
+            else "Falta cargar al menos un vehículo"
+            if traslado
             else "Falta cargar al menos una unidad"
         )
     elif excursion:
         problemas.extend(_faltantes_excursion(db, unidades))
+    elif traslado:
+        problemas.extend(_faltantes_traslado(db, unidades))
     elif salon:
         # Un salón se puede reservar si tiene al menos un turno o precio por hora.
         sin_precio = [
@@ -253,3 +263,33 @@ def _faltantes_excursion(db: Session, unidades: list[Unidad]) -> list[str]:
     if sin_precios:
         problemas.append(f"Sin precios por pasajero: {', '.join(sin_precios)}")
     return problemas
+
+
+def _faltantes_traslado(db: Session, unidades: list[Unidad]) -> list[str]:
+    """Cada vehículo necesita una forma de cobrar: un tramo fijo (con sus dos
+    lugares activos) o una tarifa por kilómetro."""
+    sin_precio = []
+    for u in unidades:
+        origen, destino = aliased(LugarTraslado), aliased(LugarTraslado)
+        tiene_tramo = db.scalar(
+            select(TramoTraslado.id)
+            .join(origen, TramoTraslado.origen_id == origen.id)
+            .join(destino, TramoTraslado.destino_id == destino.id)
+            .where(
+                TramoTraslado.unidad_id == u.id,
+                TramoTraslado.activo.is_(True),
+                origen.activo.is_(True),
+                destino.activo.is_(True),
+            )
+            .limit(1)
+        )
+        por_km = db.scalar(
+            select(TarifaTraslado.id).where(
+                TarifaTraslado.unidad_id == u.id, TarifaTraslado.precio_km.is_not(None)
+            )
+        )
+        if not tiene_tramo and not por_km:
+            sin_precio.append(u.nombre)
+    if sin_precio:
+        return [f"Sin tramos ni precio por km: {', '.join(sin_precio)}"]
+    return []

@@ -84,7 +84,9 @@ export default async function MisPublicaciones() {
                         ? "Salón de eventos · "
                         : p.tipo === "excursion"
                           ? "Excursión · "
-                          : ""}
+                          : p.tipo === "traslado"
+                            ? "Traslado · "
+                            : ""}
                       {p.localidad} · {p.provincia}
                     </span>
                     <span className={estilos.numeros}>
@@ -98,6 +100,10 @@ export default async function MisPublicaciones() {
                           ? p.unidades.length === 1
                             ? "actividad"
                             : "actividades"
+                          : p.tipo === "traslado"
+                            ? p.unidades.length === 1
+                              ? "vehículo"
+                              : "vehículos"
                           : p.unidades.length === 1
                           ? "unidad"
                           : "unidades"}

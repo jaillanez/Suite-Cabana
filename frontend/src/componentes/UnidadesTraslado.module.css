@@ -1,0 +1,29 @@
+/* Lo propio del editor de traslados; el resto viene del editor y de los salones. */
+
+.acciones {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  white-space: nowrap;
+}
+
+/* El mapa para mover un lugar ocupa la fila entera debajo de su nombre. */
+.mapaLugar {
+  grid-column: 1 / -1;
+  padding-top: 0.375rem;
+}
+
+.formLugar {
+  display: grid;
+  gap: 0.625rem;
+  padding: 0.875rem;
+  border: 1px dashed var(--borde);
+  border-radius: var(--radio);
+}
+
+/* Lugares y vehículos van en el mismo bloque: el segundo título lo separa. */
+.segundoTitulo {
+  margin-top: 0.75rem;
+  padding-top: 1rem;
+  border-top: 1px solid var(--borde);
+}

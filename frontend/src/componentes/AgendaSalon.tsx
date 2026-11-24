@@ -31,9 +31,12 @@ function sumarDias(iso: string, n: number): string {
 export default function AgendaSalon({
   publicacionId,
   unidadId,
+  vehiculo = false,
 }: {
   publicacionId: string;
   unidadId: string;
+  /* Un vehículo de traslados (docs/06): la misma agenda, con sus palabras. */
+  vehiculo?: boolean;
 }) {
   const [desde, setDesde] = useState(hoyISO());
   const [agenda, setAgenda] = useState<AgendaHoraria | null>(null);
@@ -162,11 +165,22 @@ export default function AgendaSalon({
         </ol>
       )}
 
-      {agenda && agenda.preparacion_minutos > 0 && (
+      {vehiculo ? (
         <p className={estilos.nota}>
-          Las reservas incluyen los {agenda.preparacion_minutos} min de
-          preparación posteriores.
+          Cada viaje incluye la vuelta a la base, si la elegiste en las reglas
+          {agenda && agenda.preparacion_minutos > 0
+            ? `, y los ${agenda.preparacion_minutos} min de preparación`
+            : ""}
+          .
         </p>
+      ) : (
+        agenda &&
+        agenda.preparacion_minutos > 0 && (
+          <p className={estilos.nota}>
+            Las reservas incluyen los {agenda.preparacion_minutos} min de
+            preparación posteriores.
+          </p>
+        )
       )}
 
       <form
@@ -213,7 +227,7 @@ export default function AgendaSalon({
           <input
             name="nota"
             maxLength={200}
-            placeholder="Cumple vendido por WhatsApp"
+            placeholder={vehiculo ? "Service, viaje vendido por teléfono" : "Cumple vendido por WhatsApp"}
           />
         </label>
         <button type="submit" disabled={pendiente}>

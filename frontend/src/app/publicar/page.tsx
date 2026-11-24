@@ -84,10 +84,14 @@ export default async function Publicar() {
             <Link href="/mis-publicaciones/nueva">publicá un alojamiento</Link>,{" "}
             <Link href="/mis-publicaciones/nueva?tipo=salon_eventos">
               un salón
-            </Link>{" "}
-            o{" "}
+            </Link>
+            ,{" "}
             <Link href="/mis-publicaciones/nueva?tipo=excursion">
               una excursión
+            </Link>{" "}
+            o{" "}
+            <Link href="/mis-publicaciones/nueva?tipo=traslado">
+              tus traslados
             </Link>
             . Queda en borrador hasta que la mandes a revisión.
           </p>
