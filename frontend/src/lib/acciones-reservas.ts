@@ -93,8 +93,13 @@ export async function accionReservar(_previo: unknown, datos: FormData) {
     vuelve a la ficha, en vez de perder lo que el viajero ya eligió. */
 export async function accionReservarEvento(
   pedido: PedidoEvento,
+  acepta: boolean,
   telefono?: string,
 ): Promise<{ error: string; ingresar?: boolean; pedirTelefono?: boolean } | never> {
+  // Lo que tildó el viajero, no un `true` fijo: la reserva guarda que aceptó.
+  if (acepta !== true) {
+    return { error: "Hay que aceptar los términos y la política de cancelación" };
+  }
   const token = await tokenActual();
   if (!token) return { error: "Ingresá para reservar.", ingresar: true };
 
@@ -102,7 +107,7 @@ export async function accionReservarEvento(
   try {
     reserva = await reservarEvento(token, {
       ...pedido,
-      acepta_terminos: true,
+      acepta_terminos: acepta,
       telefono: telefono || undefined,
     });
   } catch (e) {
@@ -119,8 +124,12 @@ export async function accionReservarEvento(
     sin sesión, el panel manda a ingresar y vuelve a la ficha. */
 export async function accionReservarExcursion(
   pedido: PedidoExcursion,
+  acepta: boolean,
   telefono?: string,
 ): Promise<{ error: string; ingresar?: boolean; pedirTelefono?: boolean } | never> {
+  if (acepta !== true) {
+    return { error: "Hay que aceptar los términos y la política de cancelación" };
+  }
   const token = await tokenActual();
   if (!token) return { error: "Ingresá para reservar.", ingresar: true };
 
@@ -128,7 +137,7 @@ export async function accionReservarExcursion(
   try {
     reserva = await reservarExcursion(token, {
       ...pedido,
-      acepta_terminos: true,
+      acepta_terminos: acepta,
       telefono: telefono || undefined,
     });
   } catch (e) {

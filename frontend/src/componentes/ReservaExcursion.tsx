@@ -158,7 +158,11 @@ export default function ReservaExcursion({
     if (!pedido) return;
     setErrorReserva(null);
     empezar(async () => {
-      const r = await accionReservarExcursion(pedido, pedirTelefono ? telefono : undefined);
+      const r = await accionReservarExcursion(
+        pedido,
+        acepta,
+        pedirTelefono ? telefono : undefined,
+      );
       if (r?.ingresar) {
         const volver = `/excursion/${ficha.slug}?fecha=${elegida?.fecha ?? ""}&personas=${total}`;
         router.push(`/ingresar?volver=${encodeURIComponent(volver)}`);

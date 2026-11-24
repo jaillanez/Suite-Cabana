@@ -228,6 +228,7 @@ export default function ReservaSalon({
     empezar(async () => {
       const r = await accionReservarEvento(
         pedido,
+        acepta,
         pedirTelefono ? telefono : undefined,
       );
       if (r?.ingresar) {

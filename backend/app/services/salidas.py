@@ -205,23 +205,37 @@ def salidas(
     la ficha no).
     """
     _exigir_excursion(unidad)
+    return salidas_de(
+        db, [unidad.id], desde, hasta, ahora=ahora, con_suspendidas=con_suspendidas
+    ).get(unidad.id, [])
+
+
+def salidas_de(
+    db: Session,
+    unidades: list,
+    desde: date,
+    hasta: date,
+    *,
+    ahora: datetime | None = None,
+    con_suspendidas: bool = False,
+) -> dict:
+    """`salidas` de varias unidades con tres consultas en total, no dos por unidad:
+    la búsqueda pública lo pide para cientos de actividades a la vez."""
     ahora = ahora or datetime.now(UTC)
     desde = max(desde, ahora.astimezone(ZONA).date())
     hasta = min(hasta, hoy() + timedelta(days=VENTANA_DIAS))
-    if hasta < desde:
-        return []
+    if hasta < desde or not unidades:
+        return {}
 
+    # Todos los turnos, activos o no: una salida guardada de un turno que se quitó
+    # sigue mostrando su nombre.
     turnos = list(
-        db.scalars(
-            select(TurnoExcursion).where(
-                TurnoExcursion.unidad_id == unidad.id, TurnoExcursion.activo.is_(True)
-            )
-        )
+        db.scalars(select(TurnoExcursion).where(TurnoExcursion.unidad_id.in_(unidades)))
     )
     guardadas = list(
         db.scalars(
             select(SalidaExcursion).where(
-                SalidaExcursion.unidad_id == unidad.id,
+                SalidaExcursion.unidad_id.in_(unidades),
                 SalidaExcursion.fecha >= desde,
                 SalidaExcursion.fecha <= hasta,
             )
@@ -231,7 +245,7 @@ def salidas(
     nombres = {t.id: t.nombre for t in turnos}
     por_turno_dia = {(s.turno_id, s.fecha) for s in guardadas if s.turno_id}
 
-    resultado: list[Salida] = []
+    resultado: dict = {u: [] for u in unidades}
     # Las guardadas van siempre: son un compromiso concreto (tienen gente, o el
     # prestador las tocó), aunque después el turno haya cambiado.
     for s in guardadas:
@@ -240,13 +254,12 @@ def salidas(
         )
         if (s.suspendida or cerrada) and not con_suspendidas:
             continue
-        nombre = nombres.get(s.turno_id) or (s.turno.nombre if s.turno else "Salida especial")
-        resultado.append(
+        resultado[s.unidad_id].append(
             Salida(
                 turno_id=s.turno_id,
                 salida_id=s.id,
                 fecha=s.fecha,
-                nombre=nombre,
+                nombre=nombres.get(s.turno_id) or "Salida especial",
                 inicio=s.inicio_en,
                 fin=s.fin_en,
                 cupo=s.cupo,
@@ -255,15 +268,16 @@ def salidas(
                 minimo_personas=s.minimo_personas,
             )
         )
+    activos = [t for t in turnos if t.activo]
     dia = desde
     while dia <= hasta:
-        for t in turnos:
+        for t in activos:
             if sale_el(t, dia) and (t.id, dia) not in por_turno_dia:
                 inicio = _inicio(dia, t.hora_inicio)
                 # Nadie anotado y ya pasó la hora de decidir: no llega al mínimo.
                 if cerro_la_venta(inicio, t.minimo_personas, t.aviso_minimo_horas, False, ahora):
                     continue
-                resultado.append(
+                resultado[t.unidad_id].append(
                     Salida(
                         turno_id=t.id,
                         salida_id=None,
@@ -278,7 +292,10 @@ def salidas(
                     )
                 )
         dia += timedelta(days=1)
-    return sorted((s for s in resultado if s.inicio > ahora), key=lambda s: (s.inicio, s.nombre))
+    return {
+        u: sorted((s for s in lista if s.inicio > ahora), key=lambda s: (s.inicio, s.nombre))
+        for u, lista in resultado.items()
+    }
 
 
 # --- Salidas guardadas ---

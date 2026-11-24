@@ -99,3 +99,57 @@ def test_la_ficha_del_alojamiento_ofrece_las_excursiones_de_la_zona(cliente, pre
     assert r.json()["excursiones_cerca"] == [
         {"titulo": "Cabalgata al Dique", "slug": "cabalgata-al-dique"}
     ]
+
+
+def _clonar(db, precios, n):  # noqa: F811
+    """n excursiones más como la del fixture, cada una con su turno y su precio."""
+    from datetime import time
+    from decimal import Decimal
+
+    from app.models import Publicacion, Unidad
+
+    base = precios["publicacion"]
+    for i in range(n):
+        p = Publicacion(
+            prestador_id=base.prestador_id, tipo_servicio_id=base.tipo_servicio_id,
+            titulo=f"Trekking {i}", slug=f"trekking-{i}", descripcion="x",
+            estado=EstadoPublicacion.APROBADA, localidad_id=base.localidad_id,
+        )
+        db.add(p)
+        db.flush()
+        u = Unidad(publicacion_id=p.id, nombre="Trekking", capacidad=8)
+        db.add(u)
+        db.flush()
+        db.add(PrecioPasajero(unidad_id=u.id, nombre="Adulto", precio=Decimal(1000)))
+        salidas.crear_turno(
+            db, u, nombre="Mañana", dias_semana=[MARTES], hora_inicio=time(9),
+            duracion_minutos=60, cupo=10,
+        )
+    db.flush()
+
+
+def _consultas(db, cliente, params) -> int:
+    from sqlalchemy import event
+
+    cuenta = [0]
+
+    def contar(*_):
+        cuenta[0] += 1
+
+    motor = db.get_bind()
+    event.listen(motor, "before_cursor_execute", contar)
+    try:
+        assert cliente.get(BUSCAR, params=params).status_code == 200
+    finally:
+        event.remove(motor, "before_cursor_execute", contar)
+    return cuenta[0]
+
+
+def test_la_busqueda_no_hace_mas_consultas_por_cada_excursion(cliente, db, precios):  # noqa: F811
+    """Con cientos de candidatas, dos consultas por actividad tiraban la base."""
+    con_dia = {"fecha": _proximo(MARTES).isoformat()}
+    pocas_con, pocas_sin = _consultas(db, cliente, con_dia), _consultas(db, cliente, {})
+    _clonar(db, precios, 6)
+    assert len(_titulos(cliente.get(BUSCAR, params=con_dia))) == 7
+    assert _consultas(db, cliente, con_dia) == pocas_con
+    assert _consultas(db, cliente, {}) == pocas_sin

@@ -134,8 +134,12 @@ def precio_desde(
     return PrecioDesde(min(montos), "por persona") if montos else None
 
 
-def _salidas(db: Session, u: Unidad, desde: date, hasta: date, personas: int) -> list:
-    return [s for s in salidas.salidas(db, u, desde, hasta) if s.libres >= personas]
+def _con_lugar(
+    db: Session, unidades: list[Unidad], desde: date, hasta: date, personas: int
+) -> dict:
+    """Las salidas con lugar para `personas` de varias actividades, en tres consultas."""
+    todas = salidas.salidas_de(db, [u.id for u in unidades], desde, hasta)
+    return {uid: [s for s in lista if s.libres >= personas] for uid, lista in todas.items()}
 
 
 def buscar(
@@ -180,16 +184,23 @@ def buscar(
     ).unique().all()
     precios = precios_de(db, [u for p in candidatas for u in p.unidades])
 
+    utiles_de = {p.id: actividades(p, precios, personas) for p in candidatas}
+    # Con fecha, las salidas de ese día de todas las candidatas, de una vez.
+    del_dia_de = (
+        _con_lugar(db, [u for us in utiles_de.values() for u in us], fecha, fecha, personas)
+        if fecha is not None
+        else {}
+    )
+
     resultados: list[Resultado] = []
     for p in candidatas:
-        utiles = actividades(p, precios, personas)
+        utiles = utiles_de[p.id]
         if not utiles:
             continue
         del_dia: list[salidas.Salida] = []
         if fecha is not None:
             del_dia = sorted(
-                (s for u in utiles for s in _salidas(db, u, fecha, fecha, personas)),
-                key=lambda s: s.inicio,
+                (s for u in utiles for s in del_dia_de.get(u.id, [])), key=lambda s: s.inicio
             )
             if not del_dia:
                 continue  # con fecha, solo lo que sale ese día con lugar
@@ -211,18 +222,19 @@ def buscar(
     inicio = (pagina - 1) * por_pagina
     visibles = resultados[inicio : inicio + por_pagina]
 
-    # Sin fecha, la próxima salida se busca solo para lo que se muestra.
-    if fecha is None:
+    # Sin fecha, la próxima salida se busca solo para lo que se muestra, de una vez.
+    if fecha is None and visibles:
         hoy = salidas.hoy()
+        proximas_de = _con_lugar(
+            db,
+            [u for r in visibles for u in utiles_de[r.publicacion.id]],
+            hoy,
+            hoy + timedelta(days=DIAS_PROXIMA_SALIDA),
+            personas,
+        )
         for r in visibles:
             proximas = sorted(
-                (
-                    s
-                    for u in actividades(r.publicacion, precios, personas)
-                    for s in _salidas(
-                        db, u, hoy, hoy + timedelta(days=DIAS_PROXIMA_SALIDA), personas
-                    )
-                ),
+                (s for u in utiles_de[r.publicacion.id] for s in proximas_de.get(u.id, [])),
                 key=lambda s: s.inicio,
             )
             r.proxima_salida = proximas[0] if proximas else None
