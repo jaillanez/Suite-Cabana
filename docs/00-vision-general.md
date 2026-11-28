@@ -116,6 +116,14 @@ Propuesta: **Mercado Pago en modo marketplace**.
 - Medios: tarjetas, dinero en cuenta, y otros habilitados por Mercado Pago.
 - Modalidades: pago total o seña (porcentaje configurable por prestador) con saldo a pagar según política.
 
+**Decidido (noviembre 2026):** cada prestador conecta su cuenta con el botón
+"Conectar con Mercado Pago" (OAuth de la aplicación de la plataforma). El pago
+entra en su cuenta y Mercado Pago retiene la comisión (más IVA) en el mismo pago
+(`marketplace_fee`). Con seña, se retiene como mucho la seña y el resto se
+factura aparte. Antes de habilitarlo con plata real: probar con cuentas de
+prueba el reparto de las devoluciones. Una credencial pegada a mano sigue
+funcionando, pero sin retención.
+
 A evaluar como alternativa o complemento: otras pasarelas locales, y el caso de reservas con varios prestadores (ver Fase 3).
 
 ## 9. Arquitectura propuesta

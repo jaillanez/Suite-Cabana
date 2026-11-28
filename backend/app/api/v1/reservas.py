@@ -435,7 +435,10 @@ def pagar(
                 "no vinculó su cuenta.",
             )
         pasarela = pagos.MercadoPago(token=credencial)
-        retener_comision = False
+        # Conectada con el botón (OAuth): Mercado Pago descuenta la comisión en el
+        # mismo pago y la manda a la cuenta de la plataforma. Con una credencial
+        # pegada a mano no lo permite, y la comisión se factura aparte.
+        retener_comision = prestador.mp_oauth
         api = s.url_publica_api.rstrip("/")
         # Firmada: solo Mercado Pago (que la recibió de nosotros) la conoce.
         url_notificacion = (
@@ -493,6 +496,7 @@ def pagar(
             monto_prestador=a_cobrar if es_sena else partes.neto_prestador,
             monto_comision=partes.comision_neta,
             iva_comision=partes.iva,
+            comision_retenida=cobro.comision_plataforma if cobro.retener_comision else 0,
         )
     )
     db.commit()

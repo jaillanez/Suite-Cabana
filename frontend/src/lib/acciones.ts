@@ -8,6 +8,7 @@ import {
   ApiError,
   altaPrestador,
   cambiarTelefono,
+  conectarMercadoPago,
   desvincularMercadoPago,
   vincularMercadoPago,
   ingresar,
@@ -111,6 +112,19 @@ export async function accionVincularMercadoPago(
     return { error: mensaje(e, "No pudimos vincular tu cuenta de Mercado Pago.") };
   }
   redirect("/cuenta");
+}
+
+/** "Conectar con Mercado Pago": pide la dirección de autorización y manda ahí. */
+export async function accionConectarMercadoPago(): Promise<void> {
+  const token = await tokenActual();
+  if (!token) redirect("/ingresar?volver=/cuenta");
+  let url: string;
+  try {
+    url = (await conectarMercadoPago(token)).url;
+  } catch {
+    redirect("/cuenta/mercadopago?error=no_disponible");
+  }
+  redirect(url);
 }
 
 export async function accionDesvincularMercadoPago(): Promise<void> {

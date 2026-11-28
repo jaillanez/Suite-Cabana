@@ -4,6 +4,7 @@ import { redirect } from "next/navigation";
 
 import {
   accionAltaPrestador,
+  accionConectarMercadoPago,
   accionDesvincularMercadoPago,
   accionSalir,
   accionVincularMercadoPago,
@@ -18,9 +19,17 @@ import estilos from "./cuenta.module.css";
 
 export const metadata: Metadata = { title: "Mi cuenta", robots: { index: false } };
 
-export default async function Cuenta() {
+export default async function Cuenta({
+  searchParams,
+}: {
+  searchParams: Promise<Record<string, string | undefined>>;
+}) {
   const cuenta = await cuentaActual();
   if (!cuenta) redirect("/ingresar?volver=/cuenta");
+  const recienConectada = (await searchParams).mp === "conectado";
+  const p = cuenta.prestador;
+  const conBoton = Boolean(p?.cuenta_cobro_con_boton);
+  const botonDisponible = Boolean(p?.conexion_mp_disponible);
 
   const roles = [
     cuenta.es_viajero && "Viajero",
@@ -174,21 +183,67 @@ export default async function Cuenta() {
         {cuenta.prestador && (
           <section id="cobros">
             <h2>Cobros con Mercado Pago</h2>
+            {recienConectada && (
+              <p className={estilos.ok} role="status">
+                <Rayo />
+                ¡Listo! Tu cuenta de Mercado Pago quedó conectada.
+              </p>
+            )}
             {cuenta.prestador.cuenta_cobro ? (
               <>
                 <p className={estilos.ok}>
                   <Rayo />
-                  Cobrás en la cuenta <strong>{cuenta.prestador.cuenta_cobro}</strong>. Lo que
-                  te reserven entra directo ahí.
+                  <span>
+                    Cobrás en la cuenta <strong>{cuenta.prestador.cuenta_cobro}</strong>. Lo que
+                    te reserven entra directo ahí.
+                    {conBoton &&
+                      " En cada cobro, Mercado Pago descuenta sola la comisión de la plataforma y el resto queda en tu cuenta: no tenés que pagarla aparte."}
+                  </span>
                 </p>
+                {!conBoton && botonDisponible && (
+                  <div className={estilos.pendiente}>
+                    <span>
+                      Tu cuenta está vinculada con una credencial pegada a mano: la comisión
+                      se te factura aparte. Conectala con el botón y Mercado Pago la descuenta
+                      sola en cada cobro.
+                      <form action={accionConectarMercadoPago} className={estilos.botonMp}>
+                        <button type="submit" className={estilos.accionChica}>
+                          Conectar con Mercado Pago
+                        </button>
+                      </form>
+                    </span>
+                  </div>
+                )}
                 <form action={accionDesvincularMercadoPago}>
                   <button type="submit" className={estilos.salir}>
                     Desvincular cuenta
                   </button>
                 </form>
                 <p className={estilos.nota}>
-                  Si desvinculás, tus alojamientos no se pueden reservar hasta que cargues
+                  Si desvinculás, tus alojamientos no se pueden reservar hasta que conectes
                   otra.
+                </p>
+              </>
+            ) : botonDisponible ? (
+              <>
+                <p className={estilos.bajada}>
+                  Para que lo que te reserven entre en tu cuenta. Son tres pasos y no hace
+                  falta copiar ningún dato:
+                </p>
+                <ol className={estilos.pasos}>
+                  <li>Tocás el botón y vas a Mercado Pago.</li>
+                  <li>Entrás con tu usuario de siempre y tocás &quot;Autorizar&quot;.</li>
+                  <li>Volvés acá con la cuenta conectada.</li>
+                </ol>
+                <form action={accionConectarMercadoPago}>
+                  <button type="submit" className={estilos.botonPrincipal}>
+                    Conectar con Mercado Pago
+                  </button>
+                </form>
+                <p className={estilos.nota}>
+                  Cada cobro entra en tu cuenta; Mercado Pago descuenta ahí mismo la comisión de
+                  la plataforma. Nunca vemos tu clave ni tu dinero, y podés desconectarla
+                  cuando quieras.
                 </p>
               </>
             ) : (

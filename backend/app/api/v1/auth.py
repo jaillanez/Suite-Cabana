@@ -37,7 +37,7 @@ from app.core.security import (
 )
 from app.models import Notificacion, Prestador, Usuario
 from app.models.enums import CanalNotificacion, EstadoNotificacion
-from app.services import contacto, cuenta_cobro, google
+from app.services import contacto, cuenta_cobro, google, mp_oauth
 from app.services.notificaciones.base import ErrorDeEnvio, Mensaje
 from app.services.notificaciones.correo import CorreoSMTP
 from app.services.pagos import ErrorDePasarela
@@ -80,6 +80,14 @@ class PrestadorOut(BaseModel):
     cuenta_cobro_vinculada: bool
     cuenta_cobro: str | None = Field(
         default=None, description="Nombre de la cuenta de Mercado Pago vinculada"
+    )
+    cuenta_cobro_con_boton: bool = Field(
+        default=False,
+        description="Conectada con el botón: la comisión se descuenta sola en cada cobro",
+    )
+    cuenta_cobro_vence_en: datetime | None = None
+    conexion_mp_disponible: bool = Field(
+        default=False, description="Si el botón 'Conectar con Mercado Pago' está habilitado"
     )
     porcentaje_sena: int | None
 
@@ -126,6 +134,9 @@ def _prestador_out(p: Prestador | None) -> PrestadorOut | None:
         puede_publicar=p.puede_publicar,
         cuenta_cobro_vinculada=bool(p.mp_user_id),
         cuenta_cobro=p.mp_cuenta,
+        cuenta_cobro_con_boton=p.mp_oauth,
+        cuenta_cobro_vence_en=p.mp_token_vence_en,
+        conexion_mp_disponible=mp_oauth.disponible(),
         porcentaje_sena=p.porcentaje_sena,
     )
 
@@ -472,6 +483,49 @@ def vincular_mercadopago(
     try:
         cuenta_cobro.vincular(prestador, datos.access_token)
     except CredencialInvalida as e:
+        raise HTTPException(status.HTTP_422_UNPROCESSABLE_ENTITY, str(e)) from e
+    except ErrorDePasarela as e:
+        raise HTTPException(status.HTTP_502_BAD_GATEWAY, str(e)) from e
+    db.commit()
+    salida = _prestador_out(prestador)
+    assert salida is not None
+    return salida
+
+
+class ConexionMercadoPago(BaseModel):
+    url: str
+
+
+class VueltaMercadoPago(BaseModel):
+    code: Annotated[str, Field(min_length=1, max_length=400)]
+    state: Annotated[str, Field(min_length=1, max_length=2000)]
+
+
+@router.get("/prestador/mercadopago/conectar", response_model=ConexionMercadoPago)
+def conectar_mercadopago(
+    prestador: Prestador = Depends(prestador_actual),
+) -> ConexionMercadoPago:
+    """A dónde mandar al anfitrión para que autorice. El `state` lleva quién es y
+    vence en 15 minutos."""
+    try:
+        return ConexionMercadoPago(url=mp_oauth.url_autorizacion(str(prestador.usuario_id)))
+    except mp_oauth.ConexionInvalida as e:
+        raise HTTPException(status.HTTP_501_NOT_IMPLEMENTED, str(e)) from e
+
+
+@router.post("/prestador/mercadopago/oauth", response_model=PrestadorOut)
+def vuelta_mercadopago(
+    datos: VueltaMercadoPago,
+    prestador: Prestador = Depends(prestador_actual),
+    db: Session = Depends(get_db),
+) -> PrestadorOut:
+    """Mercado Pago devolvió al anfitrión con un `code`: se cambia por su
+    credencial y queda conectado. El `state` tiene que ser el que firmamos para
+    este mismo usuario."""
+    try:
+        mp_oauth.validar_estado(datos.state, str(prestador.usuario_id))
+        cuenta_cobro.vincular_oauth(prestador, datos.code)
+    except (mp_oauth.ConexionInvalida, CredencialInvalida) as e:
         raise HTTPException(status.HTTP_422_UNPROCESSABLE_ENTITY, str(e)) from e
     except ErrorDePasarela as e:
         raise HTTPException(status.HTTP_502_BAD_GATEWAY, str(e)) from e

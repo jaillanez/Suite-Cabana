@@ -75,6 +75,14 @@ export default async function ReservasOperador({
               <dt>La absorbe el prestador</dt>
               <dd className="cifra">{pesos(comisiones.la_absorbe_el_prestador)}</dd>
             </div>
+            <div>
+              <dt>Retenida por Mercado Pago</dt>
+              <dd className="cifra">{pesos(comisiones.retenida_por_mercadopago ?? "0")}</dd>
+            </div>
+            <div className={estilos.destacado}>
+              <dt>A facturar aparte</dt>
+              <dd className="cifra">{pesos(comisiones.a_facturar_aparte ?? "0")}</dd>
+            </div>
           </dl>
         )}
 

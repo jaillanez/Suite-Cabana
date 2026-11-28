@@ -386,10 +386,21 @@ catálogo la primera vez y agrega el dominio al Caddy de entrada con copia previ
 **`CLAVE_CIFRADO` no se puede perder ni cambiar**: cifra las credenciales de
 Mercado Pago de los anfitriones, y sin ella tendrían que volver a cargarlas.
 
-Cobros: `MP_COBRO_DIRECTO=true`. Cada anfitrión pega su Access Token en *Mi cuenta*
-y lo que le reservan entra en su cuenta de Mercado Pago. Con credencial propia
-Mercado Pago no permite retener la comisión en el mismo pago: queda registrada en
-cada reserva (*Cobros y comisiones*) y se factura aparte al anfitrión.
+Cobros: `MP_COBRO_DIRECTO=true`. Lo que se le reserva a un anfitrión entra en su
+cuenta de Mercado Pago. Dos formas de conectarla:
+
+- **Con el botón** (`MP_CLIENT_ID` y `MP_CLIENT_SECRET` de la aplicación de
+  Mercado Pago de la plataforma, en `/opt/suite-cabana/.env`): el anfitrión toca
+  *Conectar con Mercado Pago*, autoriza y vuelve a `/cuenta/mercadopago`. Mercado
+  Pago **retiene la comisión en el mismo pago** (`marketplace_fee`) y la manda a la
+  cuenta de la plataforma. La credencial dura 180 días y la tarea la renueva sola.
+  La URL de redireccionamiento de la aplicación tiene que ser
+  `https://<dominio>/cuenta/mercadopago`.
+- **Pegando el Access Token** (si la aplicación no está configurada): cobra igual,
+  pero Mercado Pago no deja retener la comisión; se factura aparte al anfitrión.
+
+*Reservas y comisiones* (operador) separa lo retenido por Mercado Pago de lo que
+queda por facturar aparte.
 
 ## Tests
 

@@ -9,6 +9,8 @@
   que eligió cada prestador.
 - Vacía el buzón de notificaciones: confirmaciones, avisos al anfitrión.
 - Trae de nuevo los calendarios de Airbnb, Booking, etc. cada una hora.
+- Renueva las credenciales de Mercado Pago conectadas con el botón antes de que
+  venzan (duran 180 días), una vez por hora.
 
 Una sola instancia: si corrieran dos, las dos tomarían los mismos pendientes.
 Cuando haya cola de trabajos (docs/00 §9) esto pasa a ser un par de tareas de ella.
@@ -23,6 +25,7 @@ import time
 from app.core.database import SessionLocal
 from app.services import (
     calendario,
+    cuenta_cobro,
     horarios,
     notificaciones,
     reservas,
@@ -31,7 +34,11 @@ from app.services import (
 )
 
 INTERVALO = 60
+#: Renovar credenciales de Mercado Pago no apura: una que falla no se reintenta
+#: cada minuto contra Mercado Pago.
+CADA_RENOVACION_S = 3600
 registro = logging.getLogger("tareas")
+_ultima_renovacion = 0.0
 
 
 def una_pasada() -> dict[str, int]:
@@ -49,6 +56,12 @@ def una_pasada() -> dict[str, int]:
     with SessionLocal() as db:
         resultado.update(calendario.sincronizar_vencidos(db))
         db.commit()
+    global _ultima_renovacion
+    if time.monotonic() - _ultima_renovacion >= CADA_RENOVACION_S:
+        _ultima_renovacion = time.monotonic()
+        with SessionLocal() as db:
+            resultado.update(cuenta_cobro.renovar_por_vencer(db))
+            db.commit()
     return resultado
 
 

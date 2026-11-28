@@ -30,6 +30,7 @@ from app.models import (
     Favorito,
     ItemReserva,
     Localidad,
+    Pago,
     Prestador,
     Publicacion,
     Reserva,
@@ -387,6 +388,10 @@ class ResumenComisiones(BaseModel):
     comision_total: Dinero
     la_paga_el_viajero: Dinero
     la_absorbe_el_prestador: Dinero
+    #: Lo que Mercado Pago ya descontó en cada cobro (cuentas conectadas con el
+    #: botón) y lo que queda por facturarle aparte a cada anfitrión.
+    retenida_por_mercadopago: Dinero = Decimal(0)
+    a_facturar_aparte: Dinero = Decimal(0)
 
 
 @router.get("/admin/comisiones", response_model=ResumenComisiones)
@@ -409,7 +414,14 @@ def comisiones_operador(
         .join(Reserva, ItemReserva.reserva_id == Reserva.id)
         .where(Reserva.estado.in_(CON_PLATA))
     ).one()
+    retenida = db.scalar(
+        select(func.coalesce(func.sum(Pago.comision_retenida), 0))
+        .join(Reserva, Pago.reserva_id == Reserva.id)
+        .where(Pago.estado == "aprobado", Reserva.estado.in_(CON_PLATA))
+    )
     return ResumenComisiones(
+        retenida_por_mercadopago=retenida,
+        a_facturar_aparte=max(Decimal(0), fila[4] - retenida),
         reservas=fila[0],
         base=fila[1],
         comision_neta=fila[2],

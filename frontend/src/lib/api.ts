@@ -245,6 +245,11 @@ export type PrestadorCuenta = {
   cuenta_cobro_vinculada: boolean;
   /** Nombre de la cuenta de Mercado Pago vinculada. La credencial no vuelve nunca. */
   cuenta_cobro: string | null;
+  /** Conectada con el botón: Mercado Pago descuenta la comisión en cada cobro. */
+  cuenta_cobro_con_boton?: boolean;
+  cuenta_cobro_vence_en?: string | null;
+  /** Si la plataforma ya tiene su aplicación de Mercado Pago para el botón. */
+  conexion_mp_disponible?: boolean;
   porcentaje_sena: number | null;
 };
 
@@ -300,6 +305,18 @@ export const vincularMercadoPago = (token: string, access_token: string) =>
     method: "PUT",
     token,
     body: JSON.stringify({ access_token }),
+  });
+
+/** A dónde mandar al anfitrión para que autorice en Mercado Pago. */
+export const conectarMercadoPago = (token: string) =>
+  api<{ url: string }>("/auth/prestador/mercadopago/conectar", { token });
+
+/** Mercado Pago lo devolvió con un code: se cierra la conexión. */
+export const volverDeMercadoPago = (token: string, code: string, state: string) =>
+  api<PrestadorCuenta>("/auth/prestador/mercadopago/oauth", {
+    method: "POST",
+    token,
+    body: JSON.stringify({ code, state }),
   });
 
 export const desvincularMercadoPago = (token: string) =>
@@ -1185,6 +1202,10 @@ export type ResumenComisiones = {
   comision_total: string;
   la_paga_el_viajero: string;
   la_absorbe_el_prestador: string;
+  /** Lo que Mercado Pago ya descontó en el cobro (cuentas conectadas con el botón). */
+  retenida_por_mercadopago?: string;
+  /** Lo que queda por facturarle aparte a cada anfitrión. */
+  a_facturar_aparte?: string;
 };
 
 export const misFavoritos = (token: string) => api<FavoritoGuardado[]>("/favoritos", { token });

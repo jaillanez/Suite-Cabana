@@ -1,7 +1,7 @@
 import uuid
-from datetime import date
+from datetime import date, datetime
 
-from sqlalchemy import CheckConstraint, ForeignKey, String
+from sqlalchemy import CheckConstraint, DateTime, ForeignKey, String
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.models.base import Base, IdMixin, TiempoMixin
@@ -30,7 +30,12 @@ class Prestador(IdMixin, TiempoMixin, Base):
     mp_user_id: Mapped[str | None] = mapped_column(String(40))
     mp_cuenta: Mapped[str | None] = mapped_column(String(200))  # cómo se la mostramos
     mp_access_token: Mapped[str | None]
-    mp_refresh_token: Mapped[str | None]
+    mp_refresh_token: Mapped[str | None]  # cifrado, como el token
+    #: Conectada con el botón (OAuth de la aplicación de la plataforma): solo así
+    #: Mercado Pago deja retener la comisión en el mismo pago. Una credencial
+    #: pegada a mano cobra, pero la comisión se factura aparte.
+    mp_oauth: Mapped[bool] = mapped_column(default=False)
+    mp_token_vence_en: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
 
     # Seña configurable (porcentaje del total); nulo = pago total
     porcentaje_sena: Mapped[int | None]

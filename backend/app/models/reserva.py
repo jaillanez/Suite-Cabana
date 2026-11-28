@@ -1,5 +1,6 @@
 import uuid
 from datetime import date, datetime
+from decimal import Decimal
 
 from sqlalchemy import (
     CheckConstraint,
@@ -95,6 +96,9 @@ class Pago(IdMixin, TiempoMixin, Base):
     monto_prestador: Mapped[Dinero]
     monto_comision: Mapped[Dinero]
     iva_comision: Mapped[Dinero]
+    #: Lo que Mercado Pago descontó para la plataforma en este mismo pago
+    #: (`marketplace_fee`). Lo que falte de comisión más IVA se factura aparte.
+    comision_retenida: Mapped[Dinero] = mapped_column(default=Decimal(0))
     datos: Mapped[dict | None] = mapped_column(JSONB)
 
     reserva: Mapped[Reserva] = relationship(back_populates="pagos")
