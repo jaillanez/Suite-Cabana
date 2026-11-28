@@ -49,6 +49,8 @@ import {
   cambiarCupoSalida,
   crearPrecioPasajero,
   ubicarPorDireccion,
+  importarAnuncio,
+  type PropuestaAnuncio,
   crearLugarTraslado,
   editarLugarTraslado,
   quitarLugarTraslado,
@@ -459,6 +461,20 @@ export async function accionQuitarPrecioPasajero(id: string, unidadId: string, p
     (t) => quitarPrecioPasajero(t, id, unidadId, precioId),
     "No pudimos quitar el precio.",
   );
+}
+
+/** Lee el texto pegado de un anuncio de Airbnb o Booking y devuelve la propuesta. */
+export async function accionImportarAnuncio(
+  id: string,
+  texto: string,
+): Promise<{ propuesta: PropuestaAnuncio } | { error: string }> {
+  const token = await tokenActual();
+  if (!token) return { error: "Tu sesión venció. Ingresá de nuevo." };
+  try {
+    return { propuesta: await importarAnuncio(token, id, texto) };
+  } catch (e) {
+    return problema(e, "No pudimos leer ese texto.");
+  }
 }
 
 export async function accionUbicarPorDireccion(id: string) {

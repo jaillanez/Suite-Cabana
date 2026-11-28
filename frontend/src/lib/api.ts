@@ -786,6 +786,26 @@ export const quitarPrecioPasajero = (
     token,
   });
 
+/** Lo que se leyó del texto de un anuncio de Airbnb o Booking. No se guardó nada. */
+export type PropuestaAnuncio = {
+  descripcion: string | null;
+  reglas_casa: string | null;
+  hora_ingreso: string | null;
+  hora_salida: string | null;
+  comodidades: string[];
+  huespedes: number | null;
+  dormitorios: number | null;
+  camas: number | null;
+  banos: string | null;
+};
+
+export const importarAnuncio = (token: string, id: string, texto: string) =>
+  api<PropuestaAnuncio>(`${MIS}/${id}/importar-anuncio`, {
+    method: "POST",
+    token,
+    body: JSON.stringify({ texto }),
+  });
+
 /** Pone el pin donde dice la dirección guardada (lo busca el backend). */
 export const ubicarPorDireccion = (token: string, id: string) =>
   api<PublicacionEdicion>(`${MIS}/${id}/ubicar-por-direccion`, { method: "POST", token });

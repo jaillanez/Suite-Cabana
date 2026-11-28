@@ -761,6 +761,68 @@ def _ubicar(db: Session, p: Publicacion, direccion: str):
     )
 
 
+class TextoAnuncio(BaseModel):
+    texto: Annotated[str, Field(min_length=1, max_length=30_000)]
+
+
+class PropuestaOut(BaseModel):
+    """Lo que se leyó del anuncio pegado. No se guardó nada: el editor lo muestra y
+    el prestador aplica lo que quiera con los cambios de siempre."""
+
+    descripcion: str | None
+    reglas_casa: str | None
+    hora_ingreso: time | None
+    hora_salida: time | None
+    comodidades: list[str] = Field(description="Códigos del catálogo, solo de este tipo")
+    huespedes: int | None
+    dormitorios: int | None
+    camas: int | None
+    banos: str | None
+
+
+@router.post("/{publicacion_id}/importar-anuncio", response_model=PropuestaOut)
+def importar_anuncio(
+    publicacion_id: uuid.UUID,
+    datos: TextoAnuncio,
+    prestador: Prestador = Depends(prestador_actual),
+    db: Session = Depends(get_db),
+) -> PropuestaOut:
+    """Lee el texto de un anuncio de Airbnb o Booking que pegó el prestador y
+    propone descripción, reglas, horarios, comodidades y capacidad."""
+    from app.services import importar_anuncio as imp
+
+    p = _mia(publicacion_id, prestador, db, editable=True)
+    try:
+        propuesta = imp.leer(datos.texto)
+    except imp.TextoInvalido as e:
+        raise HTTPException(status.HTTP_422_UNPROCESSABLE_ENTITY, str(e)) from e
+    if propuesta.vacia:
+        raise HTTPException(
+            status.HTTP_422_UNPROCESSABLE_ENTITY,
+            "No encontramos nada para cargar en ese texto. Copiá la página entera del "
+            "anuncio (Ctrl+A y Ctrl+C) y pegala de nuevo.",
+        )
+    # Solo las comodidades que aplican a este tipo: una "pileta" sí, una "pista" no.
+    validas = set(
+        db.scalars(
+            select(Comodidad.codigo)
+            .join(comodidad_tipo_servicio)
+            .where(comodidad_tipo_servicio.c.tipo_servicio_id == p.tipo_servicio_id)
+        )
+    )
+    return PropuestaOut(
+        descripcion=propuesta.descripcion,
+        reglas_casa=propuesta.reglas_casa,
+        hora_ingreso=propuesta.hora_ingreso,
+        hora_salida=propuesta.hora_salida,
+        comodidades=[c for c in propuesta.comodidades if c in validas],
+        huespedes=propuesta.huespedes,
+        dormitorios=propuesta.dormitorios,
+        camas=propuesta.camas,
+        banos=propuesta.banos,
+    )
+
+
 @router.post("/{publicacion_id}/ubicar-por-direccion", response_model=PublicacionOut)
 def ubicar_por_direccion(
     publicacion_id: uuid.UUID,

@@ -27,6 +27,7 @@ import {
   ICONOS_COMODIDAD,
 } from "./Iconos";
 import CalendarioUnidad from "./CalendarioUnidad";
+import ImportarAnuncio from "./ImportarAnuncio";
 import MapaSelector from "./MapaSelector";
 import PoliticaPropia from "./PoliticaPropia";
 import UnidadesExcursion from "./UnidadesExcursion";
@@ -260,6 +261,11 @@ export default function EditorPublicacion({
 
       {guardado && <p className={estilos.guardado}>Guardado</p>}
 
+      {/* Para alojamientos: casi todos ya están en Airbnb o Booking. */}
+      {porNoches && !bloqueada && (
+        <ImportarAnuncio p={p} catalogo={catalogo} correr={correr} pendiente={pendiente} />
+      )}
+
       <fieldset className={estilos.bloque} disabled={bloqueada}>
         <h2>
           {segun({
@@ -269,7 +275,13 @@ export default function EditorPublicacion({
             alojamiento: "Datos del alojamiento",
           })}
         </h2>
-        <form action={guardar} className={estilos.formulario}>
+        {/* Con key: si los datos cambian desde afuera (al importar un anuncio), el
+            formulario se vuelve a armar con los nuevos en vez de mostrar los viejos. */}
+        <form
+          action={guardar}
+          className={estilos.formulario}
+          key={[p.descripcion, p.reglas_casa, p.hora_ingreso, p.hora_salida, p.direccion].join("|")}
+        >
           <label className={estilos.completo}>
             <span>Nombre</span>
             <input
