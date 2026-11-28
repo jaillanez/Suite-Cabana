@@ -19,8 +19,10 @@ CENTRO_BARILOCHE = geo.Punto(-41.1335, -71.3103)
 @pytest.fixture(autouse=True)
 def _memoria_limpia():
     geo._memoria.clear()
+    geo._proxima = 0.0
     yield
     geo._memoria.clear()
+    geo._proxima = 0.0
 
 
 @pytest.fixture
@@ -94,6 +96,38 @@ def test_si_el_servicio_falla_no_se_rompe_nada(monkeypatch, respuesta):
 
     monkeypatch.setattr(geo.httpx, "get", falso_get)
     assert geo._consultar("Mitre 120") is None
+
+
+def test_si_hay_que_esperar_mucho_turno_no_se_espera(monkeypatch):
+    """Con el servicio lento, los pedidos no se encolan detrás: se marca a mano."""
+    _con_url(monkeypatch)
+    monkeypatch.setattr(geo, "ESPERA_MINIMA_S", 10)
+    monkeypatch.setattr(
+        geo.httpx, "get",
+        lambda url, **_: httpx.Response(200, json=[], request=httpx.Request("GET", url)),
+    )
+    assert geo._consultar("Mitre 1") is None  # este toma el turno
+    monkeypatch.setattr(geo.httpx, "get", lambda *a, **k: pytest.fail("esperó turno"))
+    assert geo._consultar("Mitre 2") is None  # el siguiente sería en 10 s: no espera
+
+
+@pytest.mark.parametrize("lat, lon", [("nan", "-71.3"), ("-41.1", "inf"), ("95", "-71.3")])
+def test_coordenadas_invalidas_del_servicio_no_se_usan(monkeypatch, lat, lon):
+    _con_url(monkeypatch)
+    monkeypatch.setattr(
+        geo.httpx, "get",
+        lambda url, **_: httpx.Response(
+            200, json=[{"lat": lat, "lon": lon}], request=httpx.Request("GET", url)
+        ),
+    )
+    assert geo._consultar("Mitre 120") is None
+
+
+def test_sin_centro_de_la_localidad_tiene_que_caer_en_argentina(monkeypatch):
+    monkeypatch.setattr(geo, "_consultar", lambda texto: (40.4, -3.7))  # Madrid
+    assert geo.ubicar("Mitre 120", "X", "Y", None) is None
+    monkeypatch.setattr(geo, "_consultar", lambda texto: (-41.14, -71.30))
+    assert geo.ubicar("Mitre 120", "X", "Y", None) is not None
 
 
 def test_sin_url_no_sale_a_la_red(monkeypatch):

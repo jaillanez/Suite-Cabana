@@ -2,7 +2,8 @@
 busque su casa en un mapa a mano.
 
 Usa Nominatim (OpenStreetMap), gratis y sin clave. Sus condiciones de uso piden:
-- como mucho **una consulta por segundo** (acá se espacian con un candado);
+- como mucho **una consulta por segundo** (acá cada pedido reserva su turno, y si
+  falta más de 2 s, no espera: el prestador marca el punto a mano);
 - identificar la aplicación en el User-Agent (el nombre y el sitio, sin datos
   de nadie);
 - guardar lo ya consultado (acá, en memoria).
@@ -30,11 +31,15 @@ log = logging.getLogger(__name__)
 #: Cuán lejos del centro de la localidad puede caer la dirección.
 DISTANCIA_MAXIMA_KM = 40.0
 ESPERA_MINIMA_S = 1.1
-TIEMPO_MAXIMO_S = 6.0
+#: Si el próximo turno libre está más lejos que esto, no se espera.
+ESPERA_MAXIMA_S = 2.0
+TIEMPO_MAXIMO_S = 4.0
+#: Sin centro de la localidad, al menos que caiga en Argentina (continental).
+ARGENTINA = (-55.1, -21.7, -73.6, -53.5)  # lat mín, lat máx, lon mín, lon máx
 MEMORIA = 512
 
 _candado = threading.Lock()
-_ultima = 0.0
+_proxima = 0.0
 _memoria: OrderedDict[str, tuple[float, float] | None] = OrderedDict()
 
 
@@ -52,10 +57,33 @@ def _km(a: Punto, b: Punto) -> float:
     return 2 * 6371.0 * math.asin(math.sqrt(h))
 
 
+def _turno() -> float | None:
+    """Reserva el próximo turno de consulta (una por segundo, entre todos). None si
+    falta demasiado: no se encola a nadie detrás de un servicio lento."""
+    global _proxima
+    with _candado:
+        ahora = time.monotonic()
+        turno = max(ahora, _proxima)
+        if turno - ahora > ESPERA_MAXIMA_S:
+            return None
+        _proxima = turno + ESPERA_MINIMA_S
+        return turno
+
+
+def _valido(lat: float, lon: float) -> bool:
+    return (
+        math.isfinite(lat) and math.isfinite(lon) and -90 <= lat <= 90 and -180 <= lon <= 180
+    )
+
+
 def _consultar(texto: str) -> tuple[float, float] | None:
-    """Una consulta a Nominatim, respetando su ritmo. None si no hay resultado o
-    si el servicio no responde: ubicar es una ayuda, nunca traba el guardado."""
-    global _ultima
+    """Una consulta a Nominatim, respetando su ritmo. None si no hay resultado, si el
+    servicio no responde o si habría que esperar turno: ubicar es una ayuda, nunca
+    traba el guardado.
+
+    El candado solo cuida el turno y la memoria: la consulta por red va afuera, así
+    un servicio lento no deja a todos los pedidos esperando detrás.
+    """
     s = get_settings()
     if not s.geocodificador_url:
         return None
@@ -63,34 +91,35 @@ def _consultar(texto: str) -> tuple[float, float] | None:
         if texto in _memoria:
             _memoria.move_to_end(texto)
             return _memoria[texto]
-        espera = ESPERA_MINIMA_S - (time.monotonic() - _ultima)
-        if espera > 0:
-            time.sleep(espera)
-        try:
-            r = httpx.get(
-                s.geocodificador_url,
-                params={"q": texto, "format": "jsonv2", "limit": 1, "countrycodes": "ar"},
-                headers={
-                    "User-Agent": f"SuiteCabana/1.0 (+{s.url_publica_web})",
-                    "Accept-Language": "es",
-                },
-                timeout=TIEMPO_MAXIMO_S,
-            )
-            r.raise_for_status()
-            filas = r.json()
-        except (httpx.HTTPError, ValueError) as e:
-            log.warning("No se pudo ubicar la dirección: %s", e.__class__.__name__)
-            return None
-        finally:
-            _ultima = time.monotonic()
-        try:
-            punto = (float(filas[0]["lat"]), float(filas[0]["lon"])) if filas else None
-        except (KeyError, TypeError, ValueError, IndexError):
-            punto = None
+    turno = _turno()
+    if turno is None:
+        return None
+    espera = turno - time.monotonic()
+    if espera > 0:
+        time.sleep(espera)
+    try:
+        r = httpx.get(
+            s.geocodificador_url,
+            params={"q": texto, "format": "jsonv2", "limit": 1, "countrycodes": "ar"},
+            headers={
+                "User-Agent": f"SuiteCabana/1.0 (+{s.url_publica_web})",
+                "Accept-Language": "es",
+            },
+            timeout=TIEMPO_MAXIMO_S,
+        )
+        r.raise_for_status()
+        filas = r.json()
+        punto = (float(filas[0]["lat"]), float(filas[0]["lon"])) if filas else None
+    except (httpx.HTTPError, ValueError, KeyError, TypeError, IndexError) as e:
+        log.warning("No se pudo ubicar la dirección: %s", e.__class__.__name__)
+        return None
+    if punto is not None and not _valido(*punto):
+        punto = None
+    with _candado:
         _memoria[texto] = punto
         if len(_memoria) > MEMORIA:
             _memoria.popitem(last=False)
-        return punto
+    return punto
 
 
 def ubicar(
@@ -105,6 +134,9 @@ def ubicar(
     if hallado is None:
         return None
     punto = Punto(*hallado)
-    if centro is not None and _km(punto, centro) > DISTANCIA_MAXIMA_KM:
+    if not _valido(punto.lat, punto.lon):
         return None
-    return punto
+    if centro is None:
+        la_min, la_max, lo_min, lo_max = ARGENTINA
+        return punto if la_min <= punto.lat <= la_max and lo_min <= punto.lon <= lo_max else None
+    return punto if _km(punto, centro) <= DISTANCIA_MAXIMA_KM else None
