@@ -9,7 +9,7 @@ pantalla para mostrar qué falta antes de intentar.
 from __future__ import annotations
 
 import uuid
-from datetime import date, datetime, time, timedelta
+from datetime import UTC, date, datetime, time, timedelta
 from decimal import Decimal
 from typing import Annotated, Literal
 
@@ -47,7 +47,7 @@ from app.models import (
 )
 from app.models.enums import EstadoPublicacion, ModoReserva, OrigenBloqueo
 from app.services import calendario as agenda
-from app.services import edicion, horarios, politicas
+from app.services import edicion, horarios, ical, politicas
 from app.services import fotos as almacen
 from app.services.busqueda import lat_lon
 from app.services.precios_eventos import ZONA, en_hora
@@ -361,6 +361,17 @@ class CalendarioExternoOut(BaseModel):
     url: str
     ultima_sincronizacion: datetime | None
     ultimo_error: str | None
+    error_desde: datetime | None = Field(
+        default=None, description="Desde cuándo falla sin parar"
+    )
+
+
+class LecturaOut(BaseModel):
+    """Otra plataforma leyó nuestro calendario: la otra mitad está conectada."""
+
+    plataforma: str
+    nombre: str
+    leido_en: datetime
 
 
 class AgendaOut(BaseModel):
@@ -369,6 +380,26 @@ class AgendaOut(BaseModel):
     url_exportacion: str = Field(description="Pegala en Booking o Airbnb")
     tramos: list[TramoOut]
     calendarios: list[CalendarioExternoOut]
+    lecturas: list[LecturaOut] = Field(default_factory=list)
+    aviso: str | None = Field(
+        default=None, description="Qué pasó con lo último que se hizo (al conectar uno)"
+    )
+
+
+class CalendariosUnidadOut(BaseModel):
+    unidad_id: uuid.UUID
+    unidad: str
+    url_exportacion: str
+    calendarios: list[CalendarioExternoOut]
+    lecturas: list[LecturaOut]
+
+
+class CalendariosOut(BaseModel):
+    """Todas las unidades de un alojamiento con sus calendarios: el asistente."""
+
+    publicacion_id: uuid.UUID
+    titulo: str
+    unidades: list[CalendariosUnidadOut]
 
 
 class SincronizacionOut(BaseModel):
@@ -1490,9 +1521,33 @@ def soltar_horas(
     return _agenda_horaria(db, unidad, dia, 7)
 
 
-def _agenda(db: Session, unidad: Unidad) -> AgendaOut:
+def _url_exportacion(unidad: Unidad) -> str:
     from app.core.config import get_settings
 
+    base = get_settings().url_publica_api.rstrip("/")
+    return f"{base}/api/v1/ical/{unidad.ical_export_token}.ics"
+
+
+def _calendario_out(c: CalendarioExterno) -> CalendarioExternoOut:
+    return CalendarioExternoOut(
+        id=c.id, nombre=c.nombre, plataforma=c.plataforma, url=c.url,
+        ultima_sincronizacion=c.ultima_sincronizacion, ultimo_error=c.ultimo_error,
+        error_desde=c.error_desde,
+    )
+
+
+def _lectura_out(lectura) -> LecturaOut:
+    from app.services import canales
+
+    plataforma = canales.POR_CODIGO.get(lectura.plataforma)
+    return LecturaOut(
+        plataforma=lectura.plataforma,
+        nombre=plataforma.nombre if plataforma else "Otra plataforma",
+        leido_en=lectura.leido_en,
+    )
+
+
+def _agenda(db: Session, unidad: Unidad, aviso: str | None = None) -> AgendaOut:
     externos = list(
         db.scalars(
             select(CalendarioExterno)
@@ -1500,11 +1555,12 @@ def _agenda(db: Session, unidad: Unidad) -> AgendaOut:
             .order_by(CalendarioExterno.nombre)
         )
     )
-    base = get_settings().url_publica_api.rstrip("/")
     return AgendaOut(
         unidad_id=unidad.id,
         unidad=unidad.nombre,
-        url_exportacion=f"{base}/api/v1/ical/{unidad.ical_export_token}.ics",
+        url_exportacion=_url_exportacion(unidad),
+        aviso=aviso,
+        lecturas=[_lectura_out(x) for x in agenda.lecturas(db, [unidad.id])[unidad.id]],
         tramos=[
             TramoOut(
                 id=t.id,
@@ -1518,17 +1574,7 @@ def _agenda(db: Session, unidad: Unidad) -> AgendaOut:
             )
             for t in agenda.ocupacion(db, unidad.id)
         ],
-        calendarios=[
-            CalendarioExternoOut(
-                id=c.id,
-                nombre=c.nombre,
-                plataforma=c.plataforma,
-                url=c.url,
-                ultima_sincronizacion=c.ultima_sincronizacion,
-                ultimo_error=c.ultimo_error,
-            )
-            for c in externos
-        ],
+        calendarios=[_calendario_out(c) for c in externos],
     )
 
 
@@ -1599,7 +1645,8 @@ def agregar_calendario(
 
     try:
         red.validar_forma(datos.url)
-    except red.DireccionNoPermitida as e:
+        plataforma = canales.revisar_enlace(datos.url, datos.plataforma)
+    except (red.DireccionNoPermitida, canales.EnlaceEquivocado) as e:
         raise HTTPException(status.HTTP_422_UNPROCESSABLE_ENTITY, str(e)) from e
     # Cada calendario se descarga solo cada hora: el tope evita que una cuenta
     # use el servidor para pedirle a terceros cientos de direcciones.
@@ -1618,16 +1665,89 @@ def agregar_calendario(
             f"Una unidad puede tener hasta {agenda_externa.MAX_POR_UNIDAD} calendarios",
         )
 
-    db.add(
-        CalendarioExterno(
-            unidad_id=unidad.id,
-            nombre=datos.nombre.strip(),
-            url=datos.url.strip(),
-            plataforma=datos.plataforma or canales.detectar(datos.url),
-        )
+    externo = CalendarioExterno(
+        unidad_id=unidad.id,
+        nombre=datos.nombre.strip(),
+        url=datos.url.strip(),
+        plataforma=datos.plataforma or plataforma,
     )
+    db.add(externo)
+    db.flush()
+
+    # Se lee en el momento: el anfitrión se entera ya si el enlace sirve, no en
+    # una hora. Un enlace que no es un calendario no se guarda; un portal caído
+    # un rato sí (se reintenta solo).
+    try:
+        with db.begin_nested():
+            agenda_externa.sincronizar(db, externo)
+    except Exception as e:  # noqa: BLE001 - red, formato o choque en la base
+        error = (
+            f"El archivo no se entiende: {e}"
+            if isinstance(e, ical.CalendarioIlegible)
+            else agenda_externa.motivo(e)
+        )
+        if agenda_externa.es_definitivo(e):
+            db.rollback()
+            raise HTTPException(
+                status.HTTP_422_UNPROCESSABLE_ENTITY,
+                f"No pudimos leer ese calendario: {error}",
+            ) from e
+        externo.ultimo_intento = datetime.now(UTC)
+        externo.ultimo_error = error
+        externo.error_desde = externo.ultimo_intento
+        aviso = f"Lo guardamos, pero ahora no pudimos leerlo: {error} Lo reintentamos solo."
+    else:
+        cuantos, hasta = agenda_externa.importado(db, externo)
+        nombre = canales.POR_CODIGO.get(externo.plataforma)
+        de = nombre.nombre if nombre and externo.plataforma != "otro" else externo.nombre
+        aviso = (
+            f"¡Conectado! Leímos el calendario de {de}: "
+            + (
+                f"{cuantos} {'período ocupado' if cuantos == 1 else 'períodos ocupados'}, "
+                f"el último hasta el {hasta:%d/%m/%Y}. Esas fechas ya no se pueden reservar acá."
+                if cuantos
+                else "por ahora no tiene noches ocupadas."
+            )
+        )
     db.commit()
-    return _agenda(db, _mi_unidad(publicacion_id, unidad_id, prestador, db))
+    return _agenda(db, _mi_unidad(publicacion_id, unidad_id, prestador, db), aviso=aviso)
+
+
+@router.get("/{publicacion_id}/calendarios", response_model=CalendariosOut)
+def ver_calendarios(
+    publicacion_id: uuid.UUID,
+    prestador: Prestador = Depends(prestador_actual),
+    db: Session = Depends(get_db),
+) -> CalendariosOut:
+    """Las unidades del alojamiento con sus calendarios conectados y quién lee el
+    nuestro: lo que pinta el asistente para conectar Airbnb, Booking, etc."""
+    p = _mia(publicacion_id, prestador, db)
+    if p.tipo_servicio.modo_reserva is not ModoReserva.NOCHES:
+        raise HTTPException(
+            status.HTTP_409_CONFLICT, "La sincronización de calendarios es para alojamientos"
+        )
+    unidades = sorted((u for u in p.unidades if u.activa), key=lambda u: u.nombre)
+    ids = [u.id for u in unidades]
+    externos: dict = {u: [] for u in ids}
+    for c in db.scalars(
+        select(CalendarioExterno)
+        .where(CalendarioExterno.unidad_id.in_(ids))
+        .order_by(CalendarioExterno.nombre)
+    ):
+        externos[c.unidad_id].append(c)
+    leidas = agenda.lecturas(db, ids)
+    return CalendariosOut(
+        publicacion_id=p.id,
+        titulo=p.titulo,
+        unidades=[
+            CalendariosUnidadOut(
+                unidad_id=u.id, unidad=u.nombre, url_exportacion=_url_exportacion(u),
+                calendarios=[_calendario_out(c) for c in externos[u.id]],
+                lecturas=[_lectura_out(x) for x in leidas[u.id]],
+            )
+            for u in unidades
+        ],
+    )
 
 
 @router.delete(

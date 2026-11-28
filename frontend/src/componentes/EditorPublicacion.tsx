@@ -599,6 +599,11 @@ export default function EditorPublicacion({
             Cada unidad es lo que alguien reserva: una cabaña, un departamento,
             una habitación. Cada una lleva su capacidad y su tarifa.
           </p>
+          {p.unidades.length > 0 && (
+            <Link href={`/mis-publicaciones/${p.id}/calendarios`} className={estilos.secundario}>
+              ¿También en Airbnb o Booking? Conectá los calendarios
+            </Link>
+          )}
 
           <ul className={estilos.unidades}>
             {p.unidades.map((u) => (

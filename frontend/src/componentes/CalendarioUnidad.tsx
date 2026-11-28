@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useEffect, useState, useTransition } from "react";
 
 import {
@@ -42,6 +43,8 @@ export default function CalendarioUnidad({
     if ("agenda" in r) {
       setAgenda(r.agenda);
       setError(null);
+      // Al conectar uno, el backend dice qué leyó ("¡Conectado! Leímos…").
+      if (r.agenda.aviso) setAviso(r.agenda.aviso);
     } else {
       setError(r.error);
     }
@@ -143,9 +146,12 @@ export default function CalendarioUnidad({
       <section>
         <h4>Sincronizar con otras plataformas</h4>
         <p className={estilos.ayuda}>
-          Pegá acá la dirección del calendario que te da Booking o Airbnb, y pegá la de abajo
-          allá. Así una fecha vendida en cualquiera de los dos lados queda tomada en el otro.
-          Se actualiza solo cada una hora; con «Sincronizar ahora» lo traés en el momento.
+          Lo más fácil es el{" "}
+          <Link href={`/mis-publicaciones/${publicacionId}/calendarios`}>
+            asistente paso a paso para Airbnb y Booking
+          </Link>
+          . Si ya tenés la dirección a mano, también la podés pegar acá: una fecha vendida en
+          cualquiera de los dos lados queda tomada en el otro. Se actualiza sola cada una hora.
         </p>
 
         {agenda.calendarios.length > 0 && (

@@ -72,6 +72,18 @@ PLANTILLAS = {
         ),
     ),
     # Al prestador
+    "calendario_con_error": lambda d: Plantilla(
+        asunto=f"Tu calendario de {d['plataforma']} dejó de sincronizarse — {d['alojamiento']}",
+        cuerpo=(
+            f"Hola {d['nombre']},\n\n"
+            f"Desde hace más de un día no podemos leer el calendario de {d['plataforma']} "
+            f"de {d['alojamiento']} ({d['unidad']}).\n"
+            f"Qué pasa: {d['motivo']}\n\n"
+            "Mientras tanto, lo que se reserve allá no se bloquea acá y podría haber "
+            "una doble reserva. Entrá y volvé a conectarlo; son dos minutos:\n"
+            f"{d['enlace']}\n"
+        ),
+    ),
     "nueva_reserva": lambda d: Plantilla(
         asunto=f"Nueva reserva en {d['alojamiento']} — {d['codigo']}",
         cuerpo=(

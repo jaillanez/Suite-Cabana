@@ -187,6 +187,28 @@ class CalendarioExterno(IdMixin, Base):
     # Cada intento, salga bien o mal: es lo que mira la sincronización automática.
     ultimo_intento: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     ultimo_error: Mapped[str | None]
+    #: Desde cuándo falla sin parar, y cuándo se le avisó al anfitrión: un aviso
+    #: por racha de fallas, no uno por hora.
+    error_desde: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    aviso_error_en: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+
+
+class LecturaCalendario(IdMixin, Base):
+    """La última vez que otra plataforma leyó nuestro calendario de una unidad.
+
+    Es la otra mitad de la sincronización: así el anfitrión sabe si pegó bien
+    nuestra dirección en Airbnb o Booking ("Airbnb lo leyó hace 20 minutos"). La
+    plataforma se reconoce por quién pide el archivo; si no se sabe, "otra".
+    """
+
+    __tablename__ = "lectura_calendario"
+    __table_args__ = (
+        UniqueConstraint("unidad_id", "plataforma", name="uq_lectura_calendario"),
+    )
+
+    unidad_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("unidad.id"), index=True)
+    plataforma: Mapped[str] = mapped_column(String(30))
+    leido_en: Mapped[datetime] = mapped_column(DateTime(timezone=True))
 
 
 class ReservaExterna(IdMixin, TiempoMixin, Base):

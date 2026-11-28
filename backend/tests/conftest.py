@@ -48,6 +48,19 @@ LLEGADA = HOY + timedelta(days=26)
 SALIDA = LLEGADA + timedelta(days=3)
 
 
+@pytest.fixture(autouse=True)
+def _calendarios_sin_internet(monkeypatch):
+    """Al conectar un calendario se lo lee en el momento. En los tests no se sale
+    a internet: por defecto la plataforma "no responde" (se guarda y se reintenta).
+    El test que necesita otra respuesta reemplaza `calendario.descargar`."""
+    import httpx
+
+    def sin_red(url):
+        raise httpx.ConnectError("los tests no salen a internet", request=httpx.Request("GET", url))
+
+    monkeypatch.setattr("app.services.calendario.descargar", sin_red)
+
+
 @pytest.fixture(scope="session")
 def engine():
     motor = create_engine(URL_TEST)

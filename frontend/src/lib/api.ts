@@ -698,10 +698,16 @@ export type Tramo = {
 export type CalendarioExterno = {
   id: string;
   nombre: string;
+  plataforma?: string;
   url: string;
   ultima_sincronizacion: string | null;
   ultimo_error: string | null;
+  /** Desde cuándo falla sin parar. */
+  error_desde?: string | null;
 };
+
+/** Otra plataforma leyó nuestro calendario: la otra mitad está conectada. */
+export type LecturaCalendario = { plataforma: string; nombre: string; leido_en: string };
 
 export type Agenda = {
   unidad_id: string;
@@ -709,7 +715,28 @@ export type Agenda = {
   url_exportacion: string;
   tramos: Tramo[];
   calendarios: CalendarioExterno[];
+  lecturas?: LecturaCalendario[];
+  /** Qué pasó con lo último que se hizo, por ejemplo al conectar un calendario. */
+  aviso?: string | null;
 };
+
+export type CalendariosUnidad = {
+  unidad_id: string;
+  unidad: string;
+  url_exportacion: string;
+  calendarios: CalendarioExterno[];
+  lecturas: LecturaCalendario[];
+};
+
+export type CalendariosPublicacion = {
+  publicacion_id: string;
+  titulo: string;
+  unidades: CalendariosUnidad[];
+};
+
+/** Todas las unidades con sus calendarios: el asistente para conectar Airbnb y Booking. */
+export const verCalendarios = (token: string, id: string) =>
+  api<CalendariosPublicacion>(`${MIS}/${id}/calendarios`, { token });
 
 export type Sincronizacion = {
   importados: number;
@@ -742,7 +769,7 @@ export const agregarCalendario = (
   token: string,
   id: string,
   unidadId: string,
-  datos: { nombre: string; url: string },
+  datos: { nombre: string; url: string; plataforma?: string },
 ) =>
   api<Agenda>(`${ruta(id, unidadId)}/calendarios`, {
     method: "POST",

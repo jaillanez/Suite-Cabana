@@ -202,7 +202,19 @@ lo vendido acá, lo importado de los otros portales y lo que bloqueó él, y un 
 trae a todos de una. Si un portal está caído, los demás igual se actualizan.
 
 La sincronización es **iCal (RFC 5545)** y va en las dos direcciones: la dirección de ellos
-se pega en el editor de la unidad, la nuestra se pega en el panel de ellos.
+se pega acá, la nuestra se pega en el panel de ellos. El asistente
+`/mis-publicaciones/{id}/calendarios` guía las dos, unidad por unidad:
+
+- **Al pegar su enlace se lo lee en el momento.** Si es el del anuncio y no el del
+  calendario, o de otra plataforma, se explica dónde está el bueno; si no es un
+  calendario o ya no existe, no se guarda. Si el portal está caído un rato, se guarda y
+  se reintenta solo.
+- **Se ve si la otra punta funciona:** cuando Airbnb, Booking o Google leen nuestro
+  calendario, queda anotado ("Airbnb lo leyó hace 20 min"). Se reconocen por cómo se
+  identifican al pedir el archivo; una persona con el navegador no cuenta.
+- **Si un calendario falla más de un día, se le avisa al anfitrión por correo,** una vez
+  por racha de fallas.
+- Un calendario con eventos superpuestos (dos feriados el mismo día) se importa unido.
 
 | Plataforma | Estado |
 |---|---|

@@ -104,6 +104,30 @@ def parsear(contenido: bytes | str) -> list[Ocupacion]:
     return sorted(ocupaciones, key=lambda o: o.desde)
 
 
+def unir(ocupaciones: list[Ocupacion]) -> list[Ocupacion]:
+    """Junta los tramos de un mismo calendario que se pisan.
+
+    Un calendario puede traer dos eventos el mismo día (dos feriados, una reserva
+    y un bloqueo): como la base no admite dos bloqueos superpuestos en la misma
+    unidad, guardarlos tal cual hacía fallar toda la sincronización.
+    """
+    vigentes = sorted(ocupaciones, key=lambda o: (o.desde, o.hasta))
+    unidos: list[Ocupacion] = []
+    for o in vigentes:
+        if unidos and o.desde < unidos[-1].hasta:
+            ultimo = unidos[-1]
+            resumen = ultimo.resumen
+            if o.resumen and o.resumen not in resumen:
+                resumen = f"{resumen} · {o.resumen}" if resumen else o.resumen
+            unidos[-1] = Ocupacion(
+                desde=ultimo.desde, hasta=max(ultimo.hasta, o.hasta),
+                resumen=resumen[:200], uid=ultimo.uid,
+            )
+        else:
+            unidos.append(o)
+    return unidos
+
+
 def restar(pedidos: list[Ocupacion], ocupados: list[tuple[date, date]]) -> list[Ocupacion]:
     """Saca de los tramos pedidos las partes que ya están tomadas por otra fuente.
 

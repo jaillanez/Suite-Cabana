@@ -9,13 +9,13 @@ from __future__ import annotations
 
 import uuid
 
-from fastapi import APIRouter, Depends, HTTPException, Response, status
+from fastapi import APIRouter, Depends, HTTPException, Request, Response, status
 from sqlalchemy import select
 from sqlalchemy.orm import Session, selectinload
 
 from app.core.database import get_db
 from app.models import Unidad
-from app.services import calendario
+from app.services import calendario, canales
 
 router = APIRouter(tags=["calendario"])
 
@@ -25,7 +25,7 @@ router = APIRouter(tags=["calendario"])
     response_class=Response,
     responses={200: {"content": {"text/calendar": {}}}},
 )
-def exportar(token: uuid.UUID, db: Session = Depends(get_db)) -> Response:
+def exportar(token: uuid.UUID, request: Request, db: Session = Depends(get_db)) -> Response:
     unidad = db.scalar(
         select(Unidad)
         .where(Unidad.ical_export_token == token)
@@ -33,6 +33,13 @@ def exportar(token: uuid.UUID, db: Session = Depends(get_db)) -> Response:
     )
     if unidad is None:
         raise HTTPException(status.HTTP_404_NOT_FOUND, "Ese calendario no existe")
+
+    # Quién lo lee: así el anfitrión ve que pegó bien la dirección en Airbnb o
+    # Booking. Una persona con el navegador (él mismo probando) no cuenta.
+    lector = canales.lector(request.headers.get("user-agent"))
+    if lector is not None:
+        calendario.anotar_lectura(db, unidad.id, lector)
+        db.commit()
 
     return Response(
         content=calendario.exportar(db, unidad),

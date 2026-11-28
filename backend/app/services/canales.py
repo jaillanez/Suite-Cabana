@@ -89,6 +89,13 @@ PLATAFORMAS: tuple[Plataforma, ...] = (
         ejemplo_url="https://calendar.google.com/calendar/ical/…/basic.ics",
         dominios=("calendar.google.com",),
         nota="Sirve para bloquear fechas que llevás en tu propio calendario.",
+        pasos=[
+            "Abrí Google Calendar en la computadora y entrá a Configuración (la rueda).",
+            "Elegí tu calendario y, en «Integrar calendario», copiá la «Dirección secreta "
+            "en formato iCal». Pegala acá.",
+            "Para ver allá lo que se reserva acá: en «Otros calendarios» tocá «+» → "
+            "«Desde URL» y pegá la dirección nuestra.",
+        ],
     ),
     Plataforma(
         codigo="otro",
@@ -126,4 +133,73 @@ def detectar(url: str) -> str:
     for p in PLATAFORMAS:
         if any(d in minuscula for d in p.dominios):
             return p.codigo
+    return "otro"
+
+
+# --- Revisar lo que pegó el anfitrión, antes de guardarlo ---
+
+
+class EnlaceEquivocado(ValueError):
+    """Lo pegado no es la dirección del calendario: se explica qué es y dónde está la buena."""
+
+
+#: Lo que tiene la dirección del calendario de cada plataforma. Sin esto, lo más
+#: común es pegar el enlace del anuncio, que es una página, no un calendario.
+FIRMA_ICAL = {
+    "airbnb": "/calendar/ical/",
+    "booking": "ical",
+    "vrbo": "ical",
+    "google": "/ical/",
+}
+
+
+def revisar_enlace(url: str, plataforma: str | None) -> str:
+    """La plataforma del enlace, o `EnlaceEquivocado` con qué hacer.
+
+    - De una plataforma sin iCal (Despegar): no hay dirección que sirva.
+    - De otra plataforma que la elegida ("elegiste Airbnb y es de Booking").
+    - De la plataforma correcta pero no del calendario (el anuncio, la extranet).
+    """
+    detectada = detectar(url)
+    p = POR_CODIGO.get(detectada)
+    if p is not None and not p.tiene_ical:
+        raise EnlaceEquivocado(f"{p.nombre} no da una dirección de calendario. {p.nota}")
+    elegida = POR_CODIGO.get(plataforma or "")
+    if elegida and elegida.codigo != "otro" and detectada not in ("otro", elegida.codigo):
+        raise EnlaceEquivocado(
+            f"Ese enlace es de {POR_CODIGO[detectada].nombre} y elegiste {elegida.nombre}. "
+            "Revisá que lo hayas copiado de la plataforma correcta."
+        )
+    firma = FIRMA_ICAL.get(detectada)
+    if firma and firma not in url.lower():
+        plat = POR_CODIGO[detectada]
+        raise EnlaceEquivocado(
+            f"Ese parece el enlace de tu anuncio o de tu panel en {plat.nombre}, no el del "
+            f"calendario. Lo encontrás en: {plat.donde_esta}. Se ve así: {plat.ejemplo_url}"
+        )
+    return detectada
+
+
+# --- Quién lee nuestro calendario ---
+
+#: Pistas en el User-Agent de cada plataforma cuando viene a leer el .ics. Son
+#: aproximadas: si no se reconoce, queda como "otra".
+LECTORES = (
+    ("airbnb", ("airbnb",)),
+    ("booking", ("booking.com", "booking")),
+    ("vrbo", ("vrbo", "homeaway", "expedia")),
+    ("google", ("google-calendar", "googlecalendar", "google")),
+)
+NAVEGADORES = ("mozilla", "chrome", "safari", "firefox", "edg/")
+
+
+def lector(user_agent: str | None) -> str | None:
+    """Qué plataforma pidió nuestro calendario. None si fue una persona con un
+    navegador (el anfitrión probando el enlace): eso no cuenta como sincronizado."""
+    ua = (user_agent or "").lower()
+    for codigo, pistas in LECTORES:
+        if any(x in ua for x in pistas):
+            return codigo
+    if any(x in ua for x in NAVEGADORES):
+        return None
     return "otro"

@@ -39,6 +39,7 @@ import {
   sincronizarTodo,
   verAgenda,
   type Agenda,
+  type CalendarioExterno,
   type LecturaCorreo,
   type ReservaExterna,
   type ReservaParticular,
@@ -296,7 +297,7 @@ export async function accionSoltar(id: string, unidadId: string, bloqueoId: stri
 export async function accionAgregarCalendario(
   id: string,
   unidadId: string,
-  datos: { nombre: string; url: string },
+  datos: { nombre: string; url: string; plataforma?: string },
 ) {
   return conAgenda(
     (t) => agregarCalendario(t, id, unidadId, datos),
@@ -315,12 +316,12 @@ export async function accionSincronizar(
   id: string,
   unidadId: string,
   calendarioId: string,
-): Promise<{ detalle: string } | { error: string }> {
+): Promise<{ detalle: string; calendarios: CalendarioExterno[] } | { error: string }> {
   const token = await tokenActual();
   if (!token) return { error: "Tu sesión venció. Ingresá de nuevo." };
   try {
     const r = await sincronizarCalendario(token, id, unidadId, calendarioId);
-    return { detalle: r.detalle };
+    return { detalle: r.detalle, calendarios: r.calendarios };
   } catch (e) {
     return problema(e, "No pudimos sincronizar.");
   }

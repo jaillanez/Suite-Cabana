@@ -23,8 +23,9 @@ from sqlalchemy import delete, or_, select
 from sqlalchemy.dialects.postgresql import Range
 from sqlalchemy.orm import Session
 
-from app.models import BloqueoFecha, CalendarioExterno, Unidad
-from app.models.enums import OrigenBloqueo
+from app.core.config import get_settings
+from app.models import BloqueoFecha, CalendarioExterno, LecturaCalendario, Unidad
+from app.models.enums import CanalNotificacion, OrigenBloqueo
 from app.services import ical, red
 
 TIEMPO_LIMITE = 20.0
@@ -38,6 +39,11 @@ CADA_CON_ERROR = timedelta(hours=6)
 LOTE = 10
 PRESUPUESTO_PASADA = 30.0  # segundos: la pasada corre cada 60
 MAX_POR_UNIDAD = 10  # Airbnb, Booking, Vrbo, Google… sobra
+#: Una falla que dura más que esto ya no es un portal caído un rato: se le avisa
+#: al anfitrión, una vez por racha.
+AVISAR_TRAS = timedelta(hours=24)
+#: Cada lectura de nuestro calendario no se anota: con una cada tanto alcanza.
+ANOTAR_LECTURA_CADA = timedelta(minutes=5)
 registro = logging.getLogger("calendario")
 # Las cabeceras HTTP son ASCII: una tilde acá rompe cada sincronización.
 AGENTE = "SuiteCabana/0.1 (calendar sync)"
@@ -204,6 +210,16 @@ def motivo(e: Exception) -> str:
     return "No pudimos traer el calendario. Probá de nuevo en un rato."
 
 
+def es_definitivo(e: Exception) -> bool:
+    """Si la falla dice que el enlace no sirve (y no que el portal está caído un
+    rato): no es un calendario, no existe, no lo dejan leer, apunta a otro lado."""
+    if isinstance(e, (red.DireccionNoPermitida, ical.CalendarioIlegible)):
+        return True
+    if isinstance(e, httpx.HTTPStatusError):
+        return 400 <= e.response.status_code < 500
+    return False
+
+
 def descargar(url: str) -> bytes:
     """Trae el calendario. Solo de internet pública: la URL la pegó un usuario."""
     return red.descargar_publica(url, agente=AGENTE, tiempo=TIEMPO_LIMITE)
@@ -222,6 +238,7 @@ def sincronizar(
             contenido = descargar(calendario.url)
         except Exception as e:  # noqa: BLE001 - httpx levanta varias familias
             calendario.ultimo_error = motivo(e)
+            calendario.error_desde = calendario.error_desde or calendario.ultimo_intento
             db.flush()
             raise
 
@@ -229,6 +246,7 @@ def sincronizar(
         ocupaciones = ical.parsear(contenido)
     except ical.CalendarioIlegible as e:
         calendario.ultimo_error = f"El archivo no se entiende: {e}"
+        calendario.error_desde = calendario.error_desde or calendario.ultimo_intento
         db.flush()
         raise
 
@@ -243,7 +261,8 @@ def sincronizar(
         limites(b)
         for b in db.scalars(_activos(calendario.unidad_id, excluir_calendario=calendario.id))
     ]
-    libres = ical.restar(ocupaciones, ajenos)
+    unidas = ical.unir(ocupaciones)
+    libres = ical.restar(unidas, ajenos)
 
     for tramo in libres:
         db.add(
@@ -257,9 +276,11 @@ def sincronizar(
             )
         )
 
-    descartados = len(ocupaciones) - len(libres)
+    descartados = len(unidas) - len(libres)
     calendario.ultima_sincronizacion = calendario.ultimo_intento
     calendario.ultimo_error = None
+    calendario.error_desde = None
+    calendario.aviso_error_en = None
     db.flush()
 
     detalle = f"{len(libres)} tramos importados"
@@ -338,7 +359,9 @@ def sincronizar_vencidos(
                 if isinstance(e, ical.CalendarioIlegible)
                 else motivo(e)
             )
+            calendario.error_desde = calendario.error_desde or calendario.ultimo_intento
             registro.warning("calendario %s: %s", calendario.id, calendario.ultimo_error)
+            avisar_si_sigue_fallando(db, calendario)
         db.commit()
     return {"calendarios_al_dia": bien, "calendarios_con_error": mal}
 
@@ -358,3 +381,85 @@ def exportar(db: Session, unidad: Unidad) -> bytes:
     ]
     nombre = f"{unidad.publicacion.titulo} · {unidad.nombre}"
     return ical.generar(nombre, tramos, str(unidad.ical_export_token))
+
+
+def avisar_si_sigue_fallando(
+    db: Session, calendario: CalendarioExterno, ahora: datetime | None = None
+) -> bool:
+    """Si el calendario falla hace más de un día y todavía no se avisó en esta
+    racha, le escribe al anfitrión qué pasa y qué hacer. Devuelve si avisó."""
+    from app.services import canales, notificaciones
+
+    ahora = ahora or datetime.now(UTC)
+    if (
+        calendario.error_desde is None
+        or calendario.aviso_error_en is not None
+        or ahora - calendario.error_desde < AVISAR_TRAS
+    ):
+        return False
+    unidad = db.get(Unidad, calendario.unidad_id)
+    publicacion = unidad.publicacion
+    dueno = publicacion.prestador.usuario
+    plataforma = canales.POR_CODIGO.get(calendario.plataforma)
+    web = get_settings()
+    notificaciones.encolar(
+        db, "calendario_con_error", CanalNotificacion.EMAIL, dueno.email,
+        {
+            "nombre": dueno.nombre,
+            "alojamiento": publicacion.titulo,
+            "unidad": unidad.nombre,
+            "calendario": calendario.nombre,
+            "plataforma": plataforma.nombre if plataforma else calendario.nombre,
+            "motivo": calendario.ultimo_error or "No pudimos traerlo.",
+            "enlace": f"{web.url_publica_web.rstrip('/')}/mis-publicaciones/"
+            f"{publicacion.id}/calendarios",
+        },
+        usuario_id=dueno.id,
+    )
+    calendario.aviso_error_en = ahora
+    return True
+
+
+def importado(db: Session, calendario: CalendarioExterno) -> tuple[int, date | None]:
+    """Cuántos períodos ocupados trajo un calendario y hasta qué día llega el último."""
+    bloqueos = list(
+        db.scalars(
+            select(BloqueoFecha).where(BloqueoFecha.calendario_externo_id == calendario.id)
+        )
+    )
+    if not bloqueos:
+        return 0, None
+    return len(bloqueos), max(limites(b)[1] for b in bloqueos) - timedelta(days=1)
+
+
+def anotar_lectura(
+    db: Session, unidad_id: uuid.UUID, plataforma: str, ahora: datetime | None = None
+) -> None:
+    """Otra plataforma acaba de leer nuestro calendario. Se anota a lo sumo cada
+    cinco minutos por plataforma: Airbnb y Booking lo piden seguido."""
+    from sqlalchemy.dialects.postgresql import insert
+
+    ahora = ahora or datetime.now(UTC)
+    tabla = LecturaCalendario.__table__
+    stmt = insert(tabla).values(
+        id=uuid.uuid4(), unidad_id=unidad_id, plataforma=plataforma, leido_en=ahora
+    )
+    db.execute(
+        stmt.on_conflict_do_update(
+            constraint="uq_lectura_calendario",
+            set_={"leido_en": ahora},
+            where=tabla.c.leido_en < ahora - ANOTAR_LECTURA_CADA,
+        )
+    )
+
+
+def lecturas(db: Session, unidad_ids: list[uuid.UUID]) -> dict[uuid.UUID, list[LecturaCalendario]]:
+    filas = db.scalars(
+        select(LecturaCalendario)
+        .where(LecturaCalendario.unidad_id.in_(unidad_ids))
+        .order_by(LecturaCalendario.leido_en.desc())
+    )
+    resultado: dict[uuid.UUID, list[LecturaCalendario]] = {u: [] for u in unidad_ids}
+    for f in filas:
+        resultado[f.unidad_id].append(f)
+    return resultado
