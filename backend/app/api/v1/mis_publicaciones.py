@@ -746,6 +746,45 @@ def ver(
     return _respuesta(db, publicacion_id, prestador)
 
 
+def _ubicar(db: Session, p: Publicacion, direccion: str):
+    """El punto de la dirección, cerca de la localidad de la publicación."""
+    from app.services import geocodificar
+
+    fila = db.execute(
+        select(*lat_lon(Localidad.ubicacion)).where(
+            Localidad.id == p.localidad_id, Localidad.ubicacion.is_not(None)
+        )
+    ).first()
+    centro = geocodificar.Punto(fila[0], fila[1]) if fila else None
+    return geocodificar.ubicar(
+        direccion, p.localidad.nombre, p.localidad.provincia.nombre, centro
+    )
+
+
+@router.post("/{publicacion_id}/ubicar-por-direccion", response_model=PublicacionOut)
+def ubicar_por_direccion(
+    publicacion_id: uuid.UUID,
+    prestador: Prestador = Depends(prestador_actual),
+    db: Session = Depends(get_db),
+) -> PublicacionOut:
+    """Pone el pin donde dice la dirección guardada. Después se puede correr a mano."""
+    p = _mia(publicacion_id, prestador, db, editable=True)
+    if not (p.direccion or "").strip():
+        raise HTTPException(
+            status.HTTP_422_UNPROCESSABLE_ENTITY, "Primero guardá la dirección en los datos"
+        )
+    punto = _ubicar(db, p, p.direccion)
+    if punto is None:
+        raise HTTPException(
+            status.HTTP_422_UNPROCESSABLE_ENTITY,
+            f"No encontramos «{p.direccion}» en {p.localidad.nombre}. "
+            "Revisá la dirección o marcá el punto en el mapa.",
+        )
+    p.ubicacion = f"SRID=4326;POINT({punto.lon} {punto.lat})"
+    db.commit()
+    return _respuesta(db, publicacion_id, prestador)
+
+
 @router.patch("/{publicacion_id}", response_model=PublicacionOut)
 def editar(
     publicacion_id: uuid.UUID,
@@ -768,6 +807,12 @@ def editar(
                 status.HTTP_422_UNPROCESSABLE_ENTITY, "La ubicación necesita latitud y longitud"
             )
         p.ubicacion = f"SRID=4326;POINT({lon} {lat})"
+    elif datos.get("direccion") and p.ubicacion is None:
+        # Primera vez que hay dirección y todavía no hay punto: se ubica solo. Si
+        # no se encuentra, no pasa nada: el prestador lo marca a mano.
+        punto = _ubicar(db, p, datos["direccion"])
+        if punto is not None:
+            p.ubicacion = f"SRID=4326;POINT({punto.lon} {punto.lat})"
 
     if (codigos := datos.pop("comodidades", None)) is not None:
         # Solo las que aplican a este tipo de servicio: "pista de baile" no se le

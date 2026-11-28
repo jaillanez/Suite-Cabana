@@ -73,6 +73,17 @@ export default function MapaSelector({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  // Si el punto llega de afuera (lo ubicó el backend por la dirección), el pin y
+  // el mapa van ahí. Un punto que puso el mismo pin no se mueve: ya está.
+  useEffect(() => {
+    if (lat === null || lon === null || !marca.current || !mapa.current) return;
+    const actual = marca.current.getLngLat();
+    if (Math.abs(actual.lat - lat) < 1e-6 && Math.abs(actual.lng - lon) < 1e-6) return;
+    marca.current.setLngLat([lon, lat]);
+    // Salto directo: volar desde el centro por defecto puede cruzar el país y tardar.
+    mapa.current.jumpTo({ center: [lon, lat], zoom: Math.max(mapa.current.getZoom(), 15) });
+  }, [lat, lon]);
+
   return (
     <div className={estilos.marco}>
       <div ref={contenedor} className={estilos.mapa} />

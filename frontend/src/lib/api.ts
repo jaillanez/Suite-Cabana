@@ -786,6 +786,10 @@ export const quitarPrecioPasajero = (
     token,
   });
 
+/** Pone el pin donde dice la dirección guardada (lo busca el backend). */
+export const ubicarPorDireccion = (token: string, id: string) =>
+  api<PublicacionEdicion>(`${MIS}/${id}/ubicar-por-direccion`, { method: "POST", token });
+
 /* --- Traslados del prestador (docs/06, etapa 3) --- */
 
 const enviarJson = (token: string, url: string, method: string, datos?: unknown) =>

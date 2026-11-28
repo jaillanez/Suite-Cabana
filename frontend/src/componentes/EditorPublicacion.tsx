@@ -13,6 +13,7 @@ import {
   accionGuardarDatos,
   accionReordenarFotos,
   accionSubirFoto,
+  accionUbicarPorDireccion,
   type Resultado,
 } from "@/lib/acciones-publicaciones";
 import type { CatalogoAlta, PublicacionEdicion } from "@/lib/api";
@@ -33,6 +34,9 @@ import UnidadesSalon from "./UnidadesSalon";
 import UnidadesTraslado from "./UnidadesTraslado";
 import estilos from "./EditorPublicacion.module.css";
 
+const SITIO_ACTUALIZADO =
+  "Actualizamos el sitio mientras editabas y este último cambio no se guardó. Recargá la página y volvé a hacerlo: lo anterior ya está guardado.";
+
 export default function EditorPublicacion({
   inicial,
   catalogo,
@@ -46,6 +50,7 @@ export default function EditorPublicacion({
   const [aviso, setAviso] = useState<{
     mensaje: string;
     faltantes?: string[];
+    recargar?: boolean;
   } | null>(null);
   const [guardado, setGuardado] = useState(false);
   const [pendiente, empezar] = useTransition();
@@ -78,8 +83,17 @@ export default function EditorPublicacion({
     }
   }
 
+  /* Si la acción no llega al servidor —lo típico: la página quedó abierta desde
+     antes de un despliegue y esa acción ya no existe— no se rompe la pantalla:
+     se avisa y se ofrece recargar. Lo guardado antes sigue ahí. */
   const correr = (accion: () => Promise<Resultado>) =>
-    empezar(async () => aplicar(await accion()));
+    empezar(async () => {
+      try {
+        aplicar(await accion());
+      } catch {
+        setAviso({ mensaje: SITIO_ACTUALIZADO, recargar: true });
+      }
+    });
 
   function guardar(datos: FormData) {
     const valor = (k: string) => String(datos.get(k) ?? "").trim();
@@ -204,6 +218,15 @@ export default function EditorPublicacion({
       {aviso && (
         <div className={estilos.error} role="alert">
           <p>{aviso.mensaje}</p>
+          {aviso.recargar && (
+            <button
+              type="button"
+              className={estilos.principal}
+              onClick={() => window.location.reload()}
+            >
+              Recargar la página
+            </button>
+          )}
           {aviso.faltantes && (
             <ul>
               {aviso.faltantes.map((f) => (
@@ -380,7 +403,10 @@ export default function EditorPublicacion({
               defaultValue={p.direccion ?? ""}
               maxLength={200}
             />
-            <small>No se muestra hasta que la reserva esté confirmada.</small>
+            <small>
+              No se muestra hasta que la reserva esté confirmada. Al guardarla, la
+              ubicamos en el mapa.
+            </small>
           </label>
           <label className={`${estilos.completo} ${estilos.casilla}`}>
             <input
@@ -419,6 +445,21 @@ export default function EditorPublicacion({
             correr(() => accionGuardarDatos(p.id, { lat, lon }))
           }
         />
+        <div className={estilos.ubicar}>
+          <button
+            type="button"
+            className={estilos.secundario}
+            disabled={pendiente || !p.direccion}
+            onClick={() => correr(() => accionUbicarPorDireccion(p.id))}
+          >
+            Ubicar por la dirección
+          </button>
+          <small>
+            {p.direccion
+              ? `Pone el pin en «${p.direccion}», ${p.localidad}. Después lo podés correr a mano.`
+              : "Guardá la dirección arriba y la ubicamos sola."}
+          </small>
+        </div>
       </fieldset>
 
       <fieldset className={estilos.bloque} disabled={bloqueada}>
@@ -498,10 +539,14 @@ export default function EditorPublicacion({
                 const elegidas = Array.from(e.target.files ?? []);
                 e.target.value = "";
                 empezar(async () => {
-                  for (const f of elegidas) {
-                    const datos = new FormData();
-                    datos.append("archivo", f);
-                    aplicar(await accionSubirFoto(p.id, datos));
+                  try {
+                    for (const f of elegidas) {
+                      const datos = new FormData();
+                      datos.append("archivo", f);
+                      aplicar(await accionSubirFoto(p.id, datos));
+                    }
+                  } catch {
+                    setAviso({ mensaje: SITIO_ACTUALIZADO, recargar: true });
                   }
                 });
               }}

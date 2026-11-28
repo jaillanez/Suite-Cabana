@@ -48,6 +48,7 @@ import {
   anotarEnSalida,
   cambiarCupoSalida,
   crearPrecioPasajero,
+  ubicarPorDireccion,
   crearLugarTraslado,
   editarLugarTraslado,
   quitarLugarTraslado,
@@ -458,6 +459,10 @@ export async function accionQuitarPrecioPasajero(id: string, unidadId: string, p
     (t) => quitarPrecioPasajero(t, id, unidadId, precioId),
     "No pudimos quitar el precio.",
   );
+}
+
+export async function accionUbicarPorDireccion(id: string) {
+  return conSesion((t) => ubicarPorDireccion(t, id), "No pudimos ubicar la dirección.");
 }
 
 /* --- Traslados (docs/06, etapa 3) --- */

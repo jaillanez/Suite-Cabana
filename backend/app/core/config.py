@@ -68,6 +68,9 @@ class Settings(BaseSettings):
     # la que se ofrece primero al viajero.
     pasarela_predeterminada: str = "simulada"
     url_publica_web: str = "http://localhost:3000"
+    # Ubicar en el mapa a partir de la dirección (app/services/geocodificar.py).
+    # Vacío: no se ubica solo y el prestador marca el punto a mano.
+    geocodificador_url: str = "https://nominatim.openstreetmap.org/search"
 
     # Mercado Pago: adaptador implementado. Dos formas de cobrar:
     # - Cobro directo (`mp_cobro_directo`): cada anfitrión carga su propia

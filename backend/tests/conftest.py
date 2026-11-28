@@ -7,7 +7,12 @@ mensaje que dice cómo crearla.
 from __future__ import annotations
 
 import os
-from datetime import date, timedelta
+
+# Los tests no salen a internet: sin geocodificador, ubicar por dirección no hace
+# nada (los que lo prueban lo reemplazan). Antes de importar la app.
+os.environ["GEOCODIFICADOR_URL"] = ""
+
+from datetime import date, timedelta  # noqa: E402
 from decimal import Decimal
 
 import pytest
