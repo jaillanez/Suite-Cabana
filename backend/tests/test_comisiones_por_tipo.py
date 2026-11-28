@@ -230,6 +230,9 @@ def test_cambiar_una_regla_no_toca_lo_reservado_y_queda_en_el_historial(
     db.expire_all()
     assert db.get(ComisionAplicada, item.comision.id).comision_neta == antes
     h = cliente.get(f"{url}/historial", headers=operador).json()
+    # Cada cambio con su momento: si compartieran la hora (la de la transacción),
+    # el orden del historial saldría al azar.
+    assert len({x["fecha"] for x in h}) == 3
     assert [x["accion"] for x in h] == ["baja", "edicion", "alta"]
     assert Decimal(h[1]["antes"]["porcentaje"]) == 15
     assert Decimal(h[1]["despues"]["porcentaje"]) == 20

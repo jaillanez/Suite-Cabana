@@ -61,21 +61,29 @@ Poner en línea una web donde los prestadores publiquen alojamientos y los viaje
 
 ## 5. Requisitos
 
+### Revisión de los criterios (noviembre 2026)
+
+Cada criterio marcado tiene un test que **falla si se rompe la regla**: se
+comprobó rompiendo a propósito el código que la garantiza (prueba por mutación).
+Tres no tenían ese test y se agregó en `backend/tests/test_fase1_criterios.py`:
+las fechas bloqueadas por iCal o ventas externas, los montos de cada pago, y la
+firma de las notificaciones de la cuenta de Mercado Pago de la plataforma.
+
 ### P0: imprescindibles
 
 **R1. Registro e ingreso**
 - Correo y contraseña, e ingreso con Google.
 - Verificación de correo y teléfono.
 - Roles: viajero, prestador, operador (un usuario puede ser viajero y prestador).
-- [ ] No se puede reservar sin correo verificado.
-- [ ] Un prestador no puede publicar sin datos fiscales y cuenta de cobro vinculada.
+- [x] No se puede reservar sin correo verificado. (`test_reservas::test_sin_correo_verificado_no_se_reserva`, y en la API `con_email_verificado`)
+- [x] Un prestador no puede publicar sin datos fiscales y cuenta de cobro vinculada. (`test_cuenta_cobro`, `test_alta_publicaciones`)
 
 **R2. Publicaciones y unidades**
 - Datos: título, tipo, descripción, ubicación en mapa, fotos (mínimo 5), servicios, reglas de la casa, horarios de ingreso y salida, capacidad.
 - Varias unidades por publicación, cada una con su capacidad y tarifas.
 - Estados: borrador, en revisión, aprobada, pausada, rechazada.
-- [ ] Solo las publicaciones aprobadas aparecen en búsquedas.
-- [ ] Las fotos se optimizan automáticamente.
+- [x] Solo las publicaciones aprobadas aparecen en búsquedas. (`test_busqueda`; salones, excursiones y traslados en sus propios tests)
+- [x] Las fotos se optimizan automáticamente. (`test_alta_publicaciones::test_la_foto_se_optimiza_al_subirla`)
 
 **R3. Tarifas y disponibilidad**
 - Tarifa base por noche, tarifas por temporada, precio distinto por día de la semana.
@@ -84,8 +92,8 @@ Poner en línea una web donde los prestadores publiquen alojamientos y los viaje
 - Descuentos por estadía semanal o mensual.
 - Bloqueo manual de fechas.
 - Importación y exportación de calendario iCal.
-- [ ] Una fecha reservada o bloqueada en otra plataforma no puede reservarse aquí.
-- [ ] Mientras un viajero está pagando, las fechas quedan retenidas por un tiempo limitado.
+- [x] Una fecha reservada o bloqueada en otra plataforma no puede reservarse aquí. (`test_fase1_criterios`: iCal y ventas externas; antes ningún test lo cubría)
+- [x] Mientras un viajero está pagando, las fechas quedan retenidas por un tiempo limitado. (`test_reservas`, `test_seguridad`)
 
 **R4. Búsqueda**
 - Por destino (provincia, localidad o punto en mapa), fechas y personas.
@@ -93,40 +101,40 @@ Poner en línea una web donde los prestadores publiquen alojamientos y los viaje
 - Orden: relevancia, precio, calificación, distancia.
 - Vista de lista y de mapa.
 - Páginas públicas por destino optimizadas para buscadores.
-- [ ] Solo muestra unidades con disponibilidad real para las fechas indicadas.
+- [x] Solo muestra unidades con disponibilidad real para las fechas indicadas. (`test_reservas::test_la_unidad_reservada_desaparece_de_la_busqueda`)
 
 **R5. Reserva**
 - Resumen con desglose de precio y política de cancelación.
 - Confirmación inmediata o por solicitud (el prestador tiene un plazo para aprobar; si no responde, se cancela y se reintegra).
 - Estados: pendiente de pago, pendiente de aprobación, confirmada, cancelada, completada, en reclamo.
-- [ ] El precio mostrado al inicio coincide con el cobrado.
-- [ ] Una reserva no pagada en el plazo se libera automáticamente.
+- [x] El precio mostrado al inicio coincide con el cobrado. (`test_el_precio_cotizado_es_el_de_la_busqueda`; un pago por menos no confirma: `test_seguridad`)
+- [x] Una reserva no pagada en el plazo se libera automáticamente. (`test_reservas`; la tarea corre cada minuto)
 
 **R6. Pagos**
 - Mercado Pago en modo marketplace, con la comisión separada automáticamente.
 - Pago total o seña configurable por prestador.
 - Reintegros totales o parciales según política.
 - Registro de cada movimiento vinculado a la reserva.
-- [ ] Cada pago guarda el monto al prestador, la comisión y el IVA de la comisión.
-- [ ] Las notificaciones de Mercado Pago se procesan de forma segura y sin duplicados.
+- [x] Cada pago guarda el monto al prestador, la comisión y el IVA de la comisión. (`test_fase1_criterios`, en los dos caminos; antes ningún test lo cubría)
+- [x] Las notificaciones de Mercado Pago se procesan de forma segura y sin duplicados. (sin duplicados: `test_api_reservas`; la firma `x-signature`: `test_fase1_criterios`, antes sin test)
 
 **R7. Motor de comisiones**
 - Según la especificación del documento 00, sección 7.
 - Pantalla de reglas con alta, edición, vigencia y prioridad.
 - Simulador de casos.
 - Historial de cambios.
-- [ ] Toda reserva registra la regla aplicada y los montos resultantes.
-- [ ] Modificar una regla no altera reservas ya creadas.
-- [ ] Siempre existe una regla por defecto.
+- [x] Toda reserva registra la regla aplicada y los montos resultantes. (`test_reservas::test_cada_reserva_guarda_su_comision`)
+- [x] Modificar una regla no altera reservas ya creadas. (`test_comisiones_por_tipo`)
+- [x] Siempre existe una regla por defecto. (índice único en la base; no se desactiva: `test_comisiones_por_tipo`; sin ella no se reserva: `test_comisiones::test_sin_default_falla`)
 
 **R8. Políticas de cancelación**
 - Plantillas: flexible, moderada, estricta (porcentajes y plazos editables por el operador).
 - Cada publicación elige una.
-- [ ] El reintegro se calcula automáticamente al cancelar.
+- [x] El reintegro se calcula automáticamente al cancelar. (`test_reservas`, `test_paquete`, `test_reservas_excursion`)
 
 **R9. Notificaciones**
 - Correo y WhatsApp para: nueva reserva, confirmación, recordatorio previo, cancelación, pedido de reseña.
-- [ ] El prestador recibe aviso inmediato de cada reserva o consulta.
+- [x] El prestador recibe aviso inmediato de cada reserva o consulta. (correo al confirmarse el pago, enviado por la tarea en menos de un minuto: `test_notificaciones`; las consultas llegan directo a su WhatsApp)
 
 **R10. Paneles**
 - Viajero: reservas, favoritos, mensajes, datos personales.

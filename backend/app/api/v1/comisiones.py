@@ -8,7 +8,7 @@ Todo es solo para operadores: las condiciones comerciales no son públicas.
 
 from __future__ import annotations
 
-from datetime import date
+from datetime import UTC, date, datetime
 from decimal import Decimal
 from typing import Annotated
 from uuid import UUID
@@ -179,6 +179,10 @@ def _historial(db: Session, r: ReglaComision, usuario: Usuario, accion: str, ant
         ReglaComisionHistorial(
             regla_id=r.id, usuario_id=usuario.id, accion=accion, antes=antes,
             despues=_foto(r),
+            # El momento de cada cambio, no el de la transacción: con `now()` de la
+            # base, dos cambios del mismo pedido quedaban con la misma hora y el
+            # historial salía en cualquier orden.
+            fecha=datetime.now(UTC),
         )
     )
 
