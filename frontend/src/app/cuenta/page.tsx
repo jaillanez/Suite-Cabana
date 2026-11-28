@@ -230,6 +230,9 @@ export default async function Cuenta() {
               </Link>{" "}
               <Link href="/admin/reservas" className={estilos.accionChica}>
                 Reservas y comisiones
+              </Link>{" "}
+              <Link href="/admin/comisiones" className={estilos.accionChica}>
+                Reglas de comisión
               </Link>
             </p>
           </section>

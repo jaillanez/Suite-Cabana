@@ -130,7 +130,7 @@ Cada beneficio define **quién absorbe el costo** y en qué proporción:
 - [x] En la ficha del alojamiento, mostrar servicios de la zona (excursiones de la localidad, docs/05; traslados, docs/06).
 
 **Comisiones**
-- [ ] El motor de comisiones aplica reglas por cada tipo y subtipo de servicio sin cambios estructurales.
+- [x] El motor de comisiones aplica reglas por cada tipo y subtipo de servicio sin cambios estructurales. Probado con alojamiento, salón, excursión y traslado (ida y vuelta, cada viaje con su regla); el operador las administra en `/admin/comisiones`, con historial y simulador (noviembre 2026).
 
 **Prestadores de servicios**
 - [ ] Alta con los datos propios de cada rubro. La plataforma no pide habilitaciones ni seguros (decisión de Dirección, noviembre 2026).

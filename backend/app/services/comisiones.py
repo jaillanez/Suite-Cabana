@@ -94,9 +94,25 @@ class Regla:
         ("antiguedad_meses_desde", "antiguedad_meses_hasta", "antiguedad_prestador_meses"),
     )
 
+    #: Lo que una dimensión ya define por sí sola: una cabalgata es una excursión,
+    #: una localidad está en una provincia y una publicación lo dice todo. Sin esto,
+    #: "Cabalgatas" y "Excursiones" valdrían lo mismo y ganaría la última creada.
+    IMPLICA = {
+        "subtipo_servicio_id": ("tipo_servicio_id",),
+        "localidad_id": ("provincia_id",),
+        "zona_id": ("localidad_id", "provincia_id"),
+        "publicacion_id": (
+            "prestador_id", "tipo_servicio_id", "subtipo_servicio_id",
+            "provincia_id", "localidad_id", "zona_id",
+        ),
+    }
+
     @property
     def especificidad(self) -> int:
-        n = sum(getattr(self, d) is not None for d in self.EXACTAS)
+        definidas = {d for d in self.EXACTAS if getattr(self, d) is not None}
+        for d in list(definidas):
+            definidas.update(self.IMPLICA.get(d, ()))
+        n = len(definidas)
         n += sum(
             getattr(self, a) is not None or getattr(self, b) is not None for a, b, _ in self.RANGOS
         )

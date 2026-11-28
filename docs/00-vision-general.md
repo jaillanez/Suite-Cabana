@@ -96,7 +96,7 @@ Todas opcionales; vacía significa "cualquiera".
 
 ### 7.3 Resolución
 1. Se filtran las reglas vigentes que coinciden con la reserva.
-2. Gana la **más específica** (mayor cantidad de dimensiones definidas).
+2. Gana la **más específica** (mayor cantidad de dimensiones definidas). Una dimensión cuenta también las que implica: un subtipo define su tipo, una localidad su provincia, una zona su localidad y provincia, y una publicación todo lo anterior y su prestador. Así "Cabalgatas" le gana a "Excursiones" sin depender de cuál se creó último.
 3. Si empatan, gana la de **mayor prioridad** manual.
 4. Si siguen empatadas, gana la **más reciente**.
 5. Siempre existe una **regla por defecto** (sin dimensiones) que garantiza un resultado.

@@ -1980,3 +1980,113 @@ export const cambiarViajeTraslado = (
     token,
     body: JSON.stringify(datos),
   });
+
+/* --- Reglas de comisión, para el operador (docs/00 §7.4) --- */
+
+export type QuienPaga = "prestador" | "viajero" | "dividido";
+
+export type ReglaComisionOp = {
+  id: string;
+  nombre: string;
+  descripcion: string | null;
+  activa: boolean;
+  es_default: boolean;
+  prioridad: number;
+  vigente_desde: string | null;
+  vigente_hasta: string | null;
+  tipo_servicio_id: string | null;
+  tipo_servicio: string | null;
+  subtipo_servicio_id: string | null;
+  subtipo_servicio: string | null;
+  provincia_id: string | null;
+  provincia: string | null;
+  localidad_id: string | null;
+  localidad: string | null;
+  servicio_desde: string | null;
+  servicio_hasta: string | null;
+  porcentaje: string;
+  monto_fijo: string;
+  minimo: string | null;
+  maximo: string | null;
+  quien_paga: QuienPaga;
+  porcentaje_viajero: string;
+  iva_incluido: boolean;
+  otras_condiciones: boolean;
+  reservas: number;
+};
+
+export type ReglaComisionIn = Omit<
+  ReglaComisionOp,
+  | "id"
+  | "activa"
+  | "es_default"
+  | "tipo_servicio"
+  | "subtipo_servicio"
+  | "provincia"
+  | "localidad"
+  | "otras_condiciones"
+  | "reservas"
+>;
+
+export type CatalogoComisiones = {
+  tipos: { id: string; nombre: string; subtipos: { id: string; nombre: string }[] }[];
+  provincias: { id: string; nombre: string; localidades: { id: string; nombre: string }[] }[];
+};
+
+export type HistorialRegla = {
+  accion: "alta" | "edicion" | "baja";
+  usuario: string | null;
+  fecha: string;
+  antes: Record<string, unknown> | null;
+  despues: Record<string, unknown> | null;
+};
+
+export type SimulacionComision = {
+  regla_id: string;
+  regla_nombre: string;
+  base: string;
+  comision_neta: string;
+  iva: string;
+  comision_total: string;
+  cargo_viajero: string;
+  descuento_prestador: string;
+  total_viajero: string;
+  neto_prestador: string;
+  explicacion: string[];
+};
+
+export const reglasComision = (token: string) =>
+  api<ReglaComisionOp[]>("/comisiones/reglas", { token });
+
+export const catalogoComisiones = (token: string) =>
+  api<CatalogoComisiones>("/comisiones/catalogo", { token });
+
+export const crearReglaComision = (token: string, datos: ReglaComisionIn) =>
+  api<ReglaComisionOp>("/comisiones/reglas", {
+    method: "POST",
+    token,
+    body: JSON.stringify(datos),
+  });
+
+export const editarReglaComision = (token: string, id: string, datos: ReglaComisionIn) =>
+  api<ReglaComisionOp>(`/comisiones/reglas/${id}`, {
+    method: "PUT",
+    token,
+    body: JSON.stringify(datos),
+  });
+
+export const cambiarEstadoRegla = (token: string, id: string, activar: boolean) =>
+  api<ReglaComisionOp>(`/comisiones/reglas/${id}/${activar ? "activar" : "desactivar"}`, {
+    method: "POST",
+    token,
+  });
+
+export const historialReglaComision = (token: string, id: string) =>
+  api<HistorialRegla[]>(`/comisiones/reglas/${id}/historial`, { token });
+
+export const simularComision = (token: string, caso: Record<string, unknown>) =>
+  api<SimulacionComision>("/comisiones/simular", {
+    method: "POST",
+    token,
+    body: JSON.stringify(caso),
+  });
