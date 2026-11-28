@@ -12,9 +12,12 @@ import {
   rechazarReserva,
   reservarEvento,
   reservarExcursion,
+  reservarTraslado,
+  cambiarViajeTraslado,
   simularPago,
   type PedidoEvento,
   type PedidoExcursion,
+  type ViajePedido,
   type Reserva,
 } from "./api";
 import { tokenActual } from "./sesion";
@@ -149,6 +152,45 @@ export async function accionReservarExcursion(
   }
   revalidatePath("/reservas");
   redirect(`/reservas/${reserva.codigo}`);
+}
+
+export async function accionReservarTraslado(
+  pedido: ViajePedido & { unidad_id: string },
+  acepta: boolean,
+  telefono?: string,
+): Promise<{ error: string; ingresar?: boolean; pedirTelefono?: boolean } | never> {
+  if (acepta !== true) {
+    return { error: "Hay que aceptar los términos y la política de cancelación" };
+  }
+  const token = await tokenActual();
+  if (!token) return { error: "Ingresá para reservar.", ingresar: true };
+
+  let reserva: Reserva;
+  try {
+    reserva = await reservarTraslado(token, {
+      ...pedido,
+      acepta_terminos: acepta,
+      telefono: telefono || undefined,
+    });
+  } catch (e) {
+    if (e instanceof ApiError && e.status === 401) {
+      return { error: "Tu sesión venció. Ingresá de nuevo.", ingresar: true };
+    }
+    return problemaAlReservar(e, "No pudimos crear la reserva.");
+  }
+  revalidatePath("/reservas");
+  redirect(`/reservas/${reserva.codigo}`);
+}
+
+/** El viajero corrige el vuelo o las notas de un traslado (docs/06). */
+export async function accionCambiarViaje(
+  codigo: string,
+  datos: { vuelo_ida?: string | null; vuelo_vuelta?: string | null; notas?: string | null },
+) {
+  return conSesion(
+    (t) => cambiarViajeTraslado(t, codigo, datos),
+    "No pudimos guardar los datos del viaje.",
+  );
 }
 
 export async function accionPagar(

@@ -1,6 +1,12 @@
 import type { MetadataRoute } from "next";
 
-import { buscarExcursiones, buscarSalones, destino, destinos } from "@/lib/api";
+import {
+  buscarExcursiones,
+  buscarSalones,
+  buscarTraslados,
+  destino,
+  destinos,
+} from "@/lib/api";
 
 const SITIO = process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000";
 
@@ -37,8 +43,23 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     .then((r) => r.resultados.map((x) => x.slug))
     .catch(() => [] as string[]);
 
+  // Los traslados (docs/06): la búsqueda no depende del día.
+  const traslados = await buscarTraslados(new URLSearchParams({ por_pagina: "48" }))
+    .then((r) => r.resultados.map((x) => x.slug))
+    .catch(() => [] as string[]);
+
   return [
     ...fijas,
+    {
+      url: `${SITIO}/traslados`,
+      changeFrequency: "daily" as const,
+      priority: 0.8,
+    },
+    ...traslados.map((slug) => ({
+      url: `${SITIO}/traslado/${slug}`,
+      changeFrequency: "weekly" as const,
+      priority: 0.7,
+    })),
     {
       url: `${SITIO}/excursiones`,
       changeFrequency: "daily" as const,

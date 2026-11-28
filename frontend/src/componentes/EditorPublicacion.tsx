@@ -63,9 +63,9 @@ export default function EditorPublicacion({
     ? `/salon/${p.slug}`
     : esExcursion
       ? `/excursion/${p.slug}`
-      : porNoches
-        ? `/alojamiento/${p.slug}`
-        : null; // La ficha de un traslado llega con su etapa 4 (docs/06).
+      : esTraslado
+        ? `/traslado/${p.slug}`
+        : `/alojamiento/${p.slug}`;
 
   function aplicar(resultado: Resultado) {
     if ("publicacion" in resultado) {

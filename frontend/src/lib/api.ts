@@ -188,6 +188,8 @@ export type Ficha = {
   /** Salones del mismo anfitrión (docs/04): "también tiene salón". */
   salones_del_anfitrion?: { titulo: string; slug: string }[];
   excursiones_cerca?: { titulo: string; slug: string }[];
+  /* "¿Te buscamos en el aeropuerto?": traslados de la misma localidad (docs/06). */
+  traslados_cerca?: { titulo: string; slug: string }[];
   moneda: string;
 };
 
@@ -989,6 +991,8 @@ export type ItemReserva = {
   fotos: { url: string; descripcion: string | null }[];
   /** Eventos (salones): el horario exacto. En alojamiento, null. */
   inicio_en?: string | null;
+  /* Traslados (docs/06): vuelo, direcciones y notas. El prestador los ve recién pagada. */
+  datos_servicio?: DatosViaje | null;
   fin_en?: string | null;
   /** Solo con la reserva confirmada. */
   direccion: string | null;
@@ -1778,3 +1782,177 @@ export const reservarExcursion = (
   pedido: PedidoExcursion & { acepta_terminos: boolean; telefono?: string },
 ) =>
   api<Reserva>("/excursiones/reservas", { method: "POST", token, body: JSON.stringify(pedido) });
+
+
+/* --- Traslados para el viajero (docs/06, etapa 4) --- */
+
+export type DatosViaje = {
+  vuelo: string | null;
+  direccion_origen: string | null;
+  direccion_destino: string | null;
+  notas: string | null;
+  punto_origen?: { lat: number; lon: number };
+  punto_destino?: { lat: number; lon: number };
+};
+
+export type TrasladoResultado = {
+  slug: string;
+  titulo: string;
+  subtipo: string | null;
+  localidad: string;
+  provincia: string;
+  lat: number | null;
+  lon: number | null;
+  fotos: { url: string; descripcion: string | null }[];
+  comodidades: string[];
+  vehiculos: number;
+  pasajeros_maximo: number;
+  valijas_maximo: number | null;
+  precio_desde: { monto: string; detalle: string } | null;
+  recorridos: string[];
+  por_km: boolean;
+  confirmacion_inmediata: boolean;
+  es_demo: boolean;
+};
+
+export type BusquedaTraslados = {
+  total: number;
+  pagina: number;
+  paginas: number;
+  resultados: TrasladoResultado[];
+};
+
+export type DestinoTraslado = { nombre: string; slug: string; provincia: string; traslados: number };
+
+export type RecorridoFicha = {
+  origen: string;
+  destino: string;
+  precio: string;
+  por_persona: boolean;
+  duracion_minutos: number;
+  ambos_sentidos: boolean;
+};
+
+export type VehiculoFicha = {
+  id: string;
+  nombre: string;
+  pasajeros: number;
+  valijas: number | null;
+  recorridos: RecorridoFicha[];
+  por_km: { precio_km: string; bajada: string; minimo: string; radio_km: number | null } | null;
+  recargo_nocturno: { desde: string; hasta: string; porcentaje: string } | null;
+  anticipacion_minima_horas: number;
+};
+
+export type FichaTraslado = {
+  publicacion_id: string;
+  slug: string;
+  titulo: string;
+  descripcion: string;
+  para_tener_en_cuenta: string | null;
+  subtipo: string | null;
+  localidad: string;
+  localidad_slug: string;
+  provincia: string;
+  lat: number | null;
+  lon: number | null;
+  confirmacion_inmediata: boolean;
+  porcentaje_sena: number | null;
+  es_demo: boolean;
+  prestador: { razon_social: string; verificado: boolean; publica_desde: number };
+  politica_cancelacion: {
+    codigo: string;
+    nombre: string;
+    descripcion: string | null;
+    tramos: { dias_antes: number; porcentaje_reintegro: number }[];
+  } | null;
+  fotos: { url: string; descripcion: string | null }[];
+  comodidades: { codigo: string; nombre: string }[];
+  lugares: { id: string; nombre: string }[];
+  vehiculos: VehiculoFicha[];
+  alojamientos_del_anfitrion: { titulo: string; slug: string }[];
+  moneda: string;
+};
+
+/** Una punta del viaje: un lugar del prestador o un punto del mapa con su dirección. */
+export type ExtremoViaje =
+  | { lugar_id: string; direccion?: string | null }
+  | { lat: number; lon: number; direccion: string };
+
+export type ViajePedido = {
+  origen: ExtremoViaje;
+  destino: ExtremoViaje;
+  inicio: string;
+  pasajeros: number;
+  valijas: number;
+  vuelta_inicio?: string | null;
+  vuelo_ida?: string | null;
+  vuelo_vuelta?: string | null;
+  notas?: string | null;
+};
+
+export type ViajeCotizado = {
+  sentido: "ida" | "vuelta";
+  origen: string;
+  destino: string;
+  cobro: "tramo" | "km";
+  inicio: string;
+  llegada: string;
+  km: number | null;
+  lineas: { concepto: string; monto: string }[];
+  subtotal: string;
+  cargo_servicio: string;
+  total: string;
+};
+
+export type CotizacionTraslado = {
+  viajes: ViajeCotizado[];
+  pasajeros: number;
+  valijas: number;
+  subtotal: string;
+  cargo_servicio: string;
+  total: string;
+  sena: string | null;
+  a_pagar_ahora: string;
+  saldo_con_prestador: string | null;
+};
+
+export type OpcionTraslado = {
+  unidad_id: string;
+  nombre: string;
+  pasajeros: number;
+  valijas: number | null;
+  disponible: boolean;
+  motivo: string | null;
+  cotizacion: CotizacionTraslado | null;
+};
+
+export const buscarTraslados = (params: URLSearchParams) =>
+  api<BusquedaTraslados>(`/traslados/buscar?${params}`);
+
+export const destinosTraslados = () => api<DestinoTraslado[]>("/traslados/destinos");
+
+export const fichaTraslado = (slug: string) =>
+  api<FichaTraslado>(`/traslados/ficha/${encodeURIComponent(slug)}`);
+
+export const opcionesTraslado = (publicacionId: string, viaje: ViajePedido) =>
+  api<OpcionTraslado[]>("/traslados/opciones", {
+    method: "POST",
+    body: JSON.stringify({ publicacion_id: publicacionId, ...viaje }),
+  });
+
+export const reservarTraslado = (
+  token: string,
+  pedido: ViajePedido & { unidad_id: string; acepta_terminos: boolean; telefono?: string },
+) => api<Reserva>("/traslados/reservas", { method: "POST", token, body: JSON.stringify(pedido) });
+
+export const cambiarViajeTraslado = (
+  token: string,
+  codigo: string,
+  datos: { vuelo_ida?: string | null; vuelo_vuelta?: string | null; notas?: string | null },
+) =>
+  api<Reserva>(`/traslados/reservas/${encodeURIComponent(codigo)}/viaje`, {
+    method: "PATCH",
+    token,
+    body: JSON.stringify(datos),
+  });

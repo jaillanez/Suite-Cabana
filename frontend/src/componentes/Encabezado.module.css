@@ -9,15 +9,15 @@
 .interna {
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  gap: 1rem;
+  gap: 0.5rem 1rem;
   max-width: 1160px;
   margin: 0 auto;
   padding: 0 1.5rem;
   min-height: var(--barra-alto);
 }
 
-.interna nav {
+.secciones,
+.cuenta {
   display: flex;
   align-items: center;
   gap: 0.5rem;
@@ -25,12 +25,19 @@
   font-weight: 500;
 }
 
-.interna nav a {
-  padding: 0.5rem 0.75rem;
-  border-radius: var(--radio-s);
+.secciones {
+  margin-left: auto;
 }
 
-.interna nav a:hover {
+.secciones a,
+.cuenta a {
+  padding: 0.5rem 0.75rem;
+  border-radius: var(--radio-s);
+  white-space: nowrap;
+}
+
+.secciones a:hover,
+.cuenta a:hover {
   background: var(--fondo-2);
   text-decoration: none;
 }
@@ -40,28 +47,40 @@
   font-weight: 600;
 }
 
-@media (max-width: 620px) {
-  .interna {
-    padding: 0 1rem;
-  }
-  .interna nav a:first-child {
+@media (max-width: 860px) {
+  .buscar {
     display: none;
   }
 }
 
-/* Con "Salones" y "Excursiones" no entran todos los enlaces en un celular: en
-   el más chico se guarda el de publicar, que sigue en el pie de página, y los
-   que quedan se aprietan. Quien entra desde el teléfono casi siempre viene a
-   buscar, no a publicar. */
-@media (max-width: 460px) {
-  .interna nav {
-    gap: 0;
-    font-size: 0.8125rem;
+/* Con cuatro secciones no entra todo en una fila de celular: arriba quedan la
+   marca y la cuenta; abajo, las secciones, que se pueden correr de costado si no
+   entran. El de publicar sigue en el pie de página: quien entra desde el
+   teléfono casi siempre viene a buscar, no a publicar. */
+@media (max-width: 620px) {
+  .interna {
+    flex-wrap: wrap;
+    padding: 0.375rem 1rem 0;
   }
-  .interna nav a {
-    padding: 0.5rem 0.4375rem;
+
+  .cuenta {
+    margin-left: auto;
   }
+
   .publicar {
     display: none;
+  }
+
+  .secciones {
+    order: 3;
+    flex: 1 1 100%;
+    margin-left: -0.75rem;
+    overflow-x: auto;
+    scrollbar-width: none;
+    font-size: 0.8125rem;
+  }
+
+  .secciones a {
+    padding: 0.5rem 0.75rem 0.625rem;
   }
 }

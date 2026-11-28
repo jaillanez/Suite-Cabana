@@ -45,7 +45,13 @@ def vehiculo(unidad: Unidad) -> pt.Vehiculo:
 
 
 def reglas(db: Session, unidad: Unidad) -> pt.Reglas:
-    t = db.scalar(select(TarifaTraslado).where(TarifaTraslado.unidad_id == unidad.id))
+    return reglas_de(
+        db.scalar(select(TarifaTraslado).where(TarifaTraslado.unidad_id == unidad.id))
+    )
+
+
+def reglas_de(t: TarifaTraslado | None) -> pt.Reglas:
+    """Las reglas de una tarifa ya traída; sin tarifa, los valores por defecto."""
     if t is None:
         return pt.Reglas()
     return pt.Reglas(

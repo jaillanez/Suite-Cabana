@@ -255,6 +255,22 @@ export default async function Ficha({ params, searchParams }: Params) {
               </section>
             )}
 
+            {f.traslados_cerca && f.traslados_cerca.length > 0 && (
+              <section>
+                <h2 className={estilos.subtitulo}>Cómo llegar</h2>
+                <p className={estilos.descripcion}>
+                  Traslados desde el aeropuerto o la terminal que podés reservar acá:{" "}
+                  {f.traslados_cerca.map((x, i) => (
+                    <span key={x.slug}>
+                      {i > 0 && ", "}
+                      <Link href={`/traslado/${x.slug}`}>{x.titulo}</Link>
+                    </span>
+                  ))}
+                  .
+                </p>
+              </section>
+            )}
+
             {f.lat !== null && f.lon !== null && (
               <section>
                 <h2 className={estilos.subtitulo}>Dónde queda</h2>

@@ -19,14 +19,18 @@ import {
 import Estado, { TEXTOS_RESERVA } from "./EstadoReserva";
 import { Alerta, Rayo } from "./Iconos";
 import BotonWhatsApp from "./BotonWhatsApp";
+import { esTraslado, PagoViaje, ViajeReserva } from "./ViajeReserva";
 import estilos from "./DetalleReserva.module.css";
 
 export default function DetalleReserva({
   reserva: inicial,
   pasarelas,
+  traslados = [],
 }: {
   reserva: Reserva;
   pasarelas: PasarelaDisponible[];
+  /* Traslados de la localidad de una estadía (docs/06). */
+  traslados?: { titulo: string; slug: string }[];
 }) {
   const [reserva, setReserva] = useState(inicial);
   const [error, setError] = useState<string | null>(null);
@@ -37,7 +41,9 @@ export default function DetalleReserva({
   // La API manda primero el ítem principal (el evento, si hay); en un paquete
   // (docs/04 S11) siguen las cabañas sumadas.
   const item = reserva.items[0];
-  const sumados = reserva.items.slice(1);
+  // Un traslado (docs/06): la ida y la vuelta son dos ítems, no un paquete.
+  const traslado = esTraslado(reserva);
+  const sumados = traslado ? [] : reserva.items.slice(1);
   // Un salón (docs/04): horario e invitados en vez de noches y huéspedes.
   const evento = Boolean(item?.inicio_en && item?.fin_en);
   // Una excursión (docs/05) guarda sus pasajeros por tipo en el desglose.
@@ -123,6 +129,9 @@ export default function DetalleReserva({
         </p>
       )}
 
+      {traslado && <ViajeReserva reserva={reserva} cambiar={setReserva} error={setError} />}
+
+      {!traslado && (
       <section className={estilos.bloque}>
         <h2>{pasajeros ? "La salida" : evento ? "El evento" : "La estadía"}</h2>
         <dl className={estilos.datos}>
@@ -186,6 +195,7 @@ export default function DetalleReserva({
           )}
         </dl>
       </section>
+      )}
 
       {sumados.length > 0 && (
         <section className={estilos.bloque}>
@@ -224,7 +234,8 @@ export default function DetalleReserva({
         ) : (
           <p className={`${estilos.total} cifra`}>{pesos(reserva.total)}</p>
         )}
-        {desglose && evento && (
+        {traslado && <PagoViaje reserva={reserva} />}
+        {desglose && evento && !traslado && (
           <dl className={estilos.desglose}>
             {pasajeros ? (
               pasajeros.map((x) => (
@@ -335,7 +346,7 @@ export default function DetalleReserva({
                 <span className="cifra">
                   {pesos(reserva.saldo_con_anfitrion)}
                 </span>
-                , se arregla con el anfitrión
+                , {traslado ? "se le paga al chofer" : "se arregla con el anfitrión"}
               </>
             )}
             .
@@ -414,6 +425,26 @@ export default function DetalleReserva({
               )}
             </>
           )}
+        </section>
+      )}
+
+      {traslados.length > 0 && reserva.estado !== "cancelada" && item && (
+        <section className={estilos.bloque}>
+          <h2>¿Te buscamos en el aeropuerto?</h2>
+          <p className={estilos.nota}>
+            Traslados en {item.localidad} que podés reservar acá, para el día que llegás:{" "}
+            {traslados.map((x, i) => (
+              <span key={x.slug}>
+                {i > 0 && ", "}
+                <Link
+                  href={`/traslado/${x.slug}?dia=${item.fecha_inicio}&pasajeros=${item.adultos + item.menores}`}
+                >
+                  {x.titulo}
+                </Link>
+              </span>
+            ))}
+            .
+          </p>
         </section>
       )}
 

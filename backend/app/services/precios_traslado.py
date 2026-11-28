@@ -175,7 +175,8 @@ def por_tramo(
     _validar(vehiculo, reglas, pasajeros, valijas, inicio, ahora)
     if tramo.por_persona:
         base = tramo.precio * pasajeros
-        concepto = f"Traslado, {pasajeros} × {tramo.precio:.2f}"
+        # El monto va en su columna: acá solo cuántos pagan (sin "8000.00" sin formato).
+        concepto = f"Traslado por persona, {pasajeros} pasajero{'s' if pasajeros != 1 else ''}"
     else:
         base, concepto = tramo.precio, "Traslado"
     return _armar(
@@ -209,4 +210,6 @@ def por_km(
     # Duración estimada a la velocidad media, redondeada a 5 minutos hacia arriba.
     minutos = math.ceil(float(km) / reglas.velocidad_kmh * 60 / 5) * 5
     duracion = max(timedelta(minutes=minutos), DURACION_MINIMA)
-    return _armar(base, f"Traslado, {km} km", duracion, inicio, vehiculo, reglas, km)
+    # "14,6 km": el concepto lo lee el viajero, con coma decimal.
+    concepto = f"Traslado, {str(km).replace('.', ',')} km"
+    return _armar(base, concepto, duracion, inicio, vehiculo, reglas, km)

@@ -32,6 +32,7 @@ from app.services import busqueda, politicas, precios, tipos
 from app.services import excursiones as excursiones_svc
 from app.services import publicaciones as fichas
 from app.services import salones as salones_svc
+from app.services import traslados_viajero as traslados_svc
 from app.services.privacidad import aproximar, distancia_publica, radio_publico
 
 router = APIRouter(tags=["publicaciones"])
@@ -394,6 +395,8 @@ class FichaOut(BaseModel):
     excursiones_cerca: list[EnlaceOut] = Field(
         default_factory=list, description="Excursiones en la misma localidad (docs/05)"
     )
+    #: "¿Te buscamos en el aeropuerto?": traslados de la misma localidad (docs/06).
+    traslados_cerca: list[EnlaceOut] = Field(default_factory=list)
 
 
 class ResumenDestinoOut(BaseModel):
@@ -609,6 +612,10 @@ def ficha(
         excursiones_cerca=[
             EnlaceOut(titulo=x.titulo, slug=x.slug)
             for x in excursiones_svc.en_localidad(db, p.localidad_id)
+        ],
+        traslados_cerca=[
+            EnlaceOut(titulo=x.titulo, slug=x.slug)
+            for x in traslados_svc.en_localidad(db, p.localidad_id)
         ],
     )
 

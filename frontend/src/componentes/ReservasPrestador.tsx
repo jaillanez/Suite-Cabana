@@ -8,6 +8,8 @@ import {
 } from "@/lib/acciones-reservas";
 import type { Reserva } from "@/lib/api";
 import {
+  diaAR,
+  horaAR,
   horarioEvento,
   pesos,
   pesosExactos,
@@ -17,6 +19,7 @@ import {
 import Estado from "./EstadoReserva";
 import { Alerta } from "./Iconos";
 import BotonWhatsApp from "./BotonWhatsApp";
+import { esTraslado } from "./ViajeReserva";
 import estilos from "./ReservasPrestador.module.css";
 
 export default function ReservasPrestador({ inicial }: { inicial: Reserva[] }) {
@@ -39,12 +42,16 @@ export default function ReservasPrestador({ inicial }: { inicial: Reserva[] }) {
       <ul className={estilos.lista}>
         {reservas.map((r) => {
           const item = r.items[0];
-          const sumados = r.items.slice(1); // paquete: las cabañas del evento
+          const traslado = esTraslado(r);
+          // Paquete: las cabañas del evento. En un traslado, la vuelta va en su línea.
+          const sumados = traslado ? [] : r.items.slice(1);
           return (
             <li key={r.codigo} className={estilos.ficha}>
               <div className={estilos.encabezado}>
                 <div>
                   <strong>{item?.publicacion}</strong>
+                  {traslado && <Viajes reserva={r} />}
+                  {!traslado && (
                   <span className={estilos.detalle}>
                     {item?.unidad} ·{" "}
                     {item?.inicio_en && item.fin_en
@@ -56,12 +63,21 @@ export default function ReservasPrestador({ inicial }: { inicial: Reserva[] }) {
                           "noches",
                         )}`}
                   </span>
+                  )}
                   <span className={estilos.detalle}>
                     {item &&
                       plural(
                         item.adultos + item.menores,
-                        item.inicio_en && !item.desglose?.pasajeros ? "invitado" : "persona",
-                        item.inicio_en && !item.desglose?.pasajeros ? "invitados" : "personas",
+                        traslado
+                          ? "pasajero"
+                          : item.inicio_en && !item.desglose?.pasajeros
+                            ? "invitado"
+                            : "persona",
+                        traslado
+                          ? "pasajeros"
+                          : item.inicio_en && !item.desglose?.pasajeros
+                            ? "invitados"
+                            : "personas",
                       )}{" "}
                     · código <span className="cifra">{r.codigo}</span>
                   </span>
@@ -157,6 +173,34 @@ export default function ReservasPrestador({ inicial }: { inicial: Reserva[] }) {
           );
         })}
       </ul>
+    </>
+  );
+}
+
+/* Un traslado (docs/06): cada viaje con su hora y recorrido; los datos que cargó
+   el viajero (dirección, vuelo, notas) llegan recién con la reserva pagada. */
+function Viajes({ reserva }: { reserva: Reserva }) {
+  const lista = [...reserva.items].sort((a, b) =>
+    (a.inicio_en ?? "").localeCompare(b.inicio_en ?? ""),
+  );
+  return (
+    <>
+      {lista.map((i) => {
+        const d = i.desglose as { sentido?: string; origen?: string; destino?: string; valijas?: number };
+        const datos = i.datos_servicio;
+        return (
+          <span key={i.inicio_en ?? d.sentido} className={estilos.detalle}>
+            {i.unidad} · {d.sentido === "vuelta" ? "Vuelta" : lista.length > 1 ? "Ida" : "Viaje"}{" "}
+            {i.inicio_en && `${diaAR(i.inicio_en)}, ${horaAR(i.inicio_en)} h`} · {d.origen} →{" "}
+            {d.destino}
+            {d.valijas ? ` · ${plural(d.valijas, "valija", "valijas")}` : ""}
+            {datos?.direccion_origen && <> · busca en {datos.direccion_origen}</>}
+            {datos?.direccion_destino && <> · deja en {datos.direccion_destino}</>}
+            {datos?.vuelo && <> · vuelo {datos.vuelo}</>}
+            {datos?.notas && <> · “{datos.notas}”</>}
+          </span>
+        );
+      })}
     </>
   );
 }

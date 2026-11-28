@@ -121,12 +121,13 @@ Cada beneficio define **quién absorbe el costo** y en qué proporción:
 - [x] Mínimo de participantes con cancelación automática si no se alcanza: mínimo y aviso por turno (docs/05).
 
 **Traslados**
-- [x] Tarifa por tramo, por kilómetro o por vehículo: la elige cada prestador (docs/06; se reserva desde la etapa 2).
+- [x] Tarifa por tramo, por kilómetro o por vehículo: la elige cada prestador (docs/06).
+- [x] El viajero busca, compara vehículos para su viaje y reserva ida y vuelta (docs/06, etapa 4).
 - [x] Capacidad del vehículo y equipaje (docs/06).
 
 **Venta cruzada**
-- [ ] Al confirmar un alojamiento, sugerir servicios cercanos para esas fechas.
-- [x] En la ficha del alojamiento, mostrar servicios de la zona (excursiones de la localidad, docs/05).
+- [ ] Al confirmar un alojamiento, sugerir servicios cercanos para esas fechas. Hecho para traslados: la reserva de una estadía ofrece los de la localidad para el día de llegada (docs/06); faltan las excursiones.
+- [x] En la ficha del alojamiento, mostrar servicios de la zona (excursiones de la localidad, docs/05; traslados, docs/06).
 
 **Comisiones**
 - [ ] El motor de comisiones aplica reglas por cada tipo y subtipo de servicio sin cambios estructurales.

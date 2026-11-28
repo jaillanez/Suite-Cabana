@@ -37,7 +37,8 @@ export default function GaleriaFicha({ fotos, titulo }: { fotos: Foto[]; titulo:
   if (fotos.length === 0) {
     return (
       <div className={estilos.sinFotos}>
-        <p>Este alojamiento todavía no cargó fotos.</p>
+        {/* Sirve para cualquier ficha: alojamiento, salón, excursión o traslado. */}
+        <p>Todavía no hay fotos.</p>
       </div>
     );
   }

@@ -53,7 +53,7 @@ Publicacion ──< LugarTraslado            (puntos con nombre; uno puede ser l
 
 ## 5. Etapas
 
-Cada etapa se puede publicar por separado. Hechas (noviembre 2026): **1**, **2** y **3**.
+Cada etapa se puede publicar por separado. Hechas (noviembre 2026): las cuatro.
 
 | Etapa | Contenido |
 |---|---|
@@ -105,6 +105,28 @@ Cómo quedó la etapa 3 (`app/api/v1/mis_traslados.py`, `UnidadesTraslado.tsx`):
   bloqueos a mano.
 - La política de cancelación es la plantilla o tramos propios, como las
   excursiones.
+
+Cómo quedó la etapa 4 (`app/services/traslados_viajero.py`, `/traslados`,
+`/traslado/[slug]`, `ReservaTraslado.tsx`, `ViajeReserva.tsx`):
+
+- **Búsqueda** por destino, pasajeros, valijas y un lugar ("aeropuerto", "terminal":
+  busca en los nombres de los lugares de cada prestador). **No filtra por día**:
+  cuánto ocupa un viaje al vehículo depende del recorrido, así que si está libre
+  se responde en la ficha, con el viaje armado. Es un cambio sobre lo previsto en
+  §5 ("buscar por día").
+- **Ficha**: vehículos, recorridos de precio fijo, tarifa por km, recargo y
+  anticipación. De los lugares se muestra solo el nombre: el punto de la base
+  puede ser la casa del prestador.
+- **Opciones** (`POST /traslados/opciones`): con el viaje armado —lugar o
+  dirección en el mapa, día y hora, pasajeros, valijas, vuelta—, cada vehículo
+  con su precio y si está libre, o por qué no (no entran, no hace ese recorrido,
+  ya tiene un viaje). Sale de la misma cuenta que la reserva.
+- **Detalle de la reserva**: ida y vuelta, direcciones, vuelo y notas; el viajero
+  corrige el vuelo y las notas. El prestador ve los viajes en su lista de
+  reservas y los datos del viaje recién con la reserva pagada.
+- **Venta cruzada**: la ficha de un alojamiento muestra los traslados de la
+  localidad ("Cómo llegar"), y la reserva de una estadía ofrece "¿Te buscamos en
+  el aeropuerto?" con el día de llegada y las personas ya cargados.
 
 ## 6. Fuera de alcance por ahora
 
