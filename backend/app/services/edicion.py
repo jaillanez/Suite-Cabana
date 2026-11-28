@@ -56,53 +56,64 @@ class PublicacionIncompleta(Exception):
         super().__init__("; ".join(faltantes))
 
 
+#: Los grupos en que se ordena lo que falta: cada uno es un paso de "Primeros
+#: pasos" y un bloque del editor.
+GRUPOS = ("datos", "ubicacion", "whatsapp", "fotos", "unidades")
+
+
 def faltantes(db: Session, publicacion: Publicacion) -> list[str]:
     """Qué le falta a la publicación para poder mandarse a revisión.
 
     Se devuelve la lista completa, no el primer problema: el prestador tiene que
     poder resolver todo de una vez y no descubrir un faltante por intento.
     """
+    return [mensaje for _, mensaje in faltantes_por_grupo(db, publicacion)]
+
+
+def faltantes_por_grupo(db: Session, publicacion: Publicacion) -> list[tuple[str, str]]:
+    """Lo mismo que `faltantes`, con el grupo de cada cosa (ver `GRUPOS`)."""
     s = get_settings()
-    problemas: list[str] = []
+    problemas: list[tuple[str, str]] = []
 
     if not publicacion.titulo or len(publicacion.titulo.strip()) < 6:
-        problemas.append("El título necesita al menos 6 caracteres")
+        problemas.append(("datos", "El título necesita al menos 6 caracteres"))
     if not publicacion.descripcion or len(publicacion.descripcion.strip()) < 40:
-        problemas.append("La descripción necesita al menos 40 caracteres")
+        problemas.append(("datos", "La descripción necesita al menos 40 caracteres"))
     if publicacion.ubicacion is None:
-        problemas.append("Falta marcar la ubicación en el mapa")
+        problemas.append(("ubicacion", "Falta marcar la ubicación en el mapa"))
     modo = publicacion.tipo_servicio.modo_reserva
     salon = modo is ModoReserva.HORAS
     excursion = modo is ModoReserva.TURNO_CUPO
     traslado = modo is ModoReserva.TRAMO
     if publicacion.subtipo_servicio_id is None:
-        problemas.append(
+        problemas.append((
+            "datos",
             "Falta elegir el tipo de espacio"
             if salon
             else "Falta elegir el tipo de actividad"
             if excursion
             else "Falta elegir el tipo de traslado"
             if traslado
-            else "Falta elegir el tipo de alojamiento"
-        )
+            else "Falta elegir el tipo de alojamiento",
+        ))
     # Una plantilla o tramos propios del prestador: cualquiera de las dos vale.
     if publicacion.politica_cancelacion_id is None and not publicacion.tramos_cancelacion:
-        problemas.append("Falta elegir una política de cancelación")
+        problemas.append(("datos", "Falta elegir una política de cancelación"))
     # Con la reserva confirmada, el viajero le escribe por WhatsApp desde la reserva.
     if not publicacion.prestador.usuario.telefono:
-        problemas.append("Falta tu WhatsApp: cargalo en Mi cuenta")
+        problemas.append(("whatsapp", "Falta tu WhatsApp: cargalo en Mi cuenta"))
     # Un salón no tiene ingreso y salida: sus horarios son los turnos o el
     # horario de atención de cada unidad.
     if modo is ModoReserva.NOCHES and (
         publicacion.hora_ingreso is None or publicacion.hora_salida is None
     ):
-        problemas.append("Faltan los horarios de ingreso y salida")
+        problemas.append(("datos", "Faltan los horarios de ingreso y salida"))
 
     fotos = db.scalar(
         select(func.count(Foto.id)).where(Foto.publicacion_id == publicacion.id)
     ) or 0
     if fotos < s.fotos_minimas:
-        problemas.append(f"Faltan fotos: se necesitan {s.fotos_minimas} y hay {fotos}")
+        problemas.append(("fotos", f"Faltan fotos: se necesitan {s.fotos_minimas} y hay {fotos}"))
 
     unidades = list(
         db.scalars(
@@ -110,19 +121,20 @@ def faltantes(db: Session, publicacion: Publicacion) -> list[str]:
         )
     )
     if not unidades:
-        problemas.append(
+        problemas.append((
+            "unidades",
             "Falta cargar al menos un espacio"
             if salon
             else "Falta cargar al menos una actividad"
             if excursion
             else "Falta cargar al menos un vehículo"
             if traslado
-            else "Falta cargar al menos una unidad"
-        )
+            else "Falta cargar al menos una unidad",
+        ))
     elif excursion:
-        problemas.extend(_faltantes_excursion(db, unidades))
+        problemas.extend(("unidades", m) for m in _faltantes_excursion(db, unidades))
     elif traslado:
-        problemas.extend(_faltantes_traslado(db, unidades))
+        problemas.extend(("unidades", m) for m in _faltantes_traslado(db, unidades))
     elif salon:
         # Un salón se puede reservar si tiene al menos un turno o precio por hora.
         sin_precio = [
@@ -141,7 +153,7 @@ def faltantes(db: Session, publicacion: Publicacion) -> list[str]:
         ]
         if sin_precio:
             problemas.append(
-                f"Sin turnos ni precio por hora: {', '.join(sin_precio)}"
+                ("unidades", f"Sin turnos ni precio por hora: {', '.join(sin_precio)}")
             )
     else:
         sin_tarifa = [
@@ -150,7 +162,7 @@ def faltantes(db: Session, publicacion: Publicacion) -> list[str]:
             if not db.scalar(select(Tarifa.id).where(Tarifa.unidad_id == u.id))
         ]
         if sin_tarifa:
-            problemas.append(f"Sin tarifa cargada: {', '.join(sin_tarifa)}")
+            problemas.append(("unidades", f"Sin tarifa cargada: {', '.join(sin_tarifa)}"))
 
     return problemas
 

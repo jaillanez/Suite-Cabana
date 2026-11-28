@@ -2,11 +2,12 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 
-import { misPublicaciones } from "@/lib/api";
+import { misPublicaciones, primerosPasos } from "@/lib/api";
 import { cuentaActual, tokenActual } from "@/lib/sesion";
 import Encabezado from "@/componentes/Encabezado";
 import Estado from "@/componentes/EstadoPublicacion";
 import { Alerta } from "@/componentes/Iconos";
+import PrimerosPasos from "@/componentes/PrimerosPasos";
 import estilos from "./mis.module.css";
 
 export const metadata: Metadata = {
@@ -20,9 +21,15 @@ export default async function MisPublicaciones() {
   if (!cuenta.prestador) redirect("/cuenta");
 
   const token = await tokenActual();
-  const publicaciones = token
-    ? await misPublicaciones(token).catch(() => [])
-    : [];
+  const [publicaciones, pasos] = token
+    ? await Promise.all([
+        misPublicaciones(token).catch(() => []),
+        primerosPasos(token).catch(() => null),
+      ])
+    : [[], null];
+  // Hasta tener una publicación aprobada, la lista de pasos manda: el aviso de
+  // Mercado Pago es uno de ellos.
+  const guia = pasos && !pasos.terminado ? pasos : null;
 
   return (
     <>
@@ -40,7 +47,9 @@ export default async function MisPublicaciones() {
           </span>
         </div>
 
-        {!cuenta.prestador.puede_publicar && (
+        {guia && <PrimerosPasos datos={guia} />}
+
+        {!guia && !cuenta.prestador.puede_publicar && (
           <p className={estilos.aviso}>
             <Alerta className={estilos.icono} />
             <span>

@@ -266,7 +266,7 @@ export default function EditorPublicacion({
         <ImportarAnuncio p={p} catalogo={catalogo} correr={correr} pendiente={pendiente} />
       )}
 
-      <fieldset className={estilos.bloque} disabled={bloqueada}>
+      <fieldset id="datos" className={estilos.bloque} disabled={bloqueada}>
         <h2>
           {segun({
             salon: "Datos del salón",
@@ -444,7 +444,7 @@ export default function EditorPublicacion({
         </form>
       </fieldset>
 
-      <fieldset className={estilos.bloque} disabled={bloqueada}>
+      <fieldset id="ubicacion" className={estilos.bloque} disabled={bloqueada}>
         <h2>{esTraslado ? "Desde dónde trabajás" : "Dónde queda"}</h2>
         <MapaSelector
           lat={p.lat}
@@ -498,7 +498,7 @@ export default function EditorPublicacion({
         </ul>
       </fieldset>
 
-      <fieldset className={estilos.bloque} disabled={bloqueada}>
+      <fieldset id="fotos" className={estilos.bloque} disabled={bloqueada}>
         <h2>
           Fotos <span className="cifra">{p.fotos.length}</span>
         </h2>
@@ -575,25 +575,25 @@ export default function EditorPublicacion({
       )}
 
       {esSalon && (
-        <fieldset className={estilos.bloque} disabled={bloqueada}>
+        <fieldset id="unidades" className={estilos.bloque} disabled={bloqueada}>
           <UnidadesSalon p={p} correr={correr} pendiente={pendiente} />
         </fieldset>
       )}
 
       {esExcursion && (
-        <fieldset className={estilos.bloque} disabled={bloqueada}>
+        <fieldset id="unidades" className={estilos.bloque} disabled={bloqueada}>
           <UnidadesExcursion p={p} correr={correr} pendiente={pendiente} />
         </fieldset>
       )}
 
       {esTraslado && (
-        <fieldset className={estilos.bloque} disabled={bloqueada}>
+        <fieldset id="unidades" className={estilos.bloque} disabled={bloqueada}>
           <UnidadesTraslado p={p} correr={correr} pendiente={pendiente} />
         </fieldset>
       )}
 
       {porNoches && (
-        <fieldset className={estilos.bloque} disabled={bloqueada}>
+        <fieldset id="unidades" className={estilos.bloque} disabled={bloqueada}>
           <h2>Unidades</h2>
           <p className={estilos.ayuda}>
             Cada unidad es lo que alguien reserva: una cabaña, un departamento,

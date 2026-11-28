@@ -565,3 +565,9 @@
   color: var(--texto-2);
   flex: 1 1 220px;
 }
+
+/* Los pasos de "Primeros pasos" llevan a #datos, #fotos…: que el bloque no quede
+   tapado por la barra fija de arriba. */
+.bloque[id] {
+  scroll-margin-top: calc(var(--barra-alto) + 1rem);
+}

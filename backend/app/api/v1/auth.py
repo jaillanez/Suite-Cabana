@@ -37,7 +37,7 @@ from app.core.security import (
 )
 from app.models import Notificacion, Prestador, Usuario
 from app.models.enums import CanalNotificacion, EstadoNotificacion
-from app.services import contacto, cuenta_cobro, google, mp_oauth
+from app.services import contacto, cuenta_cobro, google, mp_oauth, primeros_pasos
 from app.services.notificaciones.base import ErrorDeEnvio, Mensaje
 from app.services.notificaciones.correo import CorreoSMTP
 from app.services.pagos import ErrorDePasarela
@@ -490,6 +490,39 @@ def vincular_mercadopago(
     salida = _prestador_out(prestador)
     assert salida is not None
     return salida
+
+
+class PasoOut(BaseModel):
+    codigo: str
+    titulo: str
+    detalle: str
+    hecho: bool
+    enlace: str
+    accion: str
+    opcional: bool
+    disponible: bool
+
+
+class PrimerosPasosOut(BaseModel):
+    pasos: list[PasoOut]
+    hechos: int = Field(description="Pasos obligatorios hechos")
+    total: int = Field(description="Pasos obligatorios")
+    publicacion_id: UUID | None
+    titulo: str | None
+    terminado: bool = Field(description="Ya tiene una publicación aprobada")
+
+
+@router.get("/prestador/primeros-pasos", response_model=PrimerosPasosOut)
+def ver_primeros_pasos(
+    prestador: Prestador = Depends(prestador_actual), db: Session = Depends(get_db)
+) -> PrimerosPasosOut:
+    """La lista que lleva al prestador hasta su primera publicación, con avance."""
+    r = primeros_pasos.calcular(db, prestador)
+    return PrimerosPasosOut(
+        pasos=[PasoOut(**vars(p)) for p in r.pasos],
+        hechos=r.hechos, total=r.total, publicacion_id=r.publicacion_id, titulo=r.titulo,
+        terminado=r.terminado,
+    )
 
 
 class ConexionMercadoPago(BaseModel):

@@ -52,7 +52,7 @@ export default async function Cuenta({
           </form>
         </div>
 
-        <section>
+        <section id="datos">
           <h2>Tus datos</h2>
           <dl className={estilos.datos}>
             <div>
@@ -102,7 +102,7 @@ export default async function Cuenta({
           )}
         </section>
 
-        <section>
+        <section id="prestador">
           <h2>Publicar tu alojamiento</h2>
           {cuenta.prestador ? (
             <>

@@ -2138,3 +2138,30 @@ export const simularComision = (token: string, caso: Record<string, unknown>) =>
     token,
     body: JSON.stringify(caso),
   });
+
+
+/* --- Primeros pasos del prestador (mejora 3) --- */
+
+export type PasoInicial = {
+  codigo: string;
+  titulo: string;
+  detalle: string;
+  hecho: boolean;
+  enlace: string;
+  accion: string;
+  opcional: boolean;
+  /** False: espera a un paso anterior (por ejemplo, crear la publicación). */
+  disponible: boolean;
+};
+
+export type PrimerosPasos = {
+  pasos: PasoInicial[];
+  hechos: number;
+  total: number;
+  publicacion_id: string | null;
+  titulo: string | null;
+  terminado: boolean;
+};
+
+export const primerosPasos = (token: string) =>
+  api<PrimerosPasos>("/auth/prestador/primeros-pasos", { token });
